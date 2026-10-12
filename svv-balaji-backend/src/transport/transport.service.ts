@@ -1,18 +1,57 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma, TransportStatus } from '@prisma/client';
+import { Prisma, PurchaseOrderStatus, SupplierStatus, TransportStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { SequenceService } from '../common/sequence.service';
+import { nextRawBatchNumber } from '../common/raw-batch-number';
 import { CreateTransportDto } from './dto/create-transport.dto';
 import { UpdateTransportDto } from './dto/update-transport.dto';
 import { QueryTransportDto } from './dto/query-transport.dto';
+import { DeliverTransportDto } from './dto/deliver-transport.dto';
 
+const round2 = (n: number) => Math.round(n * 100) / 100;
+
+/**
+ * Inbound material from suppliers - the supplier counterpart of a farmer
+ * collection. A transport is scheduled, dispatched and delivered; delivery is
+ * where the raw material batch (RM-...) is born, so from there on supplier
+ * material flows through QC, production and traceability exactly like a
+ * farmer's.
+ */
 @Injectable()
 export class TransportService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly sequence: SequenceService,
+  ) {}
 
-  create(dto: CreateTransportDto, createdById: string) {
+  /**
+   * The supplier must exist and not be blocked, and a linked purchase order
+   * must be that supplier's and still open. Returns the PO rate to fall back on.
+   */
+  private async checkSupplierAndPo(supplierId: string, purchaseOrderId?: string | null): Promise<number | null> {
+    const supplier = await this.prisma.supplier.findUnique({ where: { id: supplierId }, select: { status: true, fullName: true } });
+    if (!supplier) throw new BadRequestException('Supplier not found');
+    if (supplier.status === SupplierStatus.BLACKLISTED || supplier.status === SupplierStatus.SUSPENDED) {
+      throw new BadRequestException(`${supplier.fullName} is ${supplier.status.toLowerCase()} - material cannot be received from them`);
+    }
+    if (!purchaseOrderId) return null;
+    const po = await this.prisma.purchaseOrder.findUnique({ where: { id: purchaseOrderId } });
+    if (!po) throw new BadRequestException('Purchase order not found');
+    if (po.supplierId !== supplierId) throw new BadRequestException(`${po.poNumber} belongs to another supplier`);
+    if (po.status === PurchaseOrderStatus.CANCELLED || po.status === PurchaseOrderStatus.FULFILLED) {
+      throw new BadRequestException(`${po.poNumber} is ${po.status.toLowerCase()} - it cannot take another delivery`);
+    }
+    return Number(po.purchaseRate);
+  }
+
+  async create(dto: CreateTransportDto, createdById: string) {
+    const poRate = await this.checkSupplierAndPo(dto.supplierId, dto.purchaseOrderId);
+    const purchaseRate = dto.purchaseRate ?? poRate ?? undefined;
     return this.prisma.supplierTransport.create({
       data: {
         ...dto,
+        purchaseRate,
+        totalAmount: purchaseRate !== undefined ? round2(purchaseRate * dto.quantity) : undefined,
         scheduledDate: new Date(dto.scheduledDate),
         createdById,
       },
@@ -36,6 +75,7 @@ export class TransportService {
       include: {
         supplier: { select: { id: true, fullName: true, supplierCode: true } },
         warehouse: { select: { id: true, name: true } },
+        batch: { select: { id: true, batchNumber: true, status: true } },
       },
     });
   }
@@ -46,6 +86,8 @@ export class TransportService {
       include: {
         supplier: true,
         warehouse: true,
+        purchaseOrder: { select: { id: true, poNumber: true, status: true } },
+        batch: { select: { id: true, batchNumber: true, status: true } },
         createdBy: { select: { id: true, fullName: true } },
       },
     });
@@ -59,11 +101,17 @@ export class TransportService {
     if (transport.status !== TransportStatus.SCHEDULED) {
       throw new BadRequestException(`Cannot edit transport in ${transport.status} status`);
     }
+    if (dto.supplierId !== undefined || dto.purchaseOrderId !== undefined) {
+      await this.checkSupplierAndPo(dto.supplierId ?? transport.supplierId, dto.purchaseOrderId ?? transport.purchaseOrderId);
+    }
+    const quantity = dto.quantity ?? Number(transport.quantity);
+    const rate = dto.purchaseRate ?? (transport.purchaseRate === null ? null : Number(transport.purchaseRate));
 
     return this.prisma.supplierTransport.update({
       where: { id },
       data: {
         ...dto,
+        totalAmount: rate !== null ? round2(rate * quantity) : undefined,
         scheduledDate: dto.scheduledDate ? new Date(dto.scheduledDate) : undefined,
       },
     });
@@ -85,58 +133,95 @@ export class TransportService {
     });
   }
 
-  async deliver(id: string, warehouseId: string) {
-    const transport = await this.prisma.supplierTransport.findUnique({
-      where: { id },
-      include: { supplier: true },
-    });
+  /**
+   * The goods have arrived. In one transaction: the transport is closed with a
+   * receipt (SR-...), a raw material batch is created for this supplier, the
+   * received quantity is booked into the warehouse (stock row + STOCK_IN
+   * movement, exactly as a farmer collection does), and a linked purchase
+   * order's fulfilment is updated.
+   *
+   * The batch is STORED and follows the same quality rules as farmer material:
+   * a RAW_MATERIAL inspection that fails (or needs rework) blocks production.
+   */
+  async deliver(id: string, dto: DeliverTransportDto, performedById: string) {
+    const transport = await this.prisma.supplierTransport.findUnique({ where: { id } });
     if (!transport) throw new NotFoundException('Transport not found');
     if (transport.status !== TransportStatus.IN_TRANSIT && transport.status !== TransportStatus.SCHEDULED) {
       throw new BadRequestException(`Cannot deliver transport in ${transport.status} status`);
     }
+    const warehouseId = dto.warehouseId || transport.warehouseId;
+    if (!warehouseId) throw new BadRequestException('Choose the warehouse the goods were unloaded at');
+    const warehouse = await this.prisma.warehouse.findUnique({ where: { id: warehouseId }, select: { id: true, branchId: true } });
+    if (!warehouse) throw new BadRequestException('Warehouse not found');
 
-    // Deliver creates a RawMaterialBatch automatically
+    const quantity = dto.receivedQuantity ?? Number(transport.quantity);
+    const rate = dto.purchaseRate ?? (transport.purchaseRate === null ? null : Number(transport.purchaseRate));
+    const now = new Date();
+
     return this.prisma.$transaction(async (tx) => {
-      // 1. Mark delivered
+      const receiptNumber = await this.sequence.next(tx, 'SR', now);
+      const batchNumber = await nextRawBatchNumber(tx, now);
+
       const delivered = await tx.supplierTransport.update({
         where: { id },
         data: {
           status: TransportStatus.DELIVERED,
-          deliveredAt: new Date(),
+          deliveredAt: now,
+          dispatchedAt: transport.dispatchedAt ?? now,
           warehouseId,
+          quantity,
+          purchaseRate: rate,
+          totalAmount: rate !== null ? round2(rate * quantity) : null,
+          receiptNumber,
         },
       });
 
-      // 2. Generate batch number RM-YYYYMMDD-NNN
-      const today = new Date();
-      const datePart = today.toISOString().slice(0, 10).replace(/-/g, '');
-      const sequenceKey = `RM-${datePart}`;
-
-      const counter = await tx.sequenceCounter.upsert({
-        where: { key: sequenceKey },
-        update: { lastNumber: { increment: 1 } },
-        create: { key: sequenceKey, lastNumber: 1 },
-      });
-      const batchNumber = `${sequenceKey}-${counter.lastNumber.toString().padStart(3, '0')}`;
-
-      // 3. Create batch
-      await tx.rawMaterialBatch.create({
+      const batch = await tx.rawMaterialBatch.create({
         data: {
           batchNumber,
-          cropName: transport.materialName,
-          quantity: transport.quantity,
-          unit: transport.unit,
-          status: 'QA_PENDING' as any,
-          warehouseId,
           supplierTransportId: transport.id,
-          // Since it's from a supplier, we don't have farmer/collection ID.
-          // In a real system, RawMaterialBatch would be updated to allow either 
-          // collectionId OR supplierTransportId. For now, we omit collectionId.
+          supplierId: transport.supplierId,
+          branchId: warehouse.branchId,
+          cropName: transport.materialName,
+          quantity,
+          unit: transport.unit,
+          status: 'STORED',
+          warehouseId,
         },
       });
 
-      return delivered;
+      await tx.warehouseStock.create({
+        data: { warehouseId, batchId: batch.id, quantity, unit: transport.unit },
+      });
+      await tx.stockMovement.create({
+        data: {
+          batchId: batch.id,
+          toWarehouseId: warehouseId,
+          movementType: 'STOCK_IN',
+          quantity,
+          unit: transport.unit,
+          reason: `Received from supplier, receipt ${receiptNumber}`,
+          performedById,
+        },
+      });
+
+      if (transport.purchaseOrderId) await this.refreshPoFulfilment(tx, transport.purchaseOrderId);
+
+      return { ...delivered, batch: { id: batch.id, batchNumber: batch.batchNumber, status: batch.status } };
     });
+  }
+
+  /** A PO is FULFILLED once delivered transports reach its expected quantity, PARTIALLY_FULFILLED before that. */
+  private async refreshPoFulfilment(tx: Prisma.TransactionClient, purchaseOrderId: string) {
+    const po = await tx.purchaseOrder.findUnique({ where: { id: purchaseOrderId } });
+    if (!po || po.status === PurchaseOrderStatus.CANCELLED) return;
+    const got = await tx.supplierTransport.aggregate({
+      where: { purchaseOrderId, status: TransportStatus.DELIVERED },
+      _sum: { quantity: true },
+    });
+    const received = Number(got._sum.quantity ?? 0);
+    const status = received >= Number(po.expectedQuantity) ? PurchaseOrderStatus.FULFILLED : PurchaseOrderStatus.PARTIALLY_FULFILLED;
+    if (status !== po.status) await tx.purchaseOrder.update({ where: { id: po.id }, data: { status } });
   }
 
   async cancel(id: string, remarks?: string) {

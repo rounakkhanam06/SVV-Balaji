@@ -13,6 +13,7 @@ interface TransportFormValues {
   materialName: string;
   quantity: number;
   unit?: string;
+  purchaseRate?: number;
   vehicleNumber?: string;
   driverName?: string;
   driverPhone?: string;
@@ -46,6 +47,7 @@ export function TransportFormModal({
           materialName: editing.materialName,
           quantity: editing.quantity,
           unit: editing.unit || 'KG',
+          purchaseRate: editing.purchaseRate == null ? undefined : Number(editing.purchaseRate),
           vehicleNumber: editing.vehicleNumber || undefined,
           driverName: editing.driverName || undefined,
           driverPhone: editing.driverPhone || undefined,
@@ -72,6 +74,7 @@ export function TransportFormModal({
         materialName: values.materialName,
         quantity: Number(values.quantity),
         unit: values.unit || 'KG',
+        purchaseRate: values.purchaseRate,
         vehicleNumber: values.vehicleNumber,
         driverName: values.driverName,
         driverPhone: values.driverPhone,
@@ -129,6 +132,18 @@ export function TransportFormModal({
           <Col span={12}>
             <Form.Item name="scheduledDate" label="Scheduled Date" rules={[{ required: true }]}>
               <DatePicker style={{ width: '100%' }} format="DD MMM YYYY" />
+            </Form.Item>
+          </Col>
+        </Row>
+
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item
+              name="purchaseRate"
+              label="Purchase Rate (per unit)"
+              extra="Carried onto the raw batch for production cost and supplier payment. Left empty, a linked PO's rate is used."
+            >
+              <InputNumber style={{ width: '100%' }} min={0} step={0.5} prefix="₹" placeholder="e.g. 32.50" />
             </Form.Item>
           </Col>
         </Row>

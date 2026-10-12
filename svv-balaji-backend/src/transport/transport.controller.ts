@@ -4,6 +4,7 @@ import { TransportService } from './transport.service';
 import { CreateTransportDto } from './dto/create-transport.dto';
 import { UpdateTransportDto } from './dto/update-transport.dto';
 import { QueryTransportDto } from './dto/query-transport.dto';
+import { DeliverTransportDto } from './dto/deliver-transport.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermission } from '../auth/decorators/require-permission.decorator';
@@ -49,8 +50,15 @@ export class TransportController {
 
   @Patch(':id/deliver')
   @RequirePermission('transports.edit')
-  deliver(@Param('id') id: string, @Body('warehouseId') warehouseId: string) {
-    return this.transportService.deliver(id, warehouseId);
+  @ApiOperation({
+    summary: 'Goods arrived: creates the raw material batch (RM-...) for this supplier and stocks it in the warehouse',
+    description:
+      'Issues a receipt (SR-...), books the received quantity into the warehouse with a STOCK_IN movement, carries the ' +
+      'supplier and purchase rate onto the batch (traceability and production cost), and moves a linked purchase order ' +
+      'to PARTIALLY_FULFILLED / FULFILLED. Quality rules are the same as for farmer batches.',
+  })
+  deliver(@Param('id') id: string, @Body() dto: DeliverTransportDto, @CurrentUser() user: JwtPayload) {
+    return this.transportService.deliver(id, dto, user.sub);
   }
 
   @Patch(':id/cancel')

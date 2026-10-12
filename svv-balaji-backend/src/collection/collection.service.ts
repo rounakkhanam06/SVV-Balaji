@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { scopedBranchId } from '../common/branch-scope';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy';
 import { SequenceService } from '../common/sequence.service';
+import { nextRawBatchNumber } from '../common/raw-batch-number';
 import { FarmerPerformanceService } from '../farmers/farmer-performance.service';
 import { CreateCollectionDto } from './dto/create-collection.dto';
 import { UpdateCollectionDto } from './dto/update-collection.dto';
@@ -167,23 +168,8 @@ export class CollectionService {
    * Atomic increment on a per-day counter row - same pattern as the farmer
    * code, so two collections on the same day can never share a batch number.
    */
-  private async generateBatchNumber(
-    tx: Prisma.TransactionClient,
-    date: Date,
-  ): Promise<string> {
-    const dateKey = this.toDateKey(date);
-
-    const existing = await tx.batchNumberCounter.findUnique({ where: { dateKey } });
-    if (!existing) {
-      await tx.batchNumberCounter.create({ data: { dateKey, lastNumber: 0 } });
-    }
-
-    const updated = await tx.batchNumberCounter.update({
-      where: { dateKey },
-      data: { lastNumber: { increment: 1 } },
-    });
-
-    return `RM-${dateKey}-${String(updated.lastNumber).padStart(3, '0')}`;
+  private generateBatchNumber(tx: Prisma.TransactionClient, date: Date): Promise<string> {
+    return nextRawBatchNumber(tx, date);
   }
 
   /** Receipt numbers share the daily sequence space but carry an RC- prefix. */

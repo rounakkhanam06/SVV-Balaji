@@ -58,8 +58,8 @@ export function useDispatchTransport() {
 export function useDeliverTransport() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, warehouseId }: { id: string; warehouseId: string }) =>
-      transportsApi.deliver(id, warehouseId),
+    mutationFn: ({ id, ...body }: { id: string; warehouseId: string; receivedQuantity?: number; purchaseRate?: number }) =>
+      transportsApi.deliver(id, body),
     onSuccess: (_, { id }) => {
       qc.invalidateQueries({ queryKey: CACHE_KEY });
       qc.invalidateQueries({ queryKey: [...CACHE_KEY, id] });

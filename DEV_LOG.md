@@ -4018,3 +4018,30 @@ not run (need data from other scripts; untouched code). tsc + `vite build` for a
 **Deploy:** `prisma migrate deploy` (3 migrations above - the first rewrites customer payment terms) + generate + API restart
 + rebuild admin, customer, rider. Then Super Admin: add machines, add a "Pay per kg carried" rule if wanted; riders should
 enter their carry kg (until they do, only vehicle limits apply).
+
+## 2026-10-10 (later) — Supplier transports: "Mark delivered" fixed end to end (Raunak, via agent)
+
+**Was broken:** `PATCH /transports/:id/deliver` always failed - it created the raw batch with status `QA_PENDING`, which is
+not a `BatchStatus`. Behind that: no warehouse stock or movement was booked (production would refuse the batch), the
+supplier was not set on the batch (trace showed a blank source), no purchase rate existed anywhere on a transport (not in
+the create DTO), no receipt was issued, PO status never moved, and batch numbers came from a second counter
+(`sequenceCounter 'RM-date'`) that would have collided with farmer collections (`batchNumberCounter`) on the same day.
+
+**Now (API changes):** `POST /transports` takes `purchaseRate` (defaults to the linked PO's rate; `totalAmount` computed),
+refuses a blacklisted/suspended supplier, a PO of another supplier, and a cancelled/fulfilled PO. `PATCH /transports/:id/
+deliver` body is `{ warehouseId, receivedQuantity?, purchaseRate? }` (was just `warehouseId`) and in one transaction: issues
+receipt `SR-YYYYMMDD-NNN`, records the weighed quantity, creates the `RM-` batch as STORED with `supplierId`, branch (from
+the warehouse) and `supplierTransportId`, books `warehouse_stock` + a STOCK_IN movement, and sets a linked PO to
+PARTIALLY_FULFILLED / FULFILLED by delivered quantity. Response includes `batch`. `GET /transports(/:id)` include the batch
+(and PO on detail). Raw batch numbering is now one shared helper, `src/common/raw-batch-number.ts`, used by collections too.
+Production cost picks up the supplier rate automatically (already read `supplierTransport.purchaseRate`).
+
+**Not changed, worth a client question:** production does not require a passing raw-material inspection for ANY batch
+(farmer or supplier) - only FAIL / REWORK_REQUIRED block. Kept as is.
+
+**Admin:** purchase rate on the transport form; deliver modal asks warehouse + quantity received + rate and reports the
+receipt and batch number.
+
+**Verified:** new `e2e-supplier-transport-flow.py` 18/18 on a fresh DB (supplier -> PO -> transport -> deliver -> stock ->
+production -> FG -> trace resolves to `SUP-`; same-day farmer batch gets a distinct RM number); `e2e-client-decisions-flow.py`
+still passes; jest 839/840 (known pending-retailer test); admin tsc + vite build. Not click-tested. No migration.

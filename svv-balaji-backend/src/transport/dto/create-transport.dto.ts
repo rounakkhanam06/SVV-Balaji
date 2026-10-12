@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsDateString, IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsDateString, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateTransportDto {
@@ -19,7 +19,19 @@ export class CreateTransportDto {
   @ApiProperty()
   @IsNumber()
   @Type(() => Number)
+  @Min(0.01)
   quantity: number;
+
+  @ApiPropertyOptional({
+    description:
+      'Price per unit agreed with the supplier. Defaults to the purchase order rate when a PO is linked. ' +
+      'Carried onto the raw batch, so production cost and supplier payments have it.',
+  })
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  @Min(0)
+  purchaseRate?: number;
 
   @ApiPropertyOptional()
   @IsOptional()

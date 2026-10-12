@@ -8,6 +8,11 @@ export class QueryTransportDto {
   @IsString()
   supplierId?: string;
 
+  @ApiPropertyOptional({ description: 'Trips carried by this registered transporter' })
+  @IsOptional()
+  @IsString()
+  transporterId?: string;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()

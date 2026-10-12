@@ -2,7 +2,15 @@ import { api } from './client';
 import { unwrap } from './envelope';
 
 /** Mirrors UPLOAD_FOLDERS in the backend's storage.service.ts. */
-export type UploadFolder = 'field-visits' | 'training' | 'inspections' | 'farmers' | 'products' | 'categories' | 'banners';
+export type UploadFolder =
+  | 'field-visits'
+  | 'training'
+  | 'inspections'
+  | 'farmers'
+  | 'products'
+  | 'categories'
+  | 'banners'
+  | 'transporter-documents';
 
 export interface StoredFile {
   /** Absolute and publicly fetchable. This is what goes into `fileUrl`. */

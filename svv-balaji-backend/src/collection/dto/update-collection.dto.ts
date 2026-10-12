@@ -1,4 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { TripFieldsDto } from '../../common/transport-source';
 import { IsNumber, IsOptional, IsString, Min } from 'class-validator';
 
 /**
@@ -26,7 +27,12 @@ import { IsNumber, IsOptional, IsString, Min } from 'class-validator';
  * figure entered as 500 instead of 50 is the most common correction in this
  * system, and refusing it would mean cancelling and re-collecting the harvest.
  */
-export class UpdateCollectionDto {
+/*
+ * Transport details (source, vehicle, driver) are editable at any time: they
+ * say how the produce arrived, not what it is, so they sit outside the
+ * batch-untouched guard that protects weights and rate.
+ */
+export class UpdateCollectionDto extends TripFieldsDto {
   @ApiPropertyOptional({ description: 'Gross weight including packaging' })
   @IsOptional()
   @IsNumber()

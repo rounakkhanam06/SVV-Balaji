@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { supplierBankGaps } from './supplier-readiness';
 import { SupplierVerificationAction, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateSupplierDto } from './dto/create-supplier.dto';
@@ -74,6 +75,12 @@ export class SuppliersService {
 
     if (supplier.status === 'ACTIVE') {
       throw new BadRequestException('Supplier is already verified');
+    }
+    if (dto.action === SupplierVerificationAction.APPROVED) {
+      const gaps = supplierBankGaps(supplier);
+      if (gaps.length) {
+        throw new BadRequestException(`Add the bank details before approving - missing: ${gaps.join(', ')}`);
+      }
     }
 
     return this.prisma.$transaction(async (tx) => {

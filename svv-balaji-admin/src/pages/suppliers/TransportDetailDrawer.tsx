@@ -2,6 +2,7 @@ import { Drawer, Descriptions, Typography, Skeleton, Space, Tag } from 'antd';
 import { useTransport } from '../../hooks/useTransports';
 import { TransportStatusTag } from './transportStatus';
 import { formatDate, formatDateTime, formatQuantity } from '../../utils/format';
+import { transportSourceText } from '../../components/TransportSourceFields';
 
 export function TransportDetailDrawer({
   transportId,
@@ -59,6 +60,9 @@ export function TransportDetailDrawer({
           </Descriptions.Item>
           <Descriptions.Item label="Delivery Location">
             {transport.deliveryLocation || '-'}
+          </Descriptions.Item>
+          <Descriptions.Item label="Transport Source">
+            {transportSourceText(transport) ?? '-'}
           </Descriptions.Item>
           <Descriptions.Item label="Vehicle Number">
             {transport.vehicleNumber ? <Tag>{transport.vehicleNumber}</Tag> : '-'}

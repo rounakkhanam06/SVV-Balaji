@@ -6,6 +6,8 @@ import type { CreateTransportDto, SupplierTransport } from '../../../../shared/a
 import { useCreateTransport, useUpdateTransport } from '../../hooks/useTransports';
 import { useSuppliers } from '../../hooks/useSuppliers';
 import { WarehouseSelect } from '../../components/pickers';
+import { TransportSourceFields } from '../../components/TransportSourceFields';
+import type { TransportSource } from '../../../../shared/api/transporters';
 
 interface TransportFormValues {
   supplierId: string;
@@ -14,6 +16,9 @@ interface TransportFormValues {
   quantity: number;
   unit?: string;
   purchaseRate?: number;
+  transportSource?: TransportSource;
+  transportSupplierId?: string;
+  transporterId?: string;
   vehicleNumber?: string;
   driverName?: string;
   driverPhone?: string;
@@ -37,6 +42,7 @@ export function TransportFormModal({
   const create = useCreateTransport();
   const update = useUpdateTransport();
   const suppliers = useSuppliers();
+  const supplierId = Form.useWatch('supplierId', form) as string | undefined;
 
   useEffect(() => {
     if (open) {
@@ -48,6 +54,9 @@ export function TransportFormModal({
           quantity: editing.quantity,
           unit: editing.unit || 'KG',
           purchaseRate: editing.purchaseRate == null ? undefined : Number(editing.purchaseRate),
+          transportSource: editing.transportSource ?? 'SUPPLIER',
+          transportSupplierId: editing.transportSupplierId || undefined,
+          transporterId: editing.transporterId || undefined,
           vehicleNumber: editing.vehicleNumber || undefined,
           driverName: editing.driverName || undefined,
           driverPhone: editing.driverPhone || undefined,
@@ -75,6 +84,9 @@ export function TransportFormModal({
         quantity: Number(values.quantity),
         unit: values.unit || 'KG',
         purchaseRate: values.purchaseRate,
+        transportSource: values.transportSource,
+        transportSupplierId: values.transportSource === 'SUPPLIER' ? values.transportSupplierId : undefined,
+        transporterId: values.transportSource === 'TRANSPORTER' ? values.transporterId : undefined,
         vehicleNumber: values.vehicleNumber,
         driverName: values.driverName,
         driverPhone: values.driverPhone,
@@ -194,23 +206,7 @@ export function TransportFormModal({
           </Col>
         </Row>
 
-        <Row gutter={16}>
-          <Col span={8}>
-            <Form.Item name="vehicleNumber" label="Vehicle Number">
-              <Input placeholder="e.g. MH-31-AB-1234" />
-            </Form.Item>
-          </Col>
-          <Col span={8}>
-            <Form.Item name="driverName" label="Driver Name">
-              <Input placeholder="Driver name" />
-            </Form.Item>
-          </Col>
-          <Col span={8}>
-            <Form.Item name="driverPhone" label="Driver Phone">
-              <Input placeholder="Phone number" />
-            </Form.Item>
-          </Col>
-        </Row>
+        <TransportSourceFields deliveringSupplierId={supplierId} />
 
         <Form.Item name="remarks" label="Remarks / Transport Instructions">
           <Input.TextArea rows={2} placeholder="Optional delivery instructions or notes" />

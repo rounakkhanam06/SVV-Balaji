@@ -260,6 +260,16 @@ export const NAV_SECTIONS: NavSection[] = [
         zone: 'supply',
       },
       {
+        key: 'transporters',
+        path: '/transporters',
+        label: 'Transporters',
+        permission: 'TRANSPORTER_VIEW',
+        description: 'Registered transporters (with optional insurance) chosen as the transport source on deliveries and collections.',
+        endpoints: ['GET /transporters', 'POST /transporters'],
+        workstream: 'WS2.3',
+        zone: 'supply',
+      },
+      {
         key: 'purchase-orders',
         path: '/purchase-orders',
         label: 'Purchase Orders',

@@ -29,6 +29,7 @@ import { SalesModule } from './sales/sales.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { SuppliersModule } from './suppliers/suppliers.module';
 import { TransportModule } from './transport/transport.module';
+import { TransportersModule } from './transporters/transporters.module';
 import { PurchaseOrdersModule } from './purchase-orders/purchase-orders.module';
 import { StorefrontAuthModule } from './storefront/storefront-auth.module';
 import { StorefrontCatalogueModule } from './storefront/storefront-catalogue.module';
@@ -78,6 +79,7 @@ import { AffiliatesModule } from './affiliates/affiliates.module';
     // Supplier Sourcing
     SuppliersModule,
     TransportModule,
+    TransportersModule,
     PurchaseOrdersModule,
     // Phase 2 - Procurement & Raw Material Control (FRD Sections 13-17)
     ProcurementModule,

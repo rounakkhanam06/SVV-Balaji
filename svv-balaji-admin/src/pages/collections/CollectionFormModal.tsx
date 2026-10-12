@@ -21,7 +21,9 @@ import { useCreateCollection, useUpdateCollection } from '../../hooks/useCollect
 import { useHarvestInspections } from '../../hooks/useProcurement';
 import { formatDate, toIsoDate } from '../../utils/format';
 import { notGreaterThan, positiveNumber, required } from '../../validation/rules';
-import type { RawMaterialCollection } from '../../api/types';
+import type { RawMaterialCollection, UpdateCollectionInput } from '../../api/types';
+import { TransportSourceFields } from '../../components/TransportSourceFields';
+import type { TransportSource } from '../../../../shared/api/transporters';
 
 interface CollectionFormModalProps {
   open: boolean;
@@ -39,6 +41,12 @@ interface CollectionForm {
   unit?: string;
   purchaseRate?: number;
   warehouseId?: string;
+  transportSource?: TransportSource;
+  transportSupplierId?: string;
+  transporterId?: string;
+  vehicleNumber?: string;
+  driverName?: string;
+  driverPhone?: string;
 }
 
 const UNITS = ['KG', 'QUINTAL', 'TONNE'];
@@ -69,6 +77,12 @@ export function CollectionFormModal({ open, collection, onClose }: CollectionFor
     netWeight: Number(collection.netWeight),
     unit: collection.unit,
     purchaseRate: Number(collection.purchaseRate),
+    transportSource: collection.transportSource ?? undefined,
+    transportSupplierId: collection.transportSupplierId ?? undefined,
+    transporterId: collection.transporterId ?? undefined,
+    vehicleNumber: collection.vehicleNumber ?? undefined,
+    driverName: collection.driverName ?? undefined,
+    driverPhone: collection.driverPhone ?? undefined,
   } : { unit: 'KG' };
 
   const inspections = useHarvestInspections({ result: 'APPROVED' });
@@ -88,8 +102,18 @@ export function CollectionFormModal({ open, collection, onClose }: CollectionFor
 
   const handleSubmit = async () => {
     const values = await form.validateFields();
+    // Who carried it, and in what. Ids are only sent for the chosen source.
+    const transport = {
+      transportSource: values.transportSource,
+      transportSupplierId: values.transportSource === 'SUPPLIER' ? values.transportSupplierId : undefined,
+      transporterId: values.transportSource === 'TRANSPORTER' ? values.transporterId : undefined,
+      vehicleNumber: values.vehicleNumber ?? '',
+      driverName: values.driverName ?? '',
+      driverPhone: values.driverPhone ?? '',
+    };
     try {
       const payload = {
+        ...transport,
         inspectionId: values.inspectionId,
         branchId: values.branchId,
         collectionDate: toIsoDate(values.collectionDate) as string,
@@ -102,7 +126,19 @@ export function CollectionFormModal({ open, collection, onClose }: CollectionFor
       };
 
       if (isEdit && collection) {
-        await updateCollection.mutateAsync({ id: collection.id, input: payload });
+        // Only what changed: weights and rate are locked once the batch has moved on, but a
+        // transport correction is always allowed - re-sending unchanged weights would trip the lock.
+        const changed = <T,>(next: T, prev: T) => (next === prev ? undefined : next);
+        const input: UpdateCollectionInput = {
+          ...transport,
+          ...(transport.transportSource ? {} : { transportSource: undefined }),
+          grossWeight: changed(values.grossWeight, Number(collection.grossWeight)),
+          netWeight: changed(values.netWeight, Number(collection.netWeight)),
+          purchaseRate: changed(values.purchaseRate, Number(collection.purchaseRate)),
+          unit: changed(values.unit, collection.unit),
+          collectionLocation: changed(values.collectionLocation ?? undefined, collection.collectionLocation ?? undefined),
+        };
+        await updateCollection.mutateAsync({ id: collection.id, input });
         message.success('Collection updated');
       } else {
         const result = await createCollection.mutateAsync(payload);
@@ -257,6 +293,8 @@ export function CollectionFormModal({ open, collection, onClose }: CollectionFor
             </Col>
           )}
         </Row>
+
+        <TransportSourceFields allowFarmer optional />
 
         {!agreedRate && selected ? (
           <Alert

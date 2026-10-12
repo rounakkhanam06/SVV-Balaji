@@ -190,6 +190,16 @@ enum TransportStatus {
   CANCELLED
 }
 
+/// Who provides the vehicle for an inbound movement (supplier delivery or farmer collection).
+enum TransportSource {
+  /// A supplier's own vehicle - the delivering supplier, or another one from the Suppliers master.
+  SUPPLIER
+  /// A transporter registered with us (Transporter master).
+  TRANSPORTER
+  /// The farmer's own vehicle - farmer collections only.
+  FARMER
+}
+
 enum PurchaseOrderStatus {
   DRAFT
   CONFIRMED
@@ -289,6 +299,7 @@ model User {
   suppliersCreated          Supplier[]                @relation("SuppliersCreated")
   supplierVerificationLogs  SupplierVerificationLog[]
   supplierTransportsCreated SupplierTransport[]       @relation("TransportsCreated")
+  transportersCreated       Transporter[]             @relation("TransportersCreated")
   purchaseOrdersCreated     PurchaseOrder[]           @relation("PurchaseOrdersCreated")
 
   // Storefront back-relations
@@ -972,6 +983,18 @@ model RawMaterialCollection {
   /// FRD 14.4 - receipt issued to farmer and company.
   receiptNumber String @unique
 
+  /// How the produce was brought in. Null on collections recorded before this existed.
+  transportSource     TransportSource?
+  /// Set when transportSource = SUPPLIER.
+  transportSupplierId String?
+  transportSupplier   Supplier?        @relation("CollectionTransportSupplier", fields: [transportSupplierId], references: [id])
+  /// Set when transportSource = TRANSPORTER.
+  transporterId       String?
+  transporter         Transporter?     @relation(fields: [transporterId], references: [id])
+  vehicleNumber       String?
+  driverName          String?
+  driverPhone         String?
+
   collectedById String
   collectedBy   User   @relation("RawMaterialCollections", fields: [collectedById], references: [id])
 
@@ -983,6 +1006,7 @@ model RawMaterialCollection {
   @@index([farmerId])
   @@index([branchId])
   @@index([plotId])
+  @@index([transporterId])
   @@map("raw_material_collections")
 }
 
@@ -2855,7 +2879,10 @@ model Supplier {
   createdBy   User?   @relation("SuppliersCreated", fields: [createdById], references: [id])
 
   verificationLogs   SupplierVerificationLog[]
-  transports         SupplierTransport[]
+  transports         SupplierTransport[]       @relation("SupplierDeliveries")
+  /// Deliveries and collections this supplier carried in their own vehicle.
+  transportsProvided SupplierTransport[]       @relation("TransportSupplier")
+  collectionsCarried RawMaterialCollection[]   @relation("CollectionTransportSupplier")
   purchaseOrders     PurchaseOrder[]
   rawMaterialBatches RawMaterialBatch[]
 
@@ -2957,7 +2984,7 @@ model SupplierTransport {
   id String @id @default(uuid())
 
   supplierId String
-  supplier   Supplier @relation(fields: [supplierId], references: [id])
+  supplier   Supplier @relation("SupplierDeliveries", fields: [supplierId], references: [id])
 
   /// Optional link to the PO this delivery fulfils.
   purchaseOrderId String?
@@ -2967,6 +2994,16 @@ model SupplierTransport {
   quantity     Decimal @db.Decimal(12, 2)
   unit         String  @default("KG")
 
+  /// Who provides the vehicle. Defaults to the delivering supplier.
+  transportSource     TransportSource @default(SUPPLIER)
+  /// Set when transportSource = SUPPLIER (usually supplierId itself).
+  transportSupplierId String?
+  transportSupplier   Supplier?       @relation("TransportSupplier", fields: [transportSupplierId], references: [id])
+  /// Set when transportSource = TRANSPORTER.
+  transporterId       String?
+  transporter         Transporter?    @relation(fields: [transporterId], references: [id])
+
+  /// The trip's vehicle and driver - recorded here only, never on the masters.
   vehicleNumber String?
   driverName    String?
   driverPhone   String?
@@ -3001,7 +3038,54 @@ model SupplierTransport {
   @@index([supplierId])
   @@index([status])
   @@index([warehouseId])
+  @@index([transporterId])
   @@map("supplier_transports")
+}
+
+/// A transport company or owner-operator registered with us, chosen as the
+/// transport source on supplier deliveries and farmer collections. Holds who
+/// they are and their insurance; the vehicle and driver of each trip are
+/// recorded on that trip, not here.
+model Transporter {
+  id              String  @id @default(uuid())
+  /// TRN-0001, issued at registration.
+  transporterCode String  @unique
+  name            String
+  contactPerson   String?
+  phone           String
+  alternatePhone  String?
+  email           String?
+  gstin           String?
+  panNumber       String?
+
+  address  String?
+  city     String?
+  district String?
+  state    String?
+  pincode  String?
+
+  /// Optional insurance cover.
+  insuranceProvider     String?
+  insurancePolicyNumber String?
+  insuranceValidUntil   DateTime? @db.Date
+  insuranceDocumentUrl  String?
+
+  remarks  String?
+  /// Inactive transporters cannot be picked for new trips; history keeps them.
+  isActive Boolean @default(true)
+
+  createdById String?
+  createdBy   User?   @relation("TransportersCreated", fields: [createdById], references: [id])
+
+  transports  SupplierTransport[]
+  collections RawMaterialCollection[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([phone])
+  @@map("transporters")
 }
 
 // ===========================================================================

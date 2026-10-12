@@ -1,9 +1,10 @@
 import { api } from './client';
 import { Supplier } from './suppliers';
+import type { TransportSourceInput, TransportSourceView } from './transporters';
 
 export type TransportStatus = 'SCHEDULED' | 'IN_TRANSIT' | 'DELIVERED' | 'CANCELLED';
 
-export interface SupplierTransport {
+export interface SupplierTransport extends TransportSourceView {
   id: string;
   supplierId: string;
   supplier?: Supplier;
@@ -31,7 +32,7 @@ export interface SupplierTransport {
   updatedAt: string;
 }
 
-export interface CreateTransportDto {
+export interface CreateTransportDto extends TransportSourceInput {
   supplierId: string;
   purchaseOrderId?: string;
   materialName: string;
@@ -50,6 +51,7 @@ export interface CreateTransportDto {
 
 export interface QueryTransportDto {
   supplierId?: string;
+  transporterId?: string;
   materialName?: string;
   warehouseId?: string;
   status?: TransportStatus;

@@ -70,6 +70,10 @@ export const PERMISSIONS = {
   TRANSPORT_CREATE: 'transports.create',
   TRANSPORT_EDIT: 'transports.edit',
 
+  // --- Transporters (transport-source master) --------------------------------
+  TRANSPORTER_VIEW: 'transporters.view',
+  TRANSPORTER_MANAGE: 'transporters.manage',
+
   // --- Purchase Orders ------------------------------------------------------
   PURCHASE_ORDER_VIEW: 'purchaseOrders.view',
   PURCHASE_ORDER_CREATE: 'purchaseOrders.create',

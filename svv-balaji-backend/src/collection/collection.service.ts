@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { resolveTransportSource, TRANSPORT_SOURCE_INCLUDE } from '../common/transport-source';
 import { Prisma, PaymentStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { scopedBranchId } from '../common/branch-scope';
@@ -82,6 +83,9 @@ export class CollectionService {
       if (!warehouse) throw new NotFoundException('Warehouse not found');
     }
 
+    // Optional: how the produce came in (supplier vehicle, registered transporter or the farmer's own).
+    const source = await resolveTransportSource(this.prisma, dto, { allowFarmer: true });
+
     const created = await this.prisma.$transaction(async (tx) => {
       const receiptNumber = await this.generateReceiptNumber(tx, collectionDate);
       const batchNumber = await this.generateBatchNumber(tx, collectionDate);
@@ -111,6 +115,10 @@ export class CollectionService {
           totalAmount,
           receiptNumber,
           collectedById,
+          ...source,
+          vehicleNumber: dto.vehicleNumber?.trim().toUpperCase() || undefined,
+          driverName: dto.driverName?.trim() || undefined,
+          driverPhone: dto.driverPhone?.trim() || undefined,
         },
       });
 
@@ -209,6 +217,7 @@ export class CollectionService {
         farmer: { select: { id: true, fullName: true, farmerCode: true } },
         batch: { select: { id: true, batchNumber: true, status: true } },
         collectedBy: { select: { id: true, fullName: true } },
+        ...TRANSPORT_SOURCE_INCLUDE,
       },
     }));
   }
@@ -222,6 +231,7 @@ export class CollectionService {
         inspection: true,
         batch: true,
         collectedBy: { select: { id: true, fullName: true } },
+        ...TRANSPORT_SOURCE_INCLUDE,
       },
     });
     if (!collection) throw new NotFoundException('Collection not found');
@@ -348,7 +358,17 @@ export class CollectionService {
     if (!collection) throw new NotFoundException('Collection not found');
 
     const batch = collection.batch;
-    if (batch) await this.assertBatchUntouched(batch.id, batch.batchNumber);
+    // Weights, rate, unit and location feed the batch and the farmer's money, so they stay
+    // locked once the batch has moved on. How it was transported does not, so it never is.
+    const touchesWeights = [dto.grossWeight, dto.netWeight, dto.purchaseRate, dto.unit, dto.collectionLocation].some((v) => v !== undefined);
+    if (batch && touchesWeights) await this.assertBatchUntouched(batch.id, batch.batchNumber);
+    const source = await resolveTransportSource(this.prisma, dto, { allowFarmer: true, current: collection });
+    const trip = {
+      ...(source ?? {}),
+      ...(dto.vehicleNumber !== undefined ? { vehicleNumber: dto.vehicleNumber.trim().toUpperCase() || null } : {}),
+      ...(dto.driverName !== undefined ? { driverName: dto.driverName.trim() || null } : {}),
+      ...(dto.driverPhone !== undefined ? { driverPhone: dto.driverPhone.trim() || null } : {}),
+    };
 
     const grossWeight = dto.grossWeight ?? Number(collection.grossWeight);
     const netWeight = dto.netWeight ?? Number(collection.netWeight);
@@ -373,6 +393,7 @@ export class CollectionService {
           unit,
           totalAmount,
           collectionLocation: dto.collectionLocation,
+          ...trip,
         },
       });
 

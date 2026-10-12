@@ -1,8 +1,9 @@
 import { Type } from 'class-transformer';
 import { IsDateString, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { TransportSourceFieldsDto } from '../../common/transport-source';
 
-export class CreateTransportDto {
+export class CreateTransportDto extends TransportSourceFieldsDto {
   @ApiProperty()
   @IsString()
   supplierId: string;

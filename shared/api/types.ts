@@ -1,3 +1,4 @@
+import type { TransportSource, TransportSourceInput, TransportSourceView } from './transporters';
 import type { LoyaltyEligibility } from './loyalty';
 import type { UserRole } from '../auth/types';
 
@@ -1079,6 +1080,16 @@ export interface RawMaterialCollection {
   /** Minted in the same transaction as the collection itself. */
   batch?: { id: string; batchNumber: string; status: BatchStatus } | null;
 
+  /** How the produce came in. Null source on collections recorded before 13 Oct 2026. */
+  transportSource: TransportSource | null;
+  transportSupplierId: string | null;
+  transporterId: string | null;
+  transportSupplier?: TransportSourceView['transportSupplier'];
+  transporter?: TransportSourceView['transporter'];
+  vehicleNumber: string | null;
+  driverName: string | null;
+  driverPhone: string | null;
+
   createdAt: string;
   updatedAt: string;
 }
@@ -1090,7 +1101,7 @@ export interface RawMaterialCollection {
  * entry, and the third is encoded into the receipt and batch numbers already
  * printed on the farmer's receipt.
  */
-export interface UpdateCollectionInput {
+export interface UpdateCollectionInput extends TransportSourceInput {
   grossWeight?: number;
   netWeight?: number;
   purchaseRate?: number;
@@ -1100,7 +1111,7 @@ export interface UpdateCollectionInput {
   correctionReason?: string;
 }
 
-export interface CreateCollectionInput {
+export interface CreateCollectionInput extends TransportSourceInput {
   inspectionId: string;
   branchId: string;
   collectionDate: string;

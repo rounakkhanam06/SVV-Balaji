@@ -399,6 +399,26 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
     ],
   },
   {
+    key: 'transporters',
+    label: 'Transporters',
+    path: '/transporters',
+    viewKey: 'transporters.view',
+    permissions: [
+      {
+        key: 'transporters.view',
+        label: 'View transporters',
+        description: 'See registered transporters and pick them as a transport source.',
+        defaultRoles: ASSIGNABLE_ROLES,
+      },
+      {
+        key: 'transporters.manage',
+        label: 'Register & edit transporters',
+        description: 'May register, edit, activate and deactivate transporters, including insurance details.',
+        defaultRoles: [PM, BM, LT],
+      },
+    ],
+  },
+  {
     key: 'purchaseOrders',
     label: 'Purchase Orders',
     path: '/purchase-orders',

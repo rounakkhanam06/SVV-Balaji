@@ -118,6 +118,7 @@ export interface ProductFormValues {
   returnPolicy?: string;
   warranty?: string;
   disclaimer?: string;
+  howItsMadeUrl?: string;
   rating?: number | null;
   reviewCount?: number | null;
   specifications: Array<{ label?: string; value?: string }>;
@@ -269,6 +270,7 @@ export function productToFormValues(product: Product): ProductFormValues {
     returnPolicy: product.returnPolicy ?? undefined,
     warranty: product.warranty ?? undefined,
     disclaimer: product.disclaimer ?? undefined,
+    howItsMadeUrl: product.howItsMadeUrl ?? undefined,
     rating: num(product.rating),
     reviewCount: product.reviewCount,
     specifications: (product.specifications ?? []).map((s) => ({ label: s.label, value: s.value })),
@@ -370,6 +372,7 @@ export function formValuesToPayload(values: ProductFormValues): CreateProductInp
     countryOfOrigin: clean(values.countryOfOrigin),
     shelfLife: clean(values.shelfLife),
     disclaimer: clean(values.disclaimer),
+    howItsMadeUrl: clean(values.howItsMadeUrl),
     returnPolicy: clean(values.returnPolicy),
     warranty: clean(values.warranty),
     minOrderQuantity: opt(values.minOrderQuantity),
@@ -421,7 +424,7 @@ export const FIELD_TAB: Record<string, string> = {
   images: 'media', slug: 'media', metaTitle: 'media', metaDescription: 'media',
 
   manufacturer: 'info', countryOfOrigin: 'info', shelfLife: 'info', returnPolicy: 'info',
-  warranty: 'info', disclaimer: 'info', rating: 'info', reviewCount: 'info', specifications: 'info',
+  warranty: 'info', disclaimer: 'info', howItsMadeUrl: 'info', rating: 'info', reviewCount: 'info', specifications: 'info',
 
   offers: 'offers', faqs: 'offers',
 

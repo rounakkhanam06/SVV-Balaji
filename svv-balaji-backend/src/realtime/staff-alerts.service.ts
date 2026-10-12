@@ -12,6 +12,7 @@ export type StaffAlertType =
   | 'NEW_ORDER'
   | 'RIDER_SIGNUP'
   | 'RIDER_DOCUMENT'
+  | 'RIDER_DOCUMENT_EXPIRED'
   | 'RETURN_REQUEST'
   | 'AFFILIATE_APPLICATION'
   | 'RETAILER_SIGNUP'
@@ -25,6 +26,8 @@ export interface StaffAlert {
   link: string;
   /** Only staff whose role holds this permission are told (Super Admin always). */
   permission: string;
+  /** Tell Super Admin only, whatever other roles hold `permission`. */
+  superAdminOnly?: boolean;
   /** Branch-scoped work (orders): Super Admin plus that branch's staff only. */
   branchId?: string | null;
   /**
@@ -81,7 +84,7 @@ export class StaffAlertsService implements OnModuleInit {
       });
       const ids: string[] = [];
       for (const u of users) {
-        if (u.role === UserRole.SUPER_ADMIN || (await this.permissions.can(u.role, alert.permission))) ids.push(u.id);
+        if (u.role === UserRole.SUPER_ADMIN || (!alert.superAdminOnly && (await this.permissions.can(u.role, alert.permission)))) ids.push(u.id);
       }
       if (!ids.length) return;
 

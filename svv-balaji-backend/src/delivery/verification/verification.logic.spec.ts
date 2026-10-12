@@ -1,4 +1,4 @@
-import { assessDeposit, assessDocument, assessVerification, endOfExpiryDay, isVerifiedNow, type DocFacts, type DocTypeFacts } from './verification.logic';
+import { assessDeposit, assessDocument, assessVerification, endOfExpiryDay, expiredBefore, isVerifiedNow, type DocFacts, type DocTypeFacts } from './verification.logic';
 
 const NOW = new Date('2026-10-05T06:30:00Z'); // 12:00 IST
 const type = (id: string, over: Partial<DocTypeFacts> = {}): DocTypeFacts => ({
@@ -110,5 +110,25 @@ describe('isVerifiedNow', () => {
     expect(isVerifiedNow({ isVerified: true, verifiedUntil: new Date(NOW.getTime() + 1) }, NOW)).toBe(true);
     expect(isVerifiedNow({ isVerified: true, verifiedUntil: NOW }, NOW)).toBe(false);
     expect(isVerifiedNow({ isVerified: false, verifiedUntil: null }, NOW)).toBe(false);
+  });
+});
+
+describe('expiredBefore', () => {
+  it('is today in India, so a document expiring today is still valid', () => {
+    expect(expiredBefore(NOW)).toEqual(date('2026-10-05'));
+  });
+
+  it('rolls over at IST midnight, not UTC midnight', () => {
+    expect(expiredBefore(new Date('2026-10-04T18:29:59Z'))).toEqual(date('2026-10-04')); // 23:59:59 IST
+    expect(expiredBefore(new Date('2026-10-04T18:30:00Z'))).toEqual(date('2026-10-05')); // 00:00 IST
+  });
+
+  it('agrees with endOfExpiryDay: lapsed exactly when the expiry day has ended', () => {
+    for (const at of ['2026-10-04T18:29:59Z', '2026-10-04T18:30:00Z', '2026-10-05T12:00:00Z']) {
+      const now = new Date(at);
+      for (const exp of ['2026-10-03', '2026-10-04', '2026-10-05']) {
+        expect(date(exp) < expiredBefore(now)).toBe(endOfExpiryDay(date(exp)) <= now);
+      }
+    }
   });
 });

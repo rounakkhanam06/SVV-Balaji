@@ -4,7 +4,7 @@ import { RecipeStatus } from '@prisma/client';
 import { IsEnum } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { RecipesService } from './recipes.service';
-import { CreateRecipeDto } from './dto/recipe.dto';
+import { CreateRecipeDto, SetHowItsMadeUrlDto } from './dto/recipe.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermission } from '../auth/decorators/require-permission.decorator';
@@ -46,6 +46,16 @@ export class RecipesController {
     return this.recipesService.findAll({ status, productId, recipeCode });
   }
 
+  @Get('form-options')
+  @RequirePermission('recipes.create')
+  @ApiOperation({
+    summary: 'Choices for the recipe form: known crops (with stock on hand) and extra-field labels used before',
+    description: 'Crops are gathered from raw batches, agreements, procurement plans and earlier recipes - there is no crop master.',
+  })
+  formOptions() {
+    return this.recipesService.formOptions();
+  }
+
   @Get(':id')
   @RequirePermission('recipes.view')
   findOne(@Param('id') id: string) {
@@ -67,6 +77,16 @@ export class RecipesController {
   })
   approve(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     return this.recipesService.approve(id, user.sub);
+  }
+
+  @Patch(':id/how-its-made')
+  @RequirePermission('recipes.create')
+  @ApiOperation({
+    summary: 'Set or clear the "how this is made" link on a recipe version',
+    description: 'Allowed on approved versions too - the link is not part of the formula. Shown on the product page when the product has no link of its own.',
+  })
+  setHowItsMadeUrl(@Param('id') id: string, @Body() dto: SetHowItsMadeUrlDto, @CurrentUser() user: JwtPayload) {
+    return this.recipesService.setHowItsMadeUrl(id, dto, user.sub);
   }
 
   @Patch(':id/status')

@@ -12,6 +12,7 @@ import type {
   ProductionStatus,
   ProductStockSummary,
   Recipe,
+  RecipeFormOptions,
   RecipeStatus,
   UpdateProductInput,
 } from './types';
@@ -43,6 +44,7 @@ const CLEARABLE_PRODUCT_FIELDS = [
   'countryOfOrigin',
   'shelfLife',
   'disclaimer',
+  'howItsMadeUrl',
   'returnPolicy',
   'warranty',
   'minOrderQuantity',
@@ -122,6 +124,12 @@ export const recipesApi = {
     return unwrapList<Recipe>(response.data);
   },
 
+  /** Known crops (with stock) and earlier extra-field labels, for the create form. */
+  async formOptions(): Promise<RecipeFormOptions> {
+    const response = await api.get<RecipeFormOptions>('/recipes/form-options');
+    return unwrap<RecipeFormOptions>(response.data);
+  },
+
   async get(id: string): Promise<Recipe> {
     const response = await api.get<Recipe>(`/recipes/${id}`);
     return unwrap<Recipe>(response.data);
@@ -148,6 +156,12 @@ export const recipesApi = {
   /** FRD 19.4 — Super Admin only. Approving retires the previously approved version. */
   async approve(id: string): Promise<Recipe> {
     const response = await api.patch<Recipe>(`/recipes/${id}/approve`, {});
+    return unwrap<Recipe>(response.data);
+  },
+
+  /** Set or clear the "how this is made" link - allowed on approved versions, it is not formula. */
+  async setHowItsMadeUrl(id: string, howItsMadeUrl: string | null): Promise<Recipe> {
+    const response = await api.patch<Recipe>(`/recipes/${id}/how-its-made`, { howItsMadeUrl });
     return unwrap<Recipe>(response.data);
   },
 

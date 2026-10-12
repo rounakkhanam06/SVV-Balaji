@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException, OnModuleDestroy, OnModuleInit, Optional } from '@nestjs/common';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Prisma, RiderDepositEntryType, RiderDepositMethod, RiderDocumentStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
@@ -9,7 +9,7 @@ import { createPaymentGateway } from '../../checkout/payment/payment-gateway';
 import { PrismaService } from '../../prisma/prisma.service';
 import { DeliverySettingsService } from '../core/delivery-core';
 import { DispatchService } from '../dispatch/dispatch.service';
-import { assessVerification, endOfExpiryDay, PCC_CODE, type VerificationAssessment } from './verification.logic';
+import { assessVerification, endOfExpiryDay, expiredBefore, PCC_CODE, type VerificationAssessment } from './verification.logic';
 import { StaffAlertsService } from '../../realtime/staff-alerts.service';
 
 // ------------------------------------------------------------------ DTOs
@@ -74,6 +74,9 @@ const DOC_SELECT = {
 type DocRow = Prisma.RiderDocumentGetPayload<{ select: typeof DOC_SELECT }>;
 
 const ymd = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : null);
+const EXPIRY_SWEEP_MS = 60 * 60_000;
+/** Riders are reminded this many days before an approved document expires (renewal opens 30 days ahead). */
+export const EXPIRY_REMINDER_DAYS = 7;
 const todayIst = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
 
 /**
@@ -83,11 +86,13 @@ const todayIst = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/
  *
  * The gate is stored on the rider (isVerified + verifiedUntil) so the
  * dispatcher can filter on it cheaply; every change that can move it calls
- * `recompute`. Expiry needs no sweep: verifiedUntil makes it lapse by itself.
+ * `recompute`. Expiry needs no sweep for the gate: verifiedUntil makes it lapse
+ * by itself. The hourly sweep only tells the rider and Super Admin it happened.
  */
 @Injectable()
-export class RiderVerificationService {
+export class RiderVerificationService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(RiderVerificationService.name);
+  private timer: NodeJS.Timeout | null = null;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -95,6 +100,21 @@ export class RiderVerificationService {
     private readonly dispatch: DispatchService,
     @Optional() private readonly staffAlerts?: StaffAlertsService,
   ) {}
+
+  onModuleInit() {
+    if (process.env.NODE_ENV === 'test') return;
+    const run = () => {
+      void this.notifyExpired().catch((e) => this.logger.error(`Document expiry sweep failed: ${String(e)}`));
+      void this.remindExpiring().catch((e) => this.logger.error(`Document expiry reminders failed: ${String(e)}`));
+    };
+    this.timer = setInterval(run, EXPIRY_SWEEP_MS);
+    this.timer.unref?.();
+    setTimeout(run, 30_000).unref?.();
+  }
+
+  onModuleDestroy() {
+    if (this.timer) clearInterval(this.timer);
+  }
 
   // ================================================================ the gate
 
@@ -120,7 +140,7 @@ export class RiderVerificationService {
    * qualifying is taken offline and loses open requests (deliveries already in
    * hand are left alone); either change is told to the rider.
    */
-  async recompute(riderIds: string[], why?: string) {
+  async recompute(riderIds: string[], why?: string, opts: { quiet?: boolean } = {}) {
     const riders = await this.prisma.rider.findMany({
       where: { id: { in: riderIds } },
       select: { id: true, status: true, availability: true, isVerified: true, verifiedUntil: true },
@@ -144,10 +164,10 @@ export class RiderVerificationService {
         // Requests showing are withdrawn; deliveries already in hand are left to finish.
         const pending = await this.prisma.deliveryOffer.findMany({ where: { riderId: r.id, status: 'PENDING' }, select: { id: true } });
         for (const p of pending) await this.dispatch.respond(r.id, p.id, false, 'Verification incomplete').catch(() => undefined);
-        if (stored && r.status === 'ACTIVE') {
+        if (stored && r.status === 'ACTIVE' && !opts.quiet) {
           await this.dispatch.notify(r.id, 'VERIFICATION', 'You cannot take orders right now', `${why ? `${why}. ` : ''}Still needed: ${a.missing.join('; ')}.`).catch(() => undefined);
         }
-      } else if (!stored && a.eligible && r.status === 'ACTIVE') {
+      } else if (!stored && a.eligible && r.status === 'ACTIVE' && !opts.quiet) {
         await this.dispatch.notify(r.id, 'VERIFICATION', 'Verification complete', 'Your documents and deposit are all in order - go online to get orders.').catch(() => undefined);
       }
     }
@@ -331,6 +351,100 @@ export class RiderVerificationService {
     await this.dispatch.notify(doc.riderId, 'VERIFICATION', `${doc.type.name} rejected`, `${dto.reason.trim()} - please upload it again.`).catch(() => undefined);
     await this.recompute([doc.riderId], `${doc.type.name} was rejected`);
     return this.summary(doc.riderId);
+  }
+
+  // ---------------------------------------------------------------- expiry notices
+
+  /**
+   * Approved documents in force whose expiry date has passed: tell the rider
+   * (inbox + push) and Super Admin (bell + web push), once per document. Each
+   * document is claimed before anyone is told, so two API instances never both send.
+   *
+   * The stored gate is refreshed quietly first, so a rider who can no longer
+   * take orders is taken offline now - and the app's own refresh later finds
+   * nothing to change, rather than sending a second "cannot take orders".
+   */
+  async notifyExpired(now = new Date()) {
+    const due = await this.prisma.riderDocument.findMany({
+      where: {
+        status: RiderDocumentStatus.APPROVED,
+        supersededAt: null,
+        expiryNotifiedAt: null,
+        expiresOn: { lt: expiredBefore(now) },
+        rider: { status: { in: ['PENDING_APPROVAL', 'ACTIVE', 'SUSPENDED'] } },
+        type: { OR: [{ isActive: true }, { isSystem: true }] },
+      },
+      select: { id: true, riderId: true, expiresOn: true, rider: { select: { fullName: true } }, type: { select: { name: true, isMandatory: true, isSystem: true } } },
+      take: 500,
+    });
+    let notified = 0;
+    for (const d of due) {
+      const claimed = await this.prisma.riderDocument.updateMany({ where: { id: d.id, expiryNotifiedAt: null }, data: { expiryNotifiedAt: now } });
+      if (!claimed.count) continue;
+      await this.recompute([d.riderId], undefined, { quiet: true }).catch((e) => this.logger.warn(`Gate refresh for rider ${d.riderId} failed: ${String(e)}`));
+      const on = ymd(d.expiresOn);
+      const blocking = d.type.isMandatory || d.type.isSystem;
+      await this.dispatch.notify(
+        d.riderId, 'VERIFICATION', `${d.type.name} expired`,
+        `Your ${d.type.name} expired on ${on}. Upload a renewed copy${blocking ? ' - you cannot take orders until it is approved' : ''}.`,
+      ).catch((e) => this.logger.warn(`Expiry notice to rider ${d.riderId} failed: ${String(e)}`));
+      await this.staffAlerts?.notify({
+        type: 'RIDER_DOCUMENT_EXPIRED',
+        title: 'Rider document expired',
+        body: `${d.rider.fullName}'s ${d.type.name} expired on ${on}.${blocking ? ' They cannot take orders until a renewed copy is approved.' : ''}`,
+        link: `/riders/${d.riderId}`,
+        permission: 'riders.verify',
+        superAdminOnly: true,
+        tag: `rider_document_expired-${d.id}`,
+      });
+      notified++;
+    }
+    if (notified) this.logger.log(`Sent expiry notices for ${notified} rider document(s)`);
+    return { notified };
+  }
+
+  /**
+   * Approved documents in force expiring within EXPIRY_REMINDER_DAYS (today
+   * included): remind the rider once, unless a renewal is already uploaded.
+   */
+  async remindExpiring(now = new Date()) {
+    const today = expiredBefore(now);
+    const until = new Date(today.getTime() + EXPIRY_REMINDER_DAYS * 864e5);
+    const due = await this.prisma.riderDocument.findMany({
+      where: {
+        status: RiderDocumentStatus.APPROVED,
+        supersededAt: null,
+        expiryReminderSentAt: null,
+        expiresOn: { gte: today, lte: until },
+        rider: { status: { in: ['PENDING_APPROVAL', 'ACTIVE', 'SUSPENDED'] } },
+        type: { OR: [{ isActive: true }, { isSystem: true }] },
+      },
+      select: { id: true, riderId: true, typeId: true, expiresOn: true, type: { select: { name: true, isMandatory: true, isSystem: true } } },
+      take: 500,
+    });
+    if (!due.length) return { reminded: 0 };
+    // A newer live upload of the same type (pending review) means the rider has already renewed.
+    const renewals = await this.prisma.riderDocument.findMany({
+      where: { supersededAt: null, status: RiderDocumentStatus.PENDING, OR: due.map((d) => ({ riderId: d.riderId, typeId: d.typeId })) },
+      select: { riderId: true, typeId: true },
+    });
+    const renewed = new Set(renewals.map((r) => `${r.riderId}:${r.typeId}`));
+    let reminded = 0;
+    for (const d of due) {
+      if (renewed.has(`${d.riderId}:${d.typeId}`)) continue;
+      const claimed = await this.prisma.riderDocument.updateMany({ where: { id: d.id, expiryReminderSentAt: null }, data: { expiryReminderSentAt: now } });
+      if (!claimed.count) continue;
+      const days = Math.round((d.expiresOn!.getTime() - today.getTime()) / 864e5);
+      const when = days === 0 ? 'today' : days === 1 ? 'tomorrow' : `in ${days} days (${ymd(d.expiresOn)})`;
+      const blocking = d.type.isMandatory || d.type.isSystem;
+      await this.dispatch.notify(
+        d.riderId, 'VERIFICATION', `${d.type.name} expires ${days <= 1 ? when : 'soon'}`,
+        `Your ${d.type.name} expires ${when}. Upload the renewed copy now${blocking ? ' so you can keep taking orders' : ''}.`,
+      ).catch((e) => this.logger.warn(`Expiry reminder to rider ${d.riderId} failed: ${String(e)}`));
+      reminded++;
+    }
+    if (reminded) this.logger.log(`Sent expiry reminders for ${reminded} rider document(s)`);
+    return { reminded };
   }
 
   // ---------------------------------------------------------------- document types (Super Admin)

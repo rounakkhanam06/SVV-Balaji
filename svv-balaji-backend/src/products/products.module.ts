@@ -47,6 +47,7 @@ import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermission } from '../auth/decorators/require-permission.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtPayload } from '../auth/strategies/jwt.strategy';
+import { IsHowItsMadeUrl } from '../common/how-its-made';
 
 const CATEGORY_SELECT = { select: { id: true, name: true, slug: true } };
 
@@ -367,6 +368,14 @@ export class CreateProductDto {
   @IsOptional()
   @IsString()
   disclaimer?: string;
+
+  @ApiPropertyOptional({
+    description: '"How this is made" link - YouTube, Instagram or any web page. Empty = use the approved recipe\'s link.',
+    nullable: true,
+  })
+  @IsOptional()
+  @IsHowItsMadeUrl()
+  howItsMadeUrl?: string | null;
 
   @ApiPropertyOptional()
   @IsOptional()

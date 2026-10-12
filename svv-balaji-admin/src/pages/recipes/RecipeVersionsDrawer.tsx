@@ -1,7 +1,23 @@
-import { Alert, Descriptions, Drawer, Empty, Space, Spin, Table, Tag, Typography } from 'antd';
+import { EditOutlined } from '@ant-design/icons';
+import { Alert, App as AntApp, Button, Descriptions, Drawer, Empty, Form, Input, Space, Spin, Table, Tag, Typography } from 'antd';
+import { useState } from 'react';
 import { apiErrorMessage } from '../../api/client';
 import type { Recipe, RecipeIngredient } from '../../api/types';
-import { useRecipeVersions } from '../../hooks/useProduction';
+
+/** The written formula: the fixed FRD 19.3 fields that were filled in, then Super Admin's own. */
+const formulaRows = (recipe: Recipe) =>
+  [
+    ['Processing sequence', recipe.processingSequence],
+    ['Grinding', recipe.grindingInstructions],
+    ['Roasting', recipe.roastingInstructions],
+    ['Oil extraction', recipe.oilExtractionProcess],
+    ['Packaging', recipe.packagingInstructions],
+    ...(recipe.customFields ?? []).map((f) => [f.label, f.value] as const),
+  ].filter((row): row is [string, string] => Boolean(row[1]));
+import { useRecipeVersions, useSetRecipeHowItsMadeUrl } from '../../hooks/useProduction';
+import { Can } from '../../components/Can';
+import { HowItsMadeLink } from '../../components/HowItsMadeLink';
+import { webLink } from '../../validation/rules';
 import { EM_DASH, formatDate, formatQuantity } from '../../utils/format';
 
 interface RecipeVersionsDrawerProps {
@@ -73,6 +89,9 @@ export function RecipeVersionsDrawer({ recipeCode, onClose }: RecipeVersionsDraw
                 <Descriptions.Item label="Yield">
                   {formatQuantity(recipe.batchYieldQuantity, recipe.unit)}
                 </Descriptions.Item>
+                <Descriptions.Item label="Processing loss">
+                  {recipe.expectedLossPercent === null ? EM_DASH : `${Number(recipe.expectedLossPercent)}%`}
+                </Descriptions.Item>
                 <Descriptions.Item label="Mixing ratio">
                   {recipe.mixingRatio ?? EM_DASH}
                 </Descriptions.Item>
@@ -81,6 +100,14 @@ export function RecipeVersionsDrawer({ recipeCode, onClose }: RecipeVersionsDraw
                     ? `${formatDate(recipe.approvedAt)}${recipe.approvedBy ? ` by ${recipe.approvedBy.fullName}` : ''}`
                     : EM_DASH}
                 </Descriptions.Item>
+                <Descriptions.Item label="How it's made" span={2}>
+                  <HowItsMadeEditor recipe={recipe} />
+                </Descriptions.Item>
+                {formulaRows(recipe).map(([label, value]) => (
+                  <Descriptions.Item key={label} label={label} span={2}>
+                    <span style={{ whiteSpace: 'pre-wrap' }}>{value}</span>
+                  </Descriptions.Item>
+                ))}
               </Descriptions>
 
               <Table<RecipeIngredient>
@@ -112,5 +139,69 @@ export function RecipeVersionsDrawer({ recipeCode, onClose }: RecipeVersionsDraw
         </Space>
       )}
     </Drawer>
+  );
+}
+
+/**
+ * The link is not formula, so it can be set or changed on any version -
+ * approved ones included - without minting a new version.
+ */
+function HowItsMadeEditor({ recipe }: { recipe: Recipe }) {
+  const [editing, setEditing] = useState(false);
+  const [form] = Form.useForm<{ url?: string }>();
+  const save = useSetRecipeHowItsMadeUrl();
+  const { message } = AntApp.useApp();
+
+  const lastChange = recipe.linkLogs?.[0];
+  if (!editing) {
+    return (
+      <Space size={12} wrap>
+        {recipe.howItsMadeUrl ? <HowItsMadeLink url={recipe.howItsMadeUrl} compact /> : EM_DASH}
+        {lastChange ? (
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            {lastChange.toUrl ? 'Set' : 'Removed'} by {lastChange.changedBy.fullName} on {formatDate(lastChange.createdAt)}
+          </Typography.Text>
+        ) : null}
+        <Can do="RECIPE_CREATE">
+          <Button
+            size="small"
+            type="link"
+            icon={<EditOutlined />}
+            onClick={() => {
+              form.setFieldsValue({ url: recipe.howItsMadeUrl ?? '' });
+              setEditing(true);
+            }}
+          >
+            {recipe.howItsMadeUrl ? 'Change' : 'Add link'}
+          </Button>
+        </Can>
+      </Space>
+    );
+  }
+
+  return (
+    <Form
+      form={form}
+      layout="inline"
+      onFinish={async ({ url }) => {
+        try {
+          await save.mutateAsync({ id: recipe.id, url: url?.trim() || null });
+          message.success(url?.trim() ? 'Link saved' : 'Link removed');
+          setEditing(false);
+        } catch (error) {
+          message.error(apiErrorMessage(error, 'Could not save the link'));
+        }
+      }}
+    >
+      <Form.Item name="url" rules={[webLink()]} style={{ flex: 1, minWidth: 260 }}>
+        <Input placeholder="https://… (empty removes it)" allowClear autoFocus />
+      </Form.Item>
+      <Button type="primary" size="small" htmlType="submit" loading={save.isPending} style={{ marginTop: 4 }}>
+        Save
+      </Button>
+      <Button size="small" onClick={() => setEditing(false)} style={{ marginTop: 4, marginLeft: 8 }}>
+        Cancel
+      </Button>
+    </Form>
   );
 }

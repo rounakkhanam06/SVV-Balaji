@@ -1,8 +1,10 @@
-import { App as AntApp, Form, Input, Modal, Row, Col } from 'antd';
+import { BankOutlined } from '@ant-design/icons';
+import { App as AntApp, Form, Input, Modal, Row, Col, Divider } from 'antd';
 import { useEffect } from 'react';
 import { apiErrorMessage } from '../../api/client';
 import type { Supplier, CreateSupplierDto } from '../../../../shared/api/suppliers';
 import { useCreateSupplier, useUpdateSupplier } from '../../hooks/useSuppliers';
+import { fieldRules, maxLength } from '../../validation/rules';
 
 export function SupplierFormModal({
   open,
@@ -106,7 +108,44 @@ export function SupplierFormModal({
             </Form.Item>
           </Col>
         </Row>
-        {/* Simplified form for brevity, other fields would go here */}
+
+        <Divider orientation="left" plain>
+          <BankOutlined /> Bank Account Details
+        </Divider>
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item
+              name="bankAccountName"
+              label="Account Holder Name"
+              rules={[maxLength(120)]}
+              extra="As written on bank passbook"
+            >
+              <Input placeholder="Optional" />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item name="bankName" label="Bank Name">
+              <Input placeholder="e.g. State Bank of India, HDFC" />
+            </Form.Item>
+          </Col>
+        </Row>
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item name="bankAccountNo" label="Account Number">
+              <Input placeholder="Optional" />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item
+              name="ifscCode"
+              label="IFSC Code"
+              rules={fieldRules.ifsc}
+              normalize={(v?: string) => v?.toUpperCase()}
+            >
+              <Input placeholder="e.g. SBIN0001234" />
+            </Form.Item>
+          </Col>
+        </Row>
       </Form>
     </Modal>
   );

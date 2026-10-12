@@ -1,4 +1,5 @@
 import type { Rule } from 'antd/es/form';
+import { isWebLink } from '../utils/howItsMade';
 
 /**
  * Form validation rules, mirroring the backend's class-validator DTOs.
@@ -71,6 +72,15 @@ export const pan = (): Rule => ({
 export const aadhaar = (): Rule => ({
   pattern: AADHAAR_PATTERN,
   message: 'Aadhaar is 12 digits',
+});
+
+/** An absolute http(s) link - what the API accepts for "how it's made" videos. */
+export const webLink = (): Rule => ({
+  validator(_rule, value?: string) {
+    const v = (value ?? '').trim();
+    if (!v || isWebLink(v)) return Promise.resolve();
+    return Promise.reject(new Error('Paste the full link, starting with https://'));
+  },
 });
 
 export const ifsc = (): Rule => ({

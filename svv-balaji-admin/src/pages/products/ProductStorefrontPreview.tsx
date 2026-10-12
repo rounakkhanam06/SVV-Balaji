@@ -10,6 +10,7 @@ import {
   inclusiveOf,
   type ProductFormValues,
 } from './productForm';
+import { HowItsMadeLink } from '../../components/HowItsMadeLink';
 
 const { Text, Title } = Typography;
 
@@ -209,6 +210,17 @@ export function ProductStorefrontPreview({
             ))}
           </div>
         ) : null}
+
+        {values.howItsMadeUrl?.trim() ? (
+          <div>
+            <Text strong>How it's made</Text>
+            <div style={{ marginTop: 4 }}><HowItsMadeLink url={values.howItsMadeUrl.trim()} /></div>
+          </div>
+        ) : (
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            How it's made: no link on the product — the approved recipe's link shows, if it has one.
+          </Text>
+        )}
 
         {offers.length > 0 ? (
           <div>

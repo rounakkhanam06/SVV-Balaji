@@ -20,7 +20,8 @@ import {
 } from 'antd';
 import type { ProductStockSummary } from '@shared/api/types';
 import { formatCurrency, formatDate } from '../../utils/format';
-import { maxLength, required } from '../../validation/rules';
+import { maxLength, required, webLink } from '../../validation/rules';
+import { HowItsMadeLink } from '../../components/HowItsMadeLink';
 import { DynamicRows } from './DynamicRows';
 import { PriceTierEditor } from './PriceTierEditor';
 import { ProductImagesField } from './ProductImagesField';
@@ -538,8 +539,22 @@ export function MediaTab() {
 // ---------------------------------------------------------------------------
 
 export function InfoTab() {
+  const form = Form.useFormInstance();
+  const howItsMadeUrl = Form.useWatch('howItsMadeUrl', form) as string | undefined;
   return (
     <>
+      <Section title="How it's made" hint="Shown to customers and retailers on the product page">
+        <Form.Item
+          name="howItsMadeUrl"
+          label="Video or page link"
+          rules={[webLink()]}
+          extra="YouTube plays on the product page; Instagram or any other link opens in a new tab. Leave blank to use the approved recipe's link."
+        >
+          <Input placeholder="https://www.youtube.com/watch?v=… or https://www.instagram.com/reel/…" allowClear />
+        </Form.Item>
+        <HowItsMadeLink url={howItsMadeUrl?.trim()} />
+      </Section>
+
       <Section title="Origin & policies">
         <Row gutter={16}>
           <Col xs={24} md={12}>

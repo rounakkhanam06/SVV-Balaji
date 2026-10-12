@@ -206,6 +206,7 @@ export const queryKeys = {
     list: (filters: Record<string, unknown>) => [...queryKeys.recipes.all, 'list', filters] as const,
     detail: (id: string) => [...queryKeys.recipes.all, 'detail', id] as const,
     versions: (recipeCode: string) => [...queryKeys.recipes.all, 'versions', recipeCode] as const,
+    formOptions: () => [...queryKeys.recipes.all, 'form-options'] as const,
   },
 
   cleaning: {

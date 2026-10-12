@@ -32,6 +32,10 @@ export function SupplierDetailDrawer({
           <Descriptions.Item label="GSTIN">{supplier.gstin || '-'}</Descriptions.Item>
           <Descriptions.Item label="City">{supplier.city || '-'}</Descriptions.Item>
           <Descriptions.Item label="State">{supplier.state || '-'}</Descriptions.Item>
+          <Descriptions.Item label="Account Holder">{supplier.bankAccountName || '-'}</Descriptions.Item>
+          <Descriptions.Item label="Bank">{supplier.bankName || '-'}</Descriptions.Item>
+          <Descriptions.Item label="Account Number">{supplier.bankAccountNo || '-'}</Descriptions.Item>
+          <Descriptions.Item label="IFSC">{supplier.ifscCode || '-'}</Descriptions.Item>
         </Descriptions>
       ) : (
         <Typography.Text type="secondary">Supplier not found</Typography.Text>

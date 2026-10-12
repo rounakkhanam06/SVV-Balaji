@@ -185,6 +185,13 @@ export class StorefrontCatalogueService {
         specifications: { orderBy: { displayOrder: 'asc' } },
         faqs: { orderBy: { displayOrder: 'asc' } },
         offers: { orderBy: { displayOrder: 'asc' } },
+        // Fallback "how it's made" link: the live recipe's, when the product has none.
+        recipes: {
+          where: { status: 'APPROVED', howItsMadeUrl: { not: null } },
+          select: { howItsMadeUrl: true },
+          orderBy: { approvedAt: 'desc' },
+          take: 1,
+        },
       },
     });
     if (!product) return null;
@@ -193,7 +200,11 @@ export class StorefrontCatalogueService {
     // own, else this channel's default; 0 = no returns (product or channel switched off).
     const rs = await this.prisma.returnSettings.findUnique({ where: { channel: params.channel }, select: { returnEnabled: true, returnWindowHours: true } });
     const channelDays = rs ? (rs.returnEnabled ? Math.floor(rs.returnWindowHours / 24) : 0) : 7;
-    return { ...card, returnWindowDays: rs && !rs.returnEnabled ? 0 : (product.returnWindowDays ?? channelDays) };
+    return {
+      ...card,
+      returnWindowDays: rs && !rs.returnEnabled ? 0 : (product.returnWindowDays ?? channelDays),
+      howItsMadeUrl: product.howItsMadeUrl ?? product.recipes[0]?.howItsMadeUrl ?? null,
+    };
   }
 
   private async toCard(

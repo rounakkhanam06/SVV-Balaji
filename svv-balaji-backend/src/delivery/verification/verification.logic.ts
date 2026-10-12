@@ -49,6 +49,15 @@ export function endOfExpiryDay(expiresOn: Date): Date {
   return new Date(new Date(`${ymd}T00:00:00+05:30`).getTime() + DAY);
 }
 
+/**
+ * Stored `expiresOn` values strictly before this have lapsed at `now` (the
+ * inverse of endOfExpiryDay): today's date in India, as UTC midnight.
+ */
+export function expiredBefore(now: Date): Date {
+  const ymd = new Date(now.getTime() + 5.5 * 36e5).toISOString().slice(0, 10);
+  return new Date(`${ymd}T00:00:00Z`);
+}
+
 export interface DocAssessment {
   typeId: string;
   code: string;

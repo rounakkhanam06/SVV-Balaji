@@ -108,6 +108,16 @@ export function useRecipeVersions(recipeCode: string | undefined) {
   });
 }
 
+/** Crop names and extra-field labels for the recipe form. Only fetched while the form is open. */
+export function useRecipeFormOptions(enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.recipes.formOptions(),
+    queryFn: () => recipesApi.formOptions(),
+    enabled,
+    staleTime: 60 * 1000,
+  });
+}
+
 export function useCreateRecipe() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -128,6 +138,16 @@ export function useApproveRecipe() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.recipes.all });
       void queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
+    },
+  });
+}
+
+export function useSetRecipeHowItsMadeUrl() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, url }: { id: string; url: string | null }) => recipesApi.setHowItsMadeUrl(id, url),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.recipes.all });
     },
   });
 }

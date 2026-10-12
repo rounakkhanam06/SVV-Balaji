@@ -38,6 +38,7 @@ import { useToggleWishlist, useWishlist } from '../hooks/useWishlist';
 import { useCustomerAuth } from '../auth/CustomerAuthContext';
 import { useCart } from '../cart/useCart';
 import { useCatalogueProduct, useCatalogueProducts } from '../hooks/useCatalogue';
+import { HowItsMadeCard } from '../components/HowItsMadeCard';
 import { useLoyaltyEstimate } from '../loyalty/useLoyaltyEstimate';
 
 import { formatInr } from '../utils/money';
@@ -1271,6 +1272,8 @@ export function ProductDetailPage() {
           </div>
         </div>
       )}
+
+      <HowItsMadeCard url={detail?.howItsMadeUrl} productName={detail?.name ?? 'this product'} />
 
       {/* Available Offers */}
       {(activeProduct as any).offers && (

@@ -1,5 +1,5 @@
 import { NotFoundException } from '@nestjs/common';
-import { ProductionType, RecipeStatus } from '@prisma/client';
+import { Prisma, ProductionType, RecipeStatus } from '@prisma/client';
 import { RecipesService } from './recipes.service';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -42,6 +42,7 @@ describe('RecipesService', () => {
           return { count: 0 };
         }),
       },
+      recipeLinkLog: { create: jest.fn(async () => ({})) },
       $transaction: jest.fn(async (cb: any) => cb(prisma)),
     };
     service = new RecipesService(prisma as unknown as PrismaService);
@@ -202,6 +203,128 @@ describe('RecipesService', () => {
       await expect(service.setStatus(r.id, RecipeStatus.APPROVED)).rejects.toThrow(
         /use the \/approve endpoint/i,
       );
+    });
+  });
+
+  describe('custom formula fields', () => {
+    it('stores them trimmed and in order, dropping blank rows', async () => {
+      const r = await service.create(
+        {
+          ...singleGrain,
+          customFields: [
+            { label: ' Sieve size ', value: ' 60 mesh ' },
+            { label: 'Moisture', value: '' },
+            { label: 'Rest time', value: '2 h' },
+          ],
+        } as any,
+        'u-1',
+      );
+      expect(r.customFields).toEqual([
+        { label: 'Sieve size', value: '60 mesh' },
+        { label: 'Rest time', value: '2 h' },
+      ]);
+    });
+
+    it('stores none as a database null', async () => {
+      const r = await service.create(singleGrain as any, 'u-1');
+      expect(r.customFields).toBe(Prisma.DbNull);
+    });
+
+    it('refuses the same label twice, whatever the case', async () => {
+      await expect(
+        service.create(
+          { ...singleGrain, customFields: [{ label: 'Sieve size', value: 'a' }, { label: 'sieve SIZE', value: 'b' }] } as any,
+          'u-1',
+        ),
+      ).rejects.toThrow(/added twice/);
+    });
+  });
+
+  describe('form options', () => {
+    beforeEach(() => {
+      prisma.rawMaterialBatch = {
+        groupBy: jest.fn(async () => [
+          { cropName: 'Wheat', _count: { _all: 3 } },
+          { cropName: 'Ragi', _count: { _all: 1 } },
+        ]),
+      };
+      prisma.warehouseStock = {
+        findMany: jest.fn(async () => [
+          { quantity: 100, reservedQuantity: 20, unit: 'KG', batch: { cropName: 'Wheat' } },
+          { quantity: 50, reservedQuantity: 0, unit: 'KG', batch: { cropName: 'wheat ' } },
+        ]),
+      };
+      prisma.agreement = { groupBy: jest.fn(async () => [{ cropName: 'WHEAT' }, { cropName: 'Bajra' }]) };
+      prisma.procurementPlan = { groupBy: jest.fn(async () => [{ cropName: 'Jowar' }]) };
+      prisma.recipeIngredient = { groupBy: jest.fn(async () => [{ cropName: 'ragi' }]) };
+      prisma.recipe.findMany = jest.fn(async () => [
+        { customFields: [{ label: 'Sieve size', value: 'x' }, { label: 'Rest time', value: 'y' }] },
+        { customFields: [{ label: 'sieve size', value: 'z' }] },
+      ]);
+    });
+
+    it('merges spellings the way production matches, keeping the batch spelling', async () => {
+      const { crops } = await service.formOptions();
+      expect(crops.map((c) => c.cropName)).toEqual(['Wheat', 'Ragi', 'Bajra', 'Jowar']);
+      const wheat = crops[0];
+      expect(wheat.seenIn).toEqual(['Raw batches', 'Agreements']);
+      expect(wheat.batchCount).toBe(3);
+    });
+
+    it('counts unreserved stock only, and ranks crops in stock first', async () => {
+      const { crops } = await service.formOptions();
+      expect(crops[0]).toMatchObject({ cropName: 'Wheat', availableQuantity: 130, unit: 'KG' });
+      expect(crops.find((c) => c.cropName === 'Ragi')!.availableQuantity).toBe(0);
+    });
+
+    it('offers each earlier field label once', async () => {
+      const { customFieldLabels } = await service.formOptions();
+      expect(customFieldLabels).toEqual(['Sieve size', 'Rest time']);
+    });
+  });
+
+  it('refuses a new version of a code that belongs to another product', async () => {
+    await service.create(singleGrain as any, 'u-1');
+    await expect(service.create({ ...singleGrain, productId: 'p-2' } as any, 'u-1')).rejects.toThrow(/belongs to another product/);
+  });
+
+  it('stores the expected processing loss', async () => {
+    const r = await service.create({ ...singleGrain, expectedLossPercent: 4.5 } as any, 'u-1');
+    expect(r.expectedLossPercent).toBe(4.5);
+  });
+
+  describe('how-it-is-made link', () => {
+    it('is saved on create, trimmed', async () => {
+      const r = await service.create({ ...singleGrain, howItsMadeUrl: ' https://youtu.be/abc ' } as any, 'u-1');
+      expect(r.howItsMadeUrl).toBe('https://youtu.be/abc');
+    });
+
+    it('can be changed on an approved version without a new version', async () => {
+      const r = await service.create(singleGrain as any, 'u-1');
+      await service.approve(r.id, 'admin-1');
+      await service.setHowItsMadeUrl(r.id, { howItsMadeUrl: 'https://www.instagram.com/reel/x/' }, 'admin-1');
+      expect(recipes).toHaveLength(1);
+      expect(recipes[0]).toMatchObject({ status: RecipeStatus.APPROVED, howItsMadeUrl: 'https://www.instagram.com/reel/x/' });
+      expect(prisma.recipeLinkLog.create).toHaveBeenCalledWith({
+        data: { recipeId: r.id, fromUrl: null, toUrl: 'https://www.instagram.com/reel/x/', changedById: 'admin-1' },
+      });
+    });
+
+    it('is cleared by an empty value', async () => {
+      const r = await service.create({ ...singleGrain, howItsMadeUrl: 'https://youtu.be/abc' } as any, 'u-1');
+      await service.setHowItsMadeUrl(r.id, { howItsMadeUrl: '' }, 'admin-1');
+      expect(recipes[0].howItsMadeUrl).toBeNull();
+      expect(prisma.recipeLinkLog.create.mock.calls[0][0].data).toMatchObject({ fromUrl: 'https://youtu.be/abc', toUrl: null });
+    });
+
+    it('logs nothing when the link did not change', async () => {
+      const r = await service.create({ ...singleGrain, howItsMadeUrl: 'https://youtu.be/abc' } as any, 'u-1');
+      await service.setHowItsMadeUrl(r.id, { howItsMadeUrl: ' https://youtu.be/abc ' }, 'admin-1');
+      expect(prisma.recipeLinkLog.create).not.toHaveBeenCalled();
+    });
+
+    it('throws for an unknown recipe', async () => {
+      await expect(service.setHowItsMadeUrl('nope', { howItsMadeUrl: null }, 'admin-1')).rejects.toThrow(NotFoundException);
     });
   });
 });

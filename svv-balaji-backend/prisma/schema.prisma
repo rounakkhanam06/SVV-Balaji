@@ -266,6 +266,7 @@ model User {
   cleaningGradingVerified  CleaningGradingRecord[] @relation("CleaningGradingVerifier")
   recipesCreated           Recipe[]                @relation("RecipesCreated")
   recipesApproved          Recipe[]                @relation("RecipesApproved")
+  recipeLinkChanges        RecipeLinkLog[]         @relation("RecipeLinkChanges")
   productionBatchesCreated ProductionBatch[]       @relation("ProductionBatchesCreated")
   qualityInspections       QualityInspection[]     @relation("QualityInspections")
   finishedGoodsPacked      FinishedGoodsBatch[]    @relation("FinishedGoodsPacked")
@@ -1215,10 +1216,19 @@ model Recipe {
   roastingInstructions  String?
   oilExtractionProcess  String?
   packagingInstructions String?
+  /// Extra formula fields Super Admin added on the form: [{ label, value }], in order.
+  customFields          Json?
+  /// "How this is made" link (YouTube, Instagram, anything). Not part of the
+  /// formula, so it can be changed on any version; the approved version's link
+  /// shows on the product page when the product has none of its own.
+  howItsMadeUrl         String?
 
   /// Expected output for one full batch, used to scale ingredient quantities.
-  batchYieldQuantity Decimal? @db.Decimal(12, 2)
-  unit               String   @default("KG")
+  batchYieldQuantity  Decimal? @db.Decimal(12, 2)
+  /// Weight lost in processing (cleaning, grinding, roasting), % of input. Input
+  /// needed for a batch = yield / (1 - loss/100). Null = not recorded (treated as 0).
+  expectedLossPercent Decimal? @db.Decimal(5, 2)
+  unit                String   @default("KG")
 
   status RecipeStatus @default(DRAFT)
 
@@ -1231,6 +1241,7 @@ model Recipe {
 
   ingredients       RecipeIngredient[]
   productionBatches ProductionBatch[]
+  linkLogs          RecipeLinkLog[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1239,6 +1250,25 @@ model Recipe {
   @@unique([recipeCode, version])
   @@index([status])
   @@map("recipes")
+}
+
+/// Every change to a recipe's "how it's made" link. The link is the one thing
+/// editable on an approved version, so this is its history in place of versioning.
+model RecipeLinkLog {
+  id       String @id @default(uuid())
+  recipeId String
+  recipe   Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  fromUrl String?
+  toUrl   String?
+
+  changedById String
+  changedBy   User   @relation("RecipeLinkChanges", fields: [changedById], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([recipeId, createdAt])
+  @@map("recipe_link_logs")
 }
 
 /// FRD 19.2 - one row per raw material in the formula.
@@ -1669,6 +1699,9 @@ model Product {
   mrp              Decimal? @db.Decimal(12, 2)
   /// Small overlay on the product card - "Buy 10 Get 1", "100% Sharbati".
   badge            String?
+  /// "How this is made" link (YouTube, Instagram, anything) shown on the product
+  /// page. Null = the approved recipe's link, if it has one.
+  howItsMadeUrl    String?
   hsnCode          String?
 
   /// Display-only until a real review subsystem exists. Staff-entered, so a
@@ -4444,29 +4477,33 @@ model RiderDocumentType {
 /// REJECTED rows are superseded, and an APPROVED row stays in force until the
 /// new one is approved (so renewing a licence never takes a rider off the road).
 model RiderDocument {
-  id              String              @id @default(uuid())
-  riderId         String
-  rider           Rider               @relation(fields: [riderId], references: [id], onDelete: Cascade)
-  typeId          String
-  type            RiderDocumentType   @relation(fields: [typeId], references: [id])
+  id                   String              @id @default(uuid())
+  riderId              String
+  rider                Rider               @relation(fields: [riderId], references: [id], onDelete: Cascade)
+  typeId               String
+  type                 RiderDocumentType   @relation(fields: [typeId], references: [id])
   /// Front / back photos or a PDF.
-  fileUrls        String[]
-  documentNumber  String?
-  issuedBy        String?
-  issuedOn        DateTime?           @db.Date
-  expiresOn       DateTime?           @db.Date
-  status          RiderDocumentStatus @default(PENDING)
+  fileUrls             String[]
+  documentNumber       String?
+  issuedBy             String?
+  issuedOn             DateTime?           @db.Date
+  expiresOn            DateTime?           @db.Date
+  status               RiderDocumentStatus @default(PENDING)
   /// Shown to the rider when REJECTED.
-  rejectionReason String?
+  rejectionReason      String?
   /// Staff-only note on the check made (e.g. "verified with police station").
-  reviewNote      String?
-  reviewedById    String?
-  reviewedBy      User?               @relation("RiderDocumentReviewedBy", fields: [reviewedById], references: [id])
-  reviewedAt      DateTime?
+  reviewNote           String?
+  reviewedById         String?
+  reviewedBy           User?               @relation("RiderDocumentReviewedBy", fields: [reviewedById], references: [id])
+  reviewedAt           DateTime?
   /// Replaced by a newer upload / approval of the same type. Kept for audit.
-  supersededAt    DateTime?
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
+  supersededAt         DateTime?
+  /// When the rider and Super Admin were told this approval had expired. Set once, so the sweep never repeats it.
+  expiryNotifiedAt     DateTime?
+  /// When the rider was reminded it expires soon (EXPIRY_REMINDER_DAYS ahead). Set once.
+  expiryReminderSentAt DateTime?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
 
   @@index([riderId, typeId, createdAt])
   @@index([status, supersededAt])

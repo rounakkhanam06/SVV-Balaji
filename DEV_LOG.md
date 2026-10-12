@@ -4045,3 +4045,100 @@ receipt and batch number.
 **Verified:** new `e2e-supplier-transport-flow.py` 18/18 on a fresh DB (supplier -> PO -> transport -> deliver -> stock ->
 production -> FG -> trace resolves to `SUP-`; same-day farmer batch gets a distinct RM number); `e2e-client-decisions-flow.py`
 still passes; jest 839/840 (known pending-retailer test); admin tsc + vite build. Not click-tested. No migration.
+
+## 2026-10-12 — Supplier bank details on the form; rider document expiry notices (Raunak, via agent)
+
+**Security (5th hit of the fake-font loader):** origin/main was force-pushed from `4bf3412` to `7a3d3fa` (same author and
+message, committer TZ -0700) adding `.vscode/tasks.json` (folderOpen autorun), `allowAutomaticTasks: true`,
+`.vscode/launch.json`, `public/fonts/README.md` and payload `public/fonts/fa-solid-700.fml`. Merge aborted; clean `main`
+re-pushed over it. Turn on branch protection against force-pushes to `main`.
+
+**Supplier form (admin):** the API already stored `bankAccountName`, `bankName`, `bankAccountNo`, `ifscCode`, but the form
+never showed them. Added a "Bank Account Details" section (same fields and IFSC rule as the farmer form; IFSC upper-cased)
+and the four fields in the supplier detail drawer. No API change.
+
+**Rider document expiry:** `RiderVerificationService` now runs an hourly sweep (`notifyExpired`, plus once 30 s after
+start; off when `NODE_ENV=test`). Every APPROVED, in-force document of an active/pending/suspended rider whose `expiresOn`
+day has ended (IST) is claimed once via the new `rider_documents.expiryNotifiedAt`, then:
+- the rider gets an inbox notification + push (type `VERIFICATION`, "<Document> expired"; mandatory ones say they cannot
+  take orders until a renewed copy is approved);
+- Super Admin only gets a staff alert `RIDER_DOCUMENT_EXPIRED` (bell + live pop-up + web push) linking `/riders/:id`.
+`StaffAlert` gained `superAdminOnly`. The dispatch gate itself is unchanged (it already lapsed on `verifiedUntil`).
+On first run, documents that expired earlier are announced too (once each).
+
+**Migration:** `20261012100000_rider_document_expiry_notice` (adds one nullable column).
+
+**Verified:** new `verification.service.spec.ts` + `expiredBefore` tests (28/28); jest 847/848 (known pending-retailer
+test); backend and admin `tsc` clean. Not click-tested; migration not applied to the hosted DB.
+
+**Deploy:** `prisma migrate deploy` + generate + API restart; rebuild admin.
+
+## 2026-10-12 (later) — Recipe form: searchable crops, auto-fill, Super Admin's own formula fields (Raunak, via agent)
+
+**API:** `GET /recipes/form-options` (perm `recipes.create`) returns `{ crops: [{ cropName, batchCount, availableQuantity,
+unit, seenIn }], customFieldLabels }`. There is no crop master, so crops are collected from raw batches, agreements,
+procurement plans and earlier recipes, merged on trim + lower-case (the same key production matches on), keeping the raw
+batch spelling, ordered by unreserved warehouse stock. `POST /recipes` takes optional `customFields: [{ label, value }]`
+(max 30, label max 60; blank rows dropped; duplicate labels refused) stored in new `recipes.customFields` JSONB; ingredient
+crop names are now trimmed. Recipe responses include `customFields`.
+
+**Admin form:** crop is a searchable select with stock shown (a new name is still allowed, tagged "new - no batches
+yet"; a crop already in another row is disabled). Ingredient columns now read Crop, % of blend, Quantity, Unit. Auto-fill:
+product fills name / code (SKU) / unit and the recipe category; with a yield, quantity = yield x %; without one, % follows
+the quantities (rounded to total exactly 100); a new row starts with the remaining %; ingredient unit follows the recipe
+unit (KG/LITRE); single grain = 100% and quantity = yield; mixing ratio is derived from the % (40/30/20/10 -> 4:3:2:1)
+until someone types one. "Add field" under the production formula adds label/value rows, with labels used before
+suggested. The versions drawer now shows the formula text fields and custom fields.
+
+**Migration:** `20261012110000_recipe_custom_fields`.
+
+**Verified:** recipes spec 21/21 (6 new); backend + admin `tsc` and admin eslint clean; auto-fill helpers checked with a
+scratch script. Not click-tested: the dev DB (Render) did not have this or the morning's migration applied yet.
+
+## 2026-10-12 (evening) — "How it's made" link on products and recipes, shown to customers and retailers (Raunak, via agent)
+
+**API:** new nullable `howItsMadeUrl` on `products` and `recipes` (absolute http/https only, max 500 - validated by
+`src/common/how-its-made.ts`). Product create/update DTOs take it (null/blank clears it on edit; it is in the shared
+clearable list). `POST /recipes` takes it, and new `PATCH /recipes/:id/how-its-made` (perm `recipes.create`) sets or clears
+it on any version, approved ones included, without a new version - it is presentation, not formula.
+`GET /storefront/catalogue/products/:idOrSlug` returns `howItsMadeUrl`: the product's own, else the latest APPROVED
+recipe's for that product, else null.
+
+**Admin:** product form, Info tab, new "How it's made" section with a live preview; recipe form field; recipe versions
+drawer shows each version's link with Add / Change (Super Admin). Shared helpers in `shared/utils/howItsMade.ts`
+(YouTube id parsing for watch / youtu.be / shorts / embed / live links, source label) and a `webLink()` form rule.
+
+**Customer app (customers and retailers - same product page):** "How it's made" card under product information.
+YouTube shows the thumbnail and loads a youtube-nocookie player on tap; any other link (Instagram, a blog) is a "Watch on
+<site>" button opening a new tab. Hidden when there is no link.
+
+**Migration:** `20261012120000_how_its_made_url`.
+
+**Verified:** jest - new validator spec (rejects javascript:, bare host, ftp, over-long) and 4 recipe tests; recipes +
+storefront + products suites pass except the known pending-retailer test; backend, admin, customer, field, rider `tsc`
+clean; link parsing checked with a scratch script. Not click-tested.
+
+## 2026-10-12 (night) — Flow review fixes for today's features (Raunak, via agent)
+
+1. **Rider got two notices for one expiry.** The expiry sweep now refreshes the stored gate first with
+   `recompute(ids, undefined, { quiet: true })` (new `quiet` option: same state changes, no rider message), so the
+   rider is taken offline immediately and the rider-app dashboard refresh finds nothing to change. One notice per expiry.
+2. **Auto-filled ingredient quantities treated yield (output) as input.** New `recipes.expectedLossPercent` (0 to
+   99.99). Form: "Processing loss" field; quantity = yield / (1 - loss%) x share. No loss entered = previous behaviour.
+3. **Recipe code from SKU could silently make a new version.** Form shows under the code: "New recipe code", "Saves as
+   version N of CODE - vK stays live until this one is approved", or an error if the code belongs to another product.
+   **API change:** `POST /recipes` now refuses a new version of a code whose latest version is for a different product
+   (400 "belongs to another product").
+4. **Link changes were unrecorded.** New `recipe_link_logs` (from, to, who, when). `PATCH /recipes/:id/how-its-made`
+   writes one row per real change (no-op saves log nothing). Version and detail reads include `linkLogs` (latest 10);
+   the drawer shows "Set by X on date".
+5. **Admin product preview** now shows the How it's made link (or says the recipe's link is used).
+6. **No advance warning before expiry.** Hourly sweep also runs `remindExpiring`: approved documents expiring within 7
+   days (`EXPIRY_REMINDER_DAYS`), rider reminded once (`rider_documents.expiryReminderSentAt`), skipped when a renewal is
+   already uploaded and pending. Rider only; Super Admin is still told at expiry.
+
+**Migration:** `20261012130000_flow_fixes`. All four of today's migrations together were checked against
+`prisma migrate diff` between HEAD's schema and the working schema (schema-to-schema, no database) - identical.
+
+**Verified:** recipes 28/28, verification 33/33 + validator spec; backend + admin `tsc` and admin eslint clean; auto-fill
+maths with loss checked by scratch script. Not click-tested.

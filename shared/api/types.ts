@@ -1609,6 +1609,8 @@ export interface Product {
   disclaimer: string | null;
   returnPolicy: string | null;
   warranty: string | null;
+  /** "How this is made" link - YouTube, Instagram, any web page. */
+  howItsMadeUrl?: string | null;
   minOrderQuantity: number | null;
   maxOrderQuantity: number | null;
   moqB2B: number | null;
@@ -1688,6 +1690,7 @@ export interface CreateProductInput {
   disclaimer?: string;
   returnPolicy?: string;
   warranty?: string;
+  howItsMadeUrl?: string;
   minOrderQuantity?: number;
   maxOrderQuantity?: number;
   moqB2B?: number;
@@ -1787,6 +1790,8 @@ export interface StorefrontProductDetail extends StorefrontProductCard {
   returnPolicy: string | null;
   /** The window returns are really checked against: the product's own, else the channel default; 0 = not returnable. */
   returnWindowDays?: number;
+  /** "How this is made" link: the product's own, else its approved recipe's. Null = hide the section. */
+  howItsMadeUrl?: string | null;
   warranty: string | null;
   orderLimits: {
     minOrderQuantity: number;
@@ -1877,6 +1882,14 @@ export interface Recipe {
   roastingInstructions: string | null;
   oilExtractionProcess: string | null;
   packagingInstructions: string | null;
+  /** Extra formula fields Super Admin added, in order. */
+  customFields: RecipeCustomField[] | null;
+  /** "How this is made" link; editable on any version. Shown on the product page when the product has none. */
+  howItsMadeUrl: string | null;
+  /** Who changed the link, newest first (versions + detail reads). */
+  linkLogs?: Array<{ fromUrl: string | null; toUrl: string | null; createdAt: string; changedBy: UserRef }>;
+  /** Weight lost in processing, % of input. Decimal as string; null = not recorded. */
+  expectedLossPercent: string | null;
 
   batchYieldQuantity: string | null;
   unit: string;
@@ -1891,6 +1904,26 @@ export interface Recipe {
   ingredients?: RecipeIngredient[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface RecipeCustomField {
+  label: string;
+  value: string;
+}
+
+/** GET /recipes/form-options - what the recipe form can offer and fill in. */
+export interface RecipeFormOptions {
+  /** Known crop names, most stock first. There is no crop master: gathered from batches, agreements, plans, recipes. */
+  crops: Array<{
+    cropName: string;
+    batchCount: number;
+    /** Unreserved warehouse stock across raw batches of this crop. */
+    availableQuantity: number;
+    unit: string;
+    seenIn: string[];
+  }>;
+  /** Extra-field labels used on earlier recipes. */
+  customFieldLabels: string[];
 }
 
 export interface CreateRecipeInput {
@@ -1912,6 +1945,9 @@ export interface CreateRecipeInput {
   roastingInstructions?: string;
   oilExtractionProcess?: string;
   packagingInstructions?: string;
+  customFields?: RecipeCustomField[];
+  howItsMadeUrl?: string;
+  expectedLossPercent?: number;
   batchYieldQuantity?: number;
   unit?: string;
 }

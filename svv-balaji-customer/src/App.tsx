@@ -92,7 +92,8 @@ export function App() {
   // Before any early return: an affiliate link may land on any page, including login.
   useAffiliateTracker();
 
-  if (!initialising && role === 'RETAILER' && retailerProfile?.kycStatus === 'PENDING') {
+  // Pending and rejected retailers stay on the review screen - it shows the decision and the reason.
+  if (!initialising && role === 'RETAILER' && (retailerProfile?.kycStatus === 'PENDING' || retailerProfile?.kycStatus === 'REJECTED')) {
     return (
       <Suspense fallback={<div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center' }}>Loading...</div>}>
         <UnderReviewPage />
@@ -110,7 +111,7 @@ export function App() {
           <Route path="products/:categoryId" element={<ProductsPage />} />
           <Route path="product-detail/:productId" element={<ProductDetailPage />} />
           <Route path="search" element={<SearchPage />} />
-          <Route path="cart" element={<CartPage />} />
+          <Route path="cart" element={<RequireAccount><CartPage /></RequireAccount>} />
 
           {/*
             The QR destination. Both forms exist on purpose: `/trace` is for
@@ -124,14 +125,11 @@ export function App() {
 
           {/* RegisterPage moved outside StoreShell */}
 
-          {/*
-            Mock-data only for now — matches Home/BottomNav, which read the same
-            static retailer profile rather than `useAuth()`. See ProfilePage.
-          */}
-          <Route path="profile" element={<ProfilePage />} />
-          <Route path="refer" element={<ReferralPage />} />
-          <Route path="refer-and-earn" element={<ReferralPage />} />
-          <Route path="affiliate" element={<AffiliatePage />} />
+          {/* Account pages: a guest gets RequireAccount's "Please sign in" page. Help stays public. */}
+          <Route path="profile" element={<RequireAccount><ProfilePage /></RequireAccount>} />
+          <Route path="refer" element={<RequireAccount><ReferralPage /></RequireAccount>} />
+          <Route path="refer-and-earn" element={<RequireAccount><ReferralPage /></RequireAccount>} />
+          <Route path="affiliate" element={<RequireAccount><AffiliatePage /></RequireAccount>} />
           <Route path="help" element={<HelpSupportPage />} />
           <Route path="support" element={<HelpSupportPage />} />
           <Route path="help-and-support" element={<HelpSupportPage />} />
@@ -145,23 +143,23 @@ export function App() {
               </RequireAccount>
             }
           />
-          <Route path="orders" element={<OrdersPage />} />
-          <Route path="orders/support" element={<OrderSupportPage />} />
-          <Route path="orders/:orderId/support" element={<OrderSupportPage />} />
-          <Route path="order-support" element={<OrderSupportPage />} />
-          <Route path="orders/:orderId" element={<OrderTrackingPage />} />
+          <Route path="orders" element={<RequireAccount><OrdersPage /></RequireAccount>} />
+          <Route path="orders/support" element={<RequireAccount><OrderSupportPage /></RequireAccount>} />
+          <Route path="orders/:orderId/support" element={<RequireAccount><OrderSupportPage /></RequireAccount>} />
+          <Route path="order-support" element={<RequireAccount><OrderSupportPage /></RequireAccount>} />
+          <Route path="orders/:orderId" element={<RequireAccount><OrderTrackingPage /></RequireAccount>} />
           <Route path="orders/:orderId/return" element={<RequireAccount><ReturnRequestPage /></RequireAccount>} />
           <Route path="returns" element={<RequireAccount><ReturnsPage /></RequireAccount>} />
           <Route path="returns/:requestNumber" element={<RequireAccount><ReturnDetailPage /></RequireAccount>} />
           <Route path="order-placed/:orderNumber" element={<RequireAccount><OrderPlacedPage /></RequireAccount>} />
           <Route path="order-placed" element={<RequireAccount><OrderPlacedPage /></RequireAccount>} />
           <Route path="order-success/:orderNumber" element={<RequireAccount><OrderPlacedPage /></RequireAccount>} />
-          <Route path="addresses" element={<AddressesPage />} />
-          <Route path="wishlist" element={<WishlistPage />} />
+          <Route path="addresses" element={<RequireAccount><AddressesPage /></RequireAccount>} />
+          <Route path="wishlist" element={<RequireAccount><WishlistPage /></RequireAccount>} />
           <Route path="notifications" element={<RequireAccount><NotificationsPage /></RequireAccount>} />
           {/* Retailer credit ledger retired 10 Oct 2026 (no credit) - old links land on orders. */}
           <Route path="wallet" element={<Navigate to="/orders" replace />} />
-          <Route path="loyalty" element={<LoyaltyPage />} />
+          <Route path="loyalty" element={<RequireAccount><LoyaltyPage /></RequireAccount>} />
 
           {/*
             A real 404, not a redirect home. This app is public and reached from
@@ -185,6 +183,8 @@ export function App() {
         <Route path="become-an-affiliate" element={<AffiliateProgramPage />} />
         <Route path="retailers/login" element={<LoginPage />} />
         <Route path="retailers/register" element={<RegisterPage />} />
+        {/* Old "Become a Partner" links pointed here. */}
+        <Route path="register" element={<Navigate to="/retailers/register" replace />} />
         <Route path="retailers/under-review" element={<UnderReviewPage />} />
       </Routes>
     </Suspense>

@@ -2992,6 +2992,8 @@ export interface SupportSettings {
   customerFaqs: SupportFaqItem[];
   retailerFaqs: SupportFaqItem[];
   updatedAt?: string;
+  /** Public read only: registered company name from GST settings, null until filled in. */
+  companyName?: string | null;
 }
 
 export interface UpdateSupportSettingsInput {

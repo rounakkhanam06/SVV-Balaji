@@ -18,6 +18,7 @@ import { SHIPPING_PROVIDER, createShippingProvider } from './shipping/shipping-p
 import { StockReservationService } from './stock-reservation.service';
 import { StorefrontCheckoutController } from './storefront-checkout.controller';
 import { StorefrontOrdersService } from './storefront-orders.service';
+import { StorefrontCatalogueModule } from '../storefront/storefront-catalogue.module';
 
 /**
  * Storefront checkout and post-order fulfilment. The payment gateway and the
@@ -25,7 +26,7 @@ import { StorefrontOrdersService } from './storefront-orders.service';
  * dev mocks refuse to boot when NODE_ENV=production.
  */
 @Module({
-  imports: [SalesModule, PricingModule, WalletModule, DeliveryZonesModule, forwardRef(() => DeliveryModule)],
+  imports: [SalesModule, PricingModule, WalletModule, DeliveryZonesModule, StorefrontCatalogueModule, forwardRef(() => DeliveryModule)],
   controllers: [StorefrontCheckoutController, StorefrontDeliveryCheckController, CheckoutSettingsController, CouponsAdminController, FulfillmentController, WebhooksController],
   providers: [
     CheckoutService,

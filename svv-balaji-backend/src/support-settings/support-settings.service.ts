@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 export interface SupportFaqItem {
@@ -103,8 +104,10 @@ const DEFAULT_RETAILER_FAQS: SupportFaqItem[] = [
 export class SupportSettingsService {
   private readonly logger = new Logger(SupportSettingsService.name);
 
-  // In-memory persistent state (seeded with production defaults)
-  private state: SupportSettingsData = {
+  constructor(private readonly prisma: PrismaService) {}
+
+  /** Built-in defaults, used until Super Admin first saves the settings. */
+  private readonly defaults: SupportSettingsData = {
     id: 'default-support-config',
     tollFreeNumber: '1800-209-DESI (1800-209-3374)',
     whatsappNumber: '+91 98765 43210',
@@ -121,42 +124,83 @@ export class SupportSettingsService {
     updatedById: null,
   };
 
+  /**
+   * Read on every storefront page (footer), and the database is a long way
+   * off, so the row is cached briefly per API instance. A save on another
+   * instance shows here within CACHE_MS.
+   */
+  private cache: { value: SupportSettingsData; at: number } | null = null;
+  private static readonly CACHE_MS = 30_000;
+
   async getSettings(): Promise<SupportSettingsData> {
-    return this.state;
+    if (this.cache && Date.now() - this.cache.at < SupportSettingsService.CACHE_MS) return this.cache.value;
+    const row = await this.prisma.supportSettings.findUnique({ where: { id: 'default' } });
+    const value: SupportSettingsData = row
+      ? {
+          ...this.defaults,
+          ...(row.data as Partial<SupportSettingsData>),
+          id: this.defaults.id,
+          updatedAt: row.updatedAt.toISOString(),
+          updatedById: row.updatedById,
+        }
+      : this.defaults;
+    this.cache = { value, at: Date.now() };
+    return value;
   }
 
-  async updateSettings(
-    input: Partial<SupportSettingsData>,
-    updatedById?: string,
-  ): Promise<SupportSettingsData> {
-    this.state = {
-      ...this.state,
-      ...input,
-      customerFaqs: input.customerFaqs || this.state.customerFaqs,
-      retailerFaqs: input.retailerFaqs || this.state.retailerFaqs,
-      helpCategories: input.helpCategories || this.state.helpCategories,
-      updatedAt: new Date().toISOString(),
-      updatedById: updatedById || this.state.updatedById,
+  /** Only the editable fields are taken from the body; anything else is ignored. */
+  async updateSettings(input: Partial<SupportSettingsData>, updatedById?: string): Promise<SupportSettingsData> {
+    const current = await this.getSettings();
+    const pick = <K extends keyof SupportSettingsData>(key: K, valid: (v: unknown) => boolean) =>
+      input[key] !== undefined && valid(input[key]) ? input[key] : current[key];
+    const str = (v: unknown) => typeof v === 'string';
+    const bool = (v: unknown) => typeof v === 'boolean';
+    const list = (v: unknown) => Array.isArray(v);
+    const data = {
+      tollFreeNumber: pick('tollFreeNumber', str),
+      whatsappNumber: pick('whatsappNumber', str),
+      supportEmail: pick('supportEmail', str),
+      operatingHours: pick('operatingHours', str),
+      officeAddress: pick('officeAddress', str),
+      isPhoneSupportActive: pick('isPhoneSupportActive', bool),
+      isWhatsappSupportActive: pick('isWhatsappSupportActive', bool),
+      isEmailSupportActive: pick('isEmailSupportActive', bool),
+      helpCategories: pick('helpCategories', list),
+      customerFaqs: pick('customerFaqs', list),
+      retailerFaqs: pick('retailerFaqs', list),
     };
+    const json = data as unknown as Prisma.InputJsonValue;
+    await this.prisma.supportSettings.upsert({
+      where: { id: 'default' },
+      create: { id: 'default', data: json, updatedById: updatedById ?? null },
+      update: { data: json, updatedById: updatedById ?? null },
+    });
+    this.cache = null;
     this.logger.log(`Support settings updated by ${updatedById || 'system'}`);
-    return this.state;
+    return this.getSettings();
   }
 
   async getStorefrontSupport(role?: string) {
     const isRetailer = role === 'RETAILER' || role === 'B2B';
+    const [state, company] = await Promise.all([
+      this.getSettings(),
+      // The registered company name, as on tax invoices (Settings > GST). Null until filled in.
+      this.prisma.gstSettings.findFirst({ select: { legalName: true, tradeName: true } }).catch(() => null),
+    ]);
     return {
-      tollFreeNumber: this.state.tollFreeNumber,
-      whatsappNumber: this.state.whatsappNumber,
-      supportEmail: this.state.supportEmail,
-      operatingHours: this.state.operatingHours,
-      officeAddress: this.state.officeAddress,
-      isPhoneSupportActive: this.state.isPhoneSupportActive,
-      isWhatsappSupportActive: this.state.isWhatsappSupportActive,
-      isEmailSupportActive: this.state.isEmailSupportActive,
-      helpCategories: this.state.helpCategories,
-      faqs: isRetailer ? this.state.retailerFaqs : this.state.customerFaqs,
-      customerFaqs: this.state.customerFaqs,
-      retailerFaqs: this.state.retailerFaqs,
+      tollFreeNumber: state.tollFreeNumber,
+      whatsappNumber: state.whatsappNumber,
+      supportEmail: state.supportEmail,
+      operatingHours: state.operatingHours,
+      officeAddress: state.officeAddress,
+      isPhoneSupportActive: state.isPhoneSupportActive,
+      isWhatsappSupportActive: state.isWhatsappSupportActive,
+      isEmailSupportActive: state.isEmailSupportActive,
+      helpCategories: state.helpCategories,
+      faqs: isRetailer ? state.retailerFaqs : state.customerFaqs,
+      customerFaqs: state.customerFaqs,
+      retailerFaqs: state.retailerFaqs,
+      companyName: company?.legalName || company?.tradeName || null,
     };
   }
 }

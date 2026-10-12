@@ -15,7 +15,7 @@ import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-r
 import { useCart } from '../cart/useCart';
 import { useCustomerAuth } from '../auth/CustomerAuthContext';
 import { useCatalogueProducts } from '../hooks/useCatalogue';
-import { useCategoryTree } from '../hooks/useCategoryTree';
+import { useCategoryTreeQuery } from '../hooks/useCategoryTree';
 import { formatInr } from '../utils/money';
 import { RatingBadge } from '../components/ProductReviews';
 
@@ -28,7 +28,7 @@ export function ProductsPage() {
   const { role } = useCustomerAuth();
   const isRetailer = role === 'RETAILER';
   const [searchParams, setSearchParams] = useSearchParams();
-  const categories = useCategoryTree();
+  const { categories, isLoading: categoriesLoading, isError: categoriesFailed } = useCategoryTreeQuery();
 
   const maxPriceParam = searchParams.get('maxPrice');
   const maxPrice = maxPriceParam ? Number(maxPriceParam) : null;
@@ -47,7 +47,25 @@ export function ProductsPage() {
   const catalogue = useCatalogueProducts({ categorySlug: activeCategorySlug, topPick: isTopPicks });
 
   if (!mainCategory) {
-    return <Navigate to={`/products/${categories[0]?.id || 'atta-flour'}`} replace />;
+    // Wait for the real list rather than guessing a slug - a guess that does not exist redirected to itself.
+    if (categoriesLoading) {
+      return (
+        <div style={{ display: 'grid', placeItems: 'center', padding: 64 }}>
+          <Spin />
+        </div>
+      );
+    }
+    // A renamed or hidden category's old link lands on the first live one.
+    if (categories.length > 0) return <Navigate to={`/products/${categories[0].id}`} replace />;
+    return (
+      <div style={{ padding: 48, textAlign: 'center' }}>
+        <Typography.Title level={4}>{categoriesFailed ? 'Could not load categories' : 'No categories yet'}</Typography.Title>
+        <Typography.Paragraph type="secondary">
+          {categoriesFailed ? 'Check your connection and try again.' : 'Products will appear here once categories are published.'}
+        </Typography.Paragraph>
+        <Link to="/">Back to home</Link>
+      </div>
+    );
   }
 
   const productsToDisplay = maxPrice

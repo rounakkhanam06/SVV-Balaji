@@ -19,6 +19,8 @@ import type { StorefrontSession } from './types';
 const AUTH_ROUTES = [
   '/storefront/auth/otp',
   '/storefront/auth/register-retailer',
+  // Answers 401 only when the session itself is gone; refreshing would not help.
+  '/storefront/auth/registration-status',
   '/storefront/auth/refresh',
   '/storefront/auth/logout',
 ];

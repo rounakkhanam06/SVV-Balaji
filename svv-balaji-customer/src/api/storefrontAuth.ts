@@ -71,6 +71,11 @@ export const storefrontAuthApi = {
     return api.get<StorefrontAccountSummary>('/storefront/auth/me').then((r) => r.data);
   },
 
+  /** My retailer registration's status - works while pending or rejected, which /me refuses. */
+  registrationStatus() {
+    return api.get<RegistrationStatus>('/storefront/auth/registration-status').then((r) => r.data);
+  },
+
   updateProfile(dto: UpdateStorefrontProfilePayload) {
     return api
       .patch<StorefrontAccountSummary>('/storefront/auth/profile', dto)
@@ -88,3 +93,12 @@ export const storefrontAuthApi = {
       .then((r) => r.data);
   },
 };
+
+export interface RegistrationStatus {
+  status: 'PENDING_VERIFICATION' | 'PENDING_APPROVAL' | 'ACTIVE' | 'REJECTED' | 'SUSPENDED';
+  businessName: string | null;
+  submittedAt: string;
+  reviewedAt: string | null;
+  /** Only when REJECTED. */
+  rejectionReason: string | null;
+}

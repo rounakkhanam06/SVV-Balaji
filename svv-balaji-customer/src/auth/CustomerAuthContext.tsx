@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { refreshOnce } from '../api/client';
-import { storefrontAuthApi, type AuthAudience } from '../api/storefrontAuth';
+import { storefrontAuthApi, type AuthAudience, type RegistrationStatus } from '../api/storefrontAuth';
 import { tokenStore } from '../api/tokenStore';
 import type {
   RegisterRetailerPayload,
@@ -38,6 +38,8 @@ export interface RetailerUserProfile {
   pincode: string;
   memberSince: string;
   kycStatus: 'VERIFIED' | 'PENDING' | 'REJECTED';
+  /** Set when Super Admin rejected the registration. */
+  rejectionReason?: string | null;
   totalOrders: number;
   totalSavings: number;
   walletBalance: number;
@@ -65,6 +67,12 @@ export interface CustomerAuthContextType {
   verifyOtp: (phone: string, code: string, audience: AuthAudience, fullName?: string, referralCode?: string) => Promise<VerifyOtpOutcome>;
   registerRetailer: (payload: RegisterRetailerPayload) => Promise<RegisterRetailerResponse>;
   refreshProfile: () => Promise<void>;
+  /**
+   * A pending retailer's registration status, applied to the profile: approval
+   * loads the full account, rejection records the reason. Null when it could
+   * not be read (offline, or the session has ended).
+   */
+  checkRegistration: () => Promise<RegistrationStatus | null>;
   logout: () => void;
 }
 
@@ -122,6 +130,9 @@ function toRetailerProfile(account: StorefrontAccountSummary): RetailerUserProfi
   };
 }
 
+/** How often a pending retailer's registration is re-checked. */
+const REGISTRATION_POLL_MS = 30_000;
+
 const CustomerAuthContext = createContext<CustomerAuthContextType | undefined>(undefined);
 
 export function CustomerAuthProvider({ children }: { children: ReactNode }) {
@@ -164,16 +175,30 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
     }
   }, [applyAccount]);
 
-  // Polling for live status updates while retailer is PENDING approval
+  const checkRegistration = useCallback(async (): Promise<RegistrationStatus | null> => {
+    if (!tokenStore.getAccessToken()) return null;
+    try {
+      const result = await storefrontAuthApi.registrationStatus();
+      if (result.status === 'ACTIVE') {
+        // Approved: the regular session now works, so load the full account.
+        await refreshProfile();
+      } else if (result.status === 'REJECTED' || result.status === 'SUSPENDED') {
+        setRetailerProfile((p) => (p ? { ...p, kycStatus: 'REJECTED', rejectionReason: result.rejectionReason } : p));
+      }
+      return result;
+    } catch {
+      return null;
+    }
+  }, [refreshProfile]);
+
+  // While a retailer waits for review: check now, then every 30 s. (Was /me every 4 s, which the server
+  // refuses for a pending account - each tick was a failed call, a token refresh and a second failed call.)
   useEffect(() => {
     if (role !== 'RETAILER' || retailerProfile?.kycStatus !== 'PENDING') return;
-
-    const timer = setInterval(() => {
-      void refreshProfile();
-    }, 4000);
-
+    void checkRegistration();
+    const timer = setInterval(() => void checkRegistration(), REGISTRATION_POLL_MS);
     return () => clearInterval(timer);
-  }, [role, retailerProfile?.kycStatus, refreshProfile]);
+  }, [role, retailerProfile?.kycStatus, checkRegistration]);
 
   // Boot-time session restore — mirrors @shared/auth/AuthProvider's pattern,
   // against the storefront's own refresh token instead of the staff one.
@@ -263,9 +288,10 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
       verifyOtp,
       registerRetailer,
       refreshProfile,
+      checkRegistration,
       logout,
     }),
-    [role, initialising, customerProfile, retailerProfile, requestOtp, verifyOtp, registerRetailer, refreshProfile, logout],
+    [role, initialising, customerProfile, retailerProfile, requestOtp, verifyOtp, registerRetailer, refreshProfile, checkRegistration, logout],
   );
 
   return <CustomerAuthContext.Provider value={value}>{children}</CustomerAuthContext.Provider>;

@@ -1,4 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { CustomerType, OrderStatus, SalesChannel } from '@prisma/client';
+import { StorefrontCatalogueService } from '../storefront/storefront-catalogue.service';
 import { distanceKm } from '../delivery/zones/zone.logic';
 import { MapsService } from '../maps/maps.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -6,13 +8,50 @@ import type { StoredQuote } from './checkout.service';
 
 const num = (d: unknown) => (d === null || d === undefined ? null : Number(d));
 
+/** Products shown in the home page's Buy Again row. */
+const BUY_AGAIN_LIMIT = 8;
+
 /** What the customer sees of their own orders. Never staff-only fields. */
 @Injectable()
 export class StorefrontOrdersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly maps: MapsService,
+    private readonly catalogue: StorefrontCatalogueService,
   ) {}
+
+  /**
+   * "Buy Again": products from this shopper's own orders (cancelled and
+   * draft ones excluded), most recently ordered first, as live catalogue
+   * cards - today's price for their channel, current stock - so nothing is
+   * offered at an old price. Products since unpublished or deactivated drop out.
+   */
+  async buyAgain(customer: { id: string; channel: SalesChannel; type: CustomerType }, limit = BUY_AGAIN_LIMIT) {
+    const orders = await this.prisma.order.findMany({
+      where: { customerId: customer.id, source: 'STOREFRONT', status: { notIn: [OrderStatus.DRAFT, OrderStatus.CANCELLED] } },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+      select: { createdAt: true, items: { select: { productId: true, quantity: true } } },
+    });
+
+    const seen = new Map<string, { lastOrderedAt: Date; lastQuantity: number; timesOrdered: number }>();
+    for (const order of orders) {
+      for (const productId of new Set(order.items.map((i) => i.productId))) {
+        const entry = seen.get(productId);
+        if (entry) entry.timesOrdered += 1;
+        else {
+          const quantity = order.items.filter((i) => i.productId === productId).reduce((n, i) => n + i.quantity, 0);
+          seen.set(productId, { lastOrderedAt: order.createdAt, lastQuantity: quantity, timesOrdered: 1 });
+        }
+      }
+    }
+    if (!seen.size) return [];
+
+    // Ask for a few spare: some may no longer be on sale.
+    const ids = [...seen.keys()].slice(0, limit * 2);
+    const cards = await this.catalogue.listProductsByIds(ids, { channel: customer.channel, customerType: customer.type });
+    return cards.slice(0, limit).map((card) => ({ ...card, ...seen.get(card.id)! }));
+  }
 
   async list(customerId: string) {
     const [rows, reviews] = await Promise.all([

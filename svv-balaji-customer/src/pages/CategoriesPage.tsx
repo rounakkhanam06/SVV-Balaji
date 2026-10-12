@@ -32,8 +32,6 @@ const DEFAULT_CAT_BANNER: CategoryPageBanner = {
   imageUrl: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=600',
   ctaTextPrimary: 'Explore All Categories',
   ctaLinkPrimary: '/categories',
-  ctaTextSecondary: 'Bulk B2B Rates',
-  ctaLinkSecondary: '/price-lists',
   backgroundColor: '#ea580c',
 };
 
@@ -639,7 +637,7 @@ export function CategoriesPage() {
                       <Typography.Title level={4} style={{ margin: 0, color: '#0f172a', fontWeight: 700 }}>
                         High Velocity Retail Essentials
                       </Typography.Title>
-                      <Link to="/products/atta-dal" style={{ color: '#f97316', fontWeight: 600, fontSize: 13 }}>
+                      <Link to="/categories" style={{ color: '#f97316', fontWeight: 600, fontSize: 13 }}>
                         View All Products &rarr;
                       </Link>
                     </div>

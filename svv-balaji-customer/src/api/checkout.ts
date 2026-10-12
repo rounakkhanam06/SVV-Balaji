@@ -1,3 +1,4 @@
+import type { StorefrontProductCard } from '@shared/api/types';
 import type { Invoice } from '@shared/api/invoices';
 import { api } from './client';
 
@@ -238,6 +239,8 @@ export const checkoutApi = {
   coupons: () => api.get<OfferCoupon[]>('/storefront/coupons').then((r) => r.data),
   orders: () => api.get<OrderSummaryRow[]>('/storefront/orders').then((r) => r.data),
   order: (orderNumber: string) => api.get<OrderDetail>(`/storefront/orders/${encodeURIComponent(orderNumber)}`).then((r) => r.data),
+  /** Home "Buy Again": products from my own past orders, newest first, at today's price for my channel. */
+  buyAgain: () => api.get<BuyAgainProduct[]>('/storefront/orders/buy-again').then((r) => r.data),
   /** Address search (Google Places via our API; the key stays on the server). One `session` UUID per search. */
   placeSuggestions: (input: string, session: string, near?: { latitude: number; longitude: number }) =>
     api
@@ -271,3 +274,10 @@ export function checkoutError(error: unknown): { code?: string; message: string;
   const message = Array.isArray(data?.message) ? data?.message.join('. ') : data?.message;
   return { code: data?.code, message: message ?? (error instanceof Error ? error.message : 'Something went wrong'), quote: data?.quote };
 }
+
+/** A catalogue card plus when / how much / how often this shopper ordered it. */
+export type BuyAgainProduct = StorefrontProductCard & {
+  lastOrderedAt: string;
+  lastQuantity: number;
+  timesOrdered: number;
+};

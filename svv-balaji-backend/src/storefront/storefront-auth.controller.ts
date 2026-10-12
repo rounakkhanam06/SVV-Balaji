@@ -113,6 +113,18 @@ export class StorefrontAuthController {
     return this.service.registerRetailer(dto, { ipAddress: ip, userAgent });
   }
 
+  @Get('registration-status')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: "My retailer registration's status (PENDING_APPROVAL / ACTIVE / REJECTED + reason)",
+    description:
+      'For the under-review screen. Works for pending and rejected accounts, which the regular customer guard ' +
+      'refuses, and accepts an expired access token while its session is live.',
+  })
+  registrationStatus(@Headers('authorization') authorization?: string) {
+    return this.service.registrationStatus(authorization);
+  }
+
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   refresh(@Body() dto: StorefrontRefreshDto) {

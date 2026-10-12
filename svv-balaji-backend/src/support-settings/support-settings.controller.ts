@@ -4,6 +4,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy';
+import { RequirePermission } from '../auth/decorators/require-permission.decorator';
 import { SupportSettingsService } from './support-settings.service';
 
 @ApiTags('support-settings')
@@ -14,6 +15,8 @@ export class SupportSettingsController {
   @Get()
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, PermissionsGuard)
+  // Same permission the admin menu gates this screen on.
+  @RequirePermission('orders.view')
   @ApiOperation({ summary: 'Get current support settings (Super Admin)' })
   getSettings() {
     return this.supportService.getSettings();
@@ -22,6 +25,7 @@ export class SupportSettingsController {
   @Patch()
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermission('orders.view')
   @ApiOperation({ summary: 'Update support settings & dynamic FAQs (Super Admin)' })
   updateSettings(@Body() body: any, @CurrentUser() user: JwtPayload) {
     return this.supportService.updateSettings(body, user?.sub);

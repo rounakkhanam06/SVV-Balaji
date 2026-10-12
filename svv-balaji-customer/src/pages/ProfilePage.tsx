@@ -34,7 +34,6 @@ export function ProfilePage() {
   const { role, customerProfile, retailerProfile, logout } = useCustomerAuth();
   const loyalty = useLoyalty();
   const stats = useAccountStats();
-  const [whatsappAlerts, setWhatsappAlerts] = useState(true);
 
   const handleLogout = () => {
     Modal.confirm({
@@ -156,20 +155,6 @@ export function ProfilePage() {
           route: '/addresses',
         },
         {
-          key: 'whatsapp',
-          icon: <BellOutlined />,
-          iconBg: '#ecfdf5',
-          iconColor: '#059669',
-          label: 'WhatsApp Order Updates',
-          subtitle: 'Instant dispatch alerts on your mobile',
-          toggle: true,
-          toggleValue: whatsappAlerts,
-          onToggle: (val: boolean) => {
-            setWhatsappAlerts(val);
-            message.success(val ? 'WhatsApp alerts enabled' : 'WhatsApp alerts disabled');
-          },
-        },
-        {
           key: 'help',
           icon: <QuestionCircleOutlined />,
           iconBg: '#eff6ff',
@@ -270,20 +255,6 @@ export function ProfilePage() {
     {
       title: 'Settings & Support',
       items: [
-        {
-          key: 'whatsapp',
-          icon: <BellOutlined />,
-          iconBg: '#ecfdf5',
-          iconColor: '#059669',
-          label: 'WhatsApp Dispatch Alerts',
-          subtitle: 'Receive digital invoice and OTP on WhatsApp',
-          toggle: true,
-          toggleValue: whatsappAlerts,
-          onToggle: (val: boolean) => {
-            setWhatsappAlerts(val);
-            message.success(val ? 'WhatsApp alerts enabled' : 'WhatsApp alerts disabled');
-          },
-        },
         {
           key: 'help',
           icon: <QuestionCircleOutlined />,
@@ -541,7 +512,7 @@ export function ProfilePage() {
                 type="primary"
                 block
                 style={{ background: '#ea580c', borderColor: '#ea580c', borderRadius: 8, fontWeight: 600, height: 40 }}
-                onClick={() => navigate('/register')}
+                onClick={() => navigate('/retailers/register')}
               >
                 Become a Partner / Buy Wholesale &rarr;
               </Button>
@@ -706,7 +677,7 @@ export function ProfilePage() {
                   type="primary"
                   size="middle"
                   style={{ background: '#ea580c', borderColor: '#ea580c', borderRadius: 8, fontWeight: 600, fontSize: 12, height: 34 }}
-                  onClick={() => navigate('/register')}
+                  onClick={() => navigate('/retailers/register')}
                 >
                   Become a Partner / Buy Wholesale
                 </Button>
@@ -855,7 +826,7 @@ export function ProfilePage() {
                     type="primary"
                     block
                     style={{ background: '#ea580c', borderColor: '#ea580c', borderRadius: 8, fontWeight: 600 }}
-                    onClick={() => navigate('/register')}
+                    onClick={() => navigate('/retailers/register')}
                   >
                     Become a Partner &rarr;
                   </Button>
@@ -1079,26 +1050,6 @@ export function ProfilePage() {
                             </div>
                           </div>
 
-                          <div style={{ border: '1px solid #e2e8f0', borderRadius: 12, padding: 18, marginTop: 8 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                              <div>
-                                <Typography.Text strong style={{ fontSize: 15 }}>
-                                  Notification Preferences
-                                </Typography.Text>
-                                <Typography.Text style={{ fontSize: 12, color: '#64748b', display: 'block' }}>
-                                  Receive order dispatch notifications and digital invoices on WhatsApp
-                                </Typography.Text>
-                              </div>
-                              <Switch
-                                checked={whatsappAlerts}
-                                onChange={(val) => {
-                                  setWhatsappAlerts(val);
-                                  message.success(val ? 'WhatsApp alerts enabled' : 'WhatsApp alerts disabled');
-                                }}
-                                style={{ background: whatsappAlerts ? '#f97316' : undefined }}
-                              />
-                            </div>
-                          </div>
                         </div>
                       ),
                     },

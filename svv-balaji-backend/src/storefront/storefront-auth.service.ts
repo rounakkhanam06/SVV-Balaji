@@ -313,6 +313,52 @@ export class StorefrontAuthService {
     return this.sessionFor(account, meta, { touchLogin: true });
   }
 
+  /**
+   * A retailer's own registration status, for the "under review" screen.
+   *
+   * The regular customer guard only admits ACTIVE accounts, so a pending
+   * retailer's polling used to fail, refresh and fail again every few seconds,
+   * and a rejected one was signed out without ever seeing why. This reads the
+   * session straight from the access token, accepting an expired one (the
+   * session row is what is checked: not revoked, not past its refresh
+   * lifetime). Read-only, and only ever about the token's own account.
+   */
+  async registrationStatus(authorization: string | undefined) {
+    const token = authorization?.match(/^Bearer\s+(.+)$/i)?.[1];
+    if (!token) throw new UnauthorizedException('Sign in to check your registration');
+    let payload: CustomerJwtPayload;
+    try {
+      payload = await this.jwtService.verifyAsync<CustomerJwtPayload>(token, {
+        secret: customerAccessSecret(),
+        ignoreExpiration: true,
+      });
+    } catch {
+      throw new UnauthorizedException('Sign in to check your registration');
+    }
+    if (payload.typ !== 'customer' || !payload.sid) throw new UnauthorizedException('Sign in to check your registration');
+
+    const session = await this.prisma.customerSession.findUnique({
+      where: { id: payload.sid },
+      select: {
+        accountId: true,
+        revokedAt: true,
+        expiresAt: true,
+        account: { select: { status: true, businessName: true, rejectionReason: true, reviewedAt: true, createdAt: true } },
+      },
+    });
+    if (!session || session.accountId !== payload.sub || session.revokedAt || session.expiresAt <= new Date()) {
+      throw new UnauthorizedException('Sign in to check your registration');
+    }
+    const a = session.account;
+    return {
+      status: a.status,
+      businessName: a.businessName,
+      submittedAt: a.createdAt,
+      reviewedAt: a.reviewedAt,
+      rejectionReason: a.status === CustomerAccountStatus.REJECTED ? a.rejectionReason : null,
+    };
+  }
+
   private async consumeChallenge(phone: string, code: string) {
     const challenge = await this.prisma.customerOtpChallenge.findFirst({
       where: { phone, consumedAt: null },

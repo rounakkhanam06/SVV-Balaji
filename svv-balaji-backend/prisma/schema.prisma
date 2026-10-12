@@ -4841,6 +4841,19 @@ enum PolicyType {
   TERMS_AND_CONDITIONS
 }
 
+/// Helpdesk details and FAQs Super Admin edits under Settings > Support, shown in the
+/// customer / retailer apps (Help page, footer). One row; until it is first saved the
+/// built-in defaults in SupportSettingsService apply. Was held in API memory only.
+model SupportSettings {
+  id          String   @id @default("default")
+  /// SupportSettingsData minus id / updatedAt / updatedById.
+  data        Json
+  updatedById String?
+  updatedAt   DateTime @updatedAt
+
+  @@map("support_settings")
+}
+
 model LegalPolicy {
   id          String         @id @default(uuid())
   audience    PolicyAudience

@@ -143,7 +143,7 @@ export function DesktopHeader() {
       key: 'partner',
       icon: <ShopOutlined style={{ color: '#ea580c' }} />,
       label: (
-        <Link to="/register" style={{ color: '#ea580c', fontWeight: 600 }}>
+        <Link to="/retailers/register" style={{ color: '#ea580c', fontWeight: 600 }}>
           Become a Partner (Wholesale) &rarr;
         </Link>
       ),
@@ -193,7 +193,7 @@ export function DesktopHeader() {
           <div className="hdr-top-right" style={{ display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0 }}>
             {!isRetailer && (
               <Link
-                to="/register"
+                to="/retailers/register"
                 style={{
                   color: '#fef08a',
                   textDecoration: 'none',

@@ -343,15 +343,18 @@ describe('StorefrontAuthService', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
-    it('a pending retailer cannot sign in - gets a pending message, not a token', async () => {
+    // Pending retailers get a session so the app can hold them on the under-review screen; it is
+    // marked PENDING_APPROVAL, and the regular customer guard refuses it (only ACTIVE passes) -
+    // they can read their own registration status and nothing else. (Was: no session at all.)
+    it('a pending retailer signs in to a session marked pending, for the under-review screen', async () => {
       const code1 = await requestAndGetCode('9000011111');
       await service.registerRetailer({ ...registerDto(), code: code1 } as any);
 
       const code2 = await requestAndGetCode('9000011111');
       const attempt: any = await service.verifyOtp({ phone: '9000011111', code: code2 } as any);
 
-      expect(attempt.pending).toBe(true);
-      expect(attempt.accessToken).toBeUndefined();
+      expect(attempt.accessToken).toBeDefined();
+      expect(attempt.account.status).toBe('PENDING_APPROVAL');
     });
 
     it('approval creates the Customer record and lets the account sign in', async () => {

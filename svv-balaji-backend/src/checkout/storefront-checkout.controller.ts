@@ -124,6 +124,13 @@ export class StorefrontCheckoutController {
     return this.orders.list((await this.ctx.forAccount(s.sub)).id);
   }
 
+  // Before orders/:orderNumber, or "buy-again" would be read as an order number.
+  @Get('orders/buy-again')
+  @ApiOperation({ summary: 'Products from my past orders, most recent first, priced live for my channel (home "Buy Again")' })
+  async buyAgain(@CurrentCustomer() s: CustomerJwtPayload) {
+    return this.orders.buyAgain(await this.ctx.forAccount(s.sub));
+  }
+
   @Get('orders/:orderNumber')
   async myOrder(@CurrentCustomer() s: CustomerJwtPayload, @Param('orderNumber') orderNumber: string) {
     return this.orders.detail((await this.ctx.forAccount(s.sub)).id, orderNumber);

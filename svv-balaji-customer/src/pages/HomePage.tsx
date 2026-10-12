@@ -30,11 +30,11 @@ import { useCustomerAuth } from '../auth/CustomerAuthContext';
 import { useCart } from '../cart/useCart';
 import { toShelfProduct, useCatalogueProducts, type ShelfProduct } from '../hooks/useCatalogue';
 import type { StorefrontHomeSection } from '@shared/api/types';
-import { useCategoryTree } from '../hooks/useCategoryTree';
+import { useCategoryTreeQuery } from '../hooks/useCategoryTree';
 // Order history is still mock (no storefront order backend yet). Only its
 // "what and how much was last ordered" survives - names, prices and images are
 // re-read from the live catalogue below, so an admin edit reaches this shelf too.
-import { buyAgainProducts as buyAgainHistory } from '../mock/homeMockData';
+import { lastOrderedLabel, useBuyAgain } from '../hooks/useBuyAgain';
 import { formatInr } from '../utils/money';
 import { RatingBadge } from '../components/ProductReviews';
 import { useUnreadNotifications } from '../notifications/useUnreadNotifications';
@@ -61,23 +61,13 @@ const FALLBACK_HERO_SLIDES: HeroSlide[] = [
     id: 'fallback-1',
     badgeText: '100% FARM-TRACEABLE STAPLES',
     title: 'Direct From Verified Mandis to Your Store',
-    description: 'Pure Sharbati Atta, cold-pressed oils, and ground spices with verifiable batch QR provenance.',
+    description: 'Staples milled from crops bought directly from farmers - every pack traceable by its batch QR.',
     imageUrl: '/images/welcome_3d.jpg',
     ctaTextPrimary: 'Explore Catalog',
-    ctaLinkPrimary: '/products/atta-flour',
+    ctaLinkPrimary: '/categories',
     ctaTextSecondary: 'Trace A Batch',
     ctaLinkSecondary: '/trace',
     background: 'linear-gradient(135deg, #065f46 0%, #047857 50%, #059669 100%)',
-  },
-  {
-    id: 'fallback-2',
-    badgeText: 'MEGA WHOLESALE SAVINGS',
-    title: 'Festive Retailer Schemes Live Now',
-    description: 'Bulk case packs at wholesale tier prices for registered retailers. See Schemes & Offers for what is running today.',
-    imageUrl: '/images/cat_spices.jpg',
-    ctaTextPrimary: 'Claim Active Schemes',
-    ctaLinkPrimary: '/products/atta-flour',
-    background: 'linear-gradient(135deg, #9a3412 0%, #c2410c 50%, #ea580c 100%)',
   },
 ];
 
@@ -102,15 +92,11 @@ export function HomePage() {
     }
     setPickingLocation(true);
   }, [isRetailer, shopperLocation]);
-  const categories = useCategoryTree();
+  const { categories, isLoading: categoriesLoading } = useCategoryTreeQuery();
 
-  // Product shelves come from Admin > Homepage Sections (below); the whole
-  // catalogue is still read here to re-price the Buy Again history.
-  const wholeCatalogue = useCatalogueProducts({ limit: 100 }).products;
-  const buyAgain = buyAgainHistory.flatMap((entry) => {
-    const live = wholeCatalogue.find((p) => p.slug === entry.id || p.id === entry.id);
-    return live ? [{ ...live, lastOrdered: entry.lastOrdered }] : [];
-  });
+  // Product shelves come from Admin > Homepage Sections (below). Buy Again is
+  // this shopper's own order history, priced live; nothing for a guest.
+  const { items: buyAgain } = useBuyAgain();
 
   const { data: publishedBanners } = useStorefrontBanners(
     'HOMEPAGE',
@@ -572,7 +558,7 @@ export function HomePage() {
                       block
                       type="primary"
                       style={{ background: '#ffffff', borderColor: '#ffffff', color: '#ea580c', fontWeight: 700, borderRadius: 8, height: 38 }}
-                      onClick={() => navigate('/register')}
+                      onClick={() => navigate('/retailers/register')}
                     >
                       Register Business &rarr;
                     </Button>
@@ -676,6 +662,7 @@ export function HomePage() {
         {/* ======================================================================= */}
         {/* 3. SHOP BY CATEGORY (MOBILE SLIDER + DESKTOP WIDE GRID)                 */}
         {/* ======================================================================= */}
+        {categoriesLoading || categories.length > 0 ? (
         <section>
           <SectionHeader title="Shop by Category" to="/categories" subtitle="Fresh & unadulterated directly from mandis" />
 
@@ -758,13 +745,16 @@ export function HomePage() {
                     {category.name}
                   </Typography.Text>
                   <span style={{ fontSize: 11, color: '#059669', fontWeight: 600 }}>
-                    {category.subcategories?.length || 4} Varieties &rarr;
+                    {category.subcategories.length > 0
+                      ? `${category.subcategories.length} ${category.subcategories.length === 1 ? 'Variety' : 'Varieties'} →`
+                      : 'Shop now →'}
                   </span>
                 </Link>
               ))}
             </div>
           </div>
         </section>
+        ) : null}
 
         {/* ======================================================================= */}
         {/* 4. TODAY'S SCHEMES & WHOLESALE OFFERS                                   */}
@@ -780,9 +770,6 @@ export function HomePage() {
                   Today&apos;s Active Schemes &amp; Offers
                 </Typography.Title>
               </div>
-              <Link to="/products/atta-flour" style={{ fontSize: 13, color: '#059669', fontWeight: 600 }}>
-                View All Schemes &rarr;
-              </Link>
             </div>
 
             {/* Mobile horizontal scroller */}
@@ -952,7 +939,8 @@ export function HomePage() {
                         {product.name}
                       </Typography.Text>
                       <Typography.Text type="secondary" style={{ fontSize: 11 }}>
-                        Last ordered: {product.lastOrdered}
+                        Last ordered {lastOrderedLabel(product.lastOrderedAt)}
+                        {product.timesOrdered > 1 ? ` · ordered ${product.timesOrdered} times` : ''}
                       </Typography.Text>
                       <div style={{ marginTop: 2 }}>
                         <Typography.Text strong style={{ fontSize: 15, color: '#c2410c' }}>
@@ -969,7 +957,8 @@ export function HomePage() {
                     type="primary"
                     style={{ background: '#f97316', borderColor: '#f97316', borderRadius: 8, fontWeight: 600 }}
                     onClick={() => {
-                      const moq = isRetailer ? ((product as any).moqB2B ?? 1) : 1;
+                      // Same quantity as last time, never under this channel's minimum.
+                      const min = isRetailer ? (product.moqB2B ?? 1) : (product.minOrderQuantity ?? 1);
                       cart.add(
                         {
                           productId: product.id,
@@ -978,15 +967,15 @@ export function HomePage() {
                           displayUnitPrice: product.price,
                           imageUrl: product.image,
                           mrp: product.mrp,
-                          moqB2B: (product as any).moqB2B ?? 1,
-                          minOrderQuantity: (product as any).minOrderQuantity ?? 1,
+                          moqB2B: product.moqB2B ?? 1,
+                          minOrderQuantity: product.minOrderQuantity ?? 1,
                         },
-                        cartLine ? 0 : moq,
+                        cartLine ? 0 : Math.max(min, product.lastQuantity),
                       );
                     }}
-                    disabled={Boolean(cartLine)}
+                    disabled={Boolean(cartLine) || !product.purchasable}
                   >
-                    {cartLine ? 'Added' : 'Reorder'}
+                    {cartLine ? 'Added' : !product.purchasable ? 'Out of stock' : `Reorder ×${Math.max(isRetailer ? (product.moqB2B ?? 1) : (product.minOrderQuantity ?? 1), product.lastQuantity)}`}
                   </Button>
                 </div>
               );
@@ -1063,7 +1052,7 @@ export function HomePage() {
             <Button
               type="primary"
               style={{ background: '#ea580c', borderColor: '#ea580c', fontWeight: 600, borderRadius: 8, height: 40 }}
-              onClick={() => navigate('/register')}
+              onClick={() => navigate('/retailers/register')}
             >
               Become a Partner &rarr;
             </Button>

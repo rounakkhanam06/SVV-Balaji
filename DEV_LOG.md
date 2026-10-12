@@ -4142,3 +4142,96 @@ clean; link parsing checked with a scratch script. Not click-tested.
 
 **Verified:** recipes 28/28, verification 33/33 + validator spec; backend + admin `tsc` and admin eslint clean; auto-fill
 maths with loss checked by scratch script. Not click-tested.
+
+## 2026-10-12 (late) — Customer/retailer footer: real links and live data; support settings persisted (Raunak, via agent)
+
+**Footer (`svv-balaji-customer/src/layout/DesktopFooter.tsx`, desktop only - mobile has no footer):** removed the mock
+category list, fake toll-free/email/address, fake FSSAI number, "256-bit SSL" and the "Flexible Retailer Credit" banner
+(retailer credit was dropped 10 Oct). Now:
+- categories: live `GET /storefront/categories` (active only, admin display order), first 8 + "All categories", links
+  `/products/<slug>`; no mock fallback, skeleton while loading;
+- account column by role (guest / customer / retailer), every link a route that exists;
+- banner: traceability, returns, rewards, GST invoices (retailer) / help (customer), each linking to its page;
+- support column from Admin > Helpdesk & Support Settings, honouring the on/off switches, with tel:, wa.me and mailto:
+  links; Help Centre link;
+- Privacy Notice / Conditions of Use link to `/legal/<customer|retailer>/...` (Super Admin's published policies);
+- company name from GST settings (`legalName`, else `tradeName`); omitted until filled in.
+
+**Support settings were in API memory** - every restart/deploy reset Super Admin's edits to the hardcoded defaults, and
+`PATCH /support-settings` had no permission check. Now one row in new `support_settings` (JSON), 30 s per-instance cache,
+defaults until first save, PATCH takes only the known fields with the right types. GET/PATCH now require `orders.view`
+(what the admin menu already gated the screen on). `GET /support-settings/public` adds `companyName`.
+**Migration:** `20261012140000_support_settings_table`.
+
+**Not changed, noticed:** the desktop header menus link to `/register`, which is not a route (`/retailers/register` is).
+`useCategoryTree` still falls back to the mock categories while loading / when none are published (home, categories and
+products pages).
+
+**Verified:** new support-settings spec 6/6; backend, customer, admin `tsc` clean. Not click-tested.
+
+## 2026-10-12 (late, cont.) — Customer app: broken /register links, no more mock categories (Raunak, via agent)
+
+- **Register links:** 7 "Become a Partner / Register Business" links (header x2, home x2, profile x3) went to `/register`,
+  which is not a route. Now `/retailers/register`; `/register` also redirects there for old links.
+- **Categories:** `useCategoryTree` no longer falls back to `mock/homeMockData` categories while loading or when none are
+  published. New `useCategoryTreeQuery()` exposes loading/error. ProductsPage waits for the list (it used to redirect to
+  the hardcoded `atta-flour` slug, which loops if that slug does not exist); an unknown slug goes to the first live
+  category, or an empty / error state. Home hides "Shop by Category" when none are published, and the tile's
+  "N Varieties" shows the real count (was "4" when zero).
+- **Still mock, not touched:** Home "Buy Again" uses `buyAgainProducts` from `mock/homeMockData` with made-up
+  last-ordered dates - needs the customer's real order history.
+
+**Verified:** customer `tsc` + `vite build` clean. Not click-tested.
+
+## 2026-10-12 (late, cont.) — Home "Buy Again" from real order history (Raunak, via agent)
+
+**API:** `GET /storefront/orders/buy-again` (customer JWT). Products from the shopper's own STOREFRONT orders (DRAFT and
+CANCELLED excluded, latest 50 orders), most recently ordered first, max 8, returned as live catalogue cards
+(`listProductsByIds`, priced for the customer's own channel and type; unpublished / inactive products drop out) plus
+`lastOrderedAt`, `lastQuantity`, `timesOrdered`. CheckoutModule now imports StorefrontCatalogueModule.
+
+**Customer app:** `useBuyAgain()` (signed-in only; key under `['storefront','orders']` so post-order refreshes cover it)
+replaces `buyAgainProducts` from `mock/homeMockData` and the 100-product catalogue fetch that only existed to price the
+mock. Row shows "Last ordered Today / Yesterday / N days ago / 3 Oct" and "ordered N times"; "Reorder xN" adds last
+time's quantity (never under the channel minimum - consumers previously ignored `minOrderQuantity`); out-of-stock or
+unpriced products show "Out of stock" disabled. Hidden for guests and for shoppers with no orders. Nothing in the app
+imports `mock/homeMockData` any more.
+
+**Verified:** new spec 5/5; backend + customer `tsc`, customer `vite build`; date labels checked by scratch script.
+Not click-tested.
+
+## 2026-10-12 (late, cont.) — Retailer app audit fixes (Raunak, via agent)
+
+Audit: every link in the customer/retailer app checked against its routes, and all 477 API calls (customer app + shared
+helpers) against the backend's 554 routes - none missing.
+
+- **Registration status (API change):** new `GET /storefront/auth/registration-status` - a retailer's own status
+  (PENDING_APPROVAL / ACTIVE / REJECTED + reason, business name, dates). Reads the session from the bearer token
+  directly, accepting an expired access token while the session row is live (not revoked, within refresh lifetime),
+  because the regular customer guard admits only ACTIVE accounts. Before: the app polled `/me` every 4 s for pending
+  retailers - each tick a 401, a token refresh and a second 401 - and a retailer rejected while waiting was silently
+  signed out without the reason. Now: checked every 30 s (`checkRegistration` in CustomerAuthContext); approval loads
+  the account and redirects; rejection keeps them on the review screen showing the reason and support contacts.
+  The endpoint is in the client's AUTH_ROUTES so a 401 does not trigger refresh churn.
+- **Under-review page:** honest "We check every 30 seconds · last checked hh:mm" (was "automatically in real time");
+  "Check status" reports the real result (was always "Account status updated"); signed-out visitors get a sign-in prompt.
+- **Test updated:** `a pending retailer cannot sign in` asserted the original no-session design and had failed since
+  pending sessions were introduced; now pins the current behaviour (session marked PENDING_APPROVAL).
+- **Removed:** "Bulk B2B Rates" -> `/price-lists` (no such page) on the Categories default banner; the WhatsApp alert
+  switches on Profile (x3 - saved nothing, no WhatsApp sending exists); Home fallback banner "Festive Retailer Schemes Live
+  Now" (advertised schemes regardless); Home "View All Schemes" (pointed at a category); unused `src/layout/navigation.ts`.
+- **Hardcoded slugs gone:** fallback "Explore Catalog" and Categories "View All Products" now go to `/categories`.
+
+**Verified:** registration-status spec 10/10; storefront suite 63/63; customer `tsc` + `vite build`. Not click-tested.
+
+## 2026-10-12 (late, cont.) — Customer app: account pages need sign-in (Raunak, via agent)
+
+`RequireAccount` now renders a "Please sign in" page (Sign in / Retailer sign in, both returning to the page asked for
+via `state.from`, which LoginPage already honours) instead of a bare redirect to /login. Now wrapped: cart, profile,
+refer, refer-and-earn, affiliate (dashboard), orders, orders/support, orders/:id/support, order-support, orders/:id,
+addresses, wishlist, loyalty - in addition to the existing checkout, returns, order-placed and notifications.
+Still public: home, categories, products, product detail, search, trace, help/support (FAQs + helpline), legal,
+affiliate-program (landing), login/register. Guests can still add to cart; viewing the cart asks them to sign in.
+Hiding a route is not access control - the API already scopes all of these to the session.
+
+**Verified:** customer `tsc` + `vite build`. Not click-tested.

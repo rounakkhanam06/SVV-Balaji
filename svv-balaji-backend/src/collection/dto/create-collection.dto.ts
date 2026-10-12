@@ -1,7 +1,8 @@
 import { IsDateString, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { TripFieldsDto } from '../../common/transport-source';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-export class CreateCollectionDto {
+export class CreateCollectionDto extends TripFieldsDto {
   @ApiProperty({ description: 'Must reference an APPROVED harvest inspection (FRD 13.5)' })
   @IsString()
   inspectionId: string;

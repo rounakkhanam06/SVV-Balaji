@@ -1,5 +1,6 @@
+import { transportSourceText } from '../../components/TransportSourceFields';
 import { PlusOutlined } from '@ant-design/icons';
-import { App as AntApp, Button, Card, Col, Row, Select, Tag, Typography } from 'antd';
+import { App as AntApp, Button, Card, Col, Row, Select, Space, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useState } from 'react';
 import { apiErrorMessage } from '../../api/client';
@@ -111,6 +112,20 @@ export function CollectionsPage() {
       key: 'collectionDate',
       render: (value: string) => formatDate(value),
       sorter: (a, b) => a.collectionDate.localeCompare(b.collectionDate),
+    },
+    {
+      title: 'Transport',
+      key: 'transport',
+      render: (_, c) => {
+        const text = transportSourceText(c);
+        if (!text) return EM_DASH;
+        return (
+          <Space direction="vertical" size={0}>
+            <Typography.Text style={{ fontSize: 12 }}>{text}</Typography.Text>
+            {c.vehicleNumber ? <Tag style={{ margin: 0 }}>{c.vehicleNumber}</Tag> : null}
+          </Space>
+        );
+      },
     },
     {
       title: 'Location / Remarks',

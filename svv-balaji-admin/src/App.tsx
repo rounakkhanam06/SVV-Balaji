@@ -109,6 +109,9 @@ const SuppliersPage = lazy(() =>
 const TransportsPage = lazy(() =>
   import('./pages/suppliers/TransportsPage').then((m) => ({ default: m.TransportsPage })),
 );
+const TransportersPage = lazy(() =>
+  import('./pages/transporters/TransportersPage').then((m) => ({ default: m.TransportersPage })),
+);
 const PurchaseOrdersPage = lazy(() =>
   import('./pages/suppliers/PurchaseOrdersPage').then((m) => ({ default: m.PurchaseOrdersPage })),
 );
@@ -362,6 +365,7 @@ const SCREENS: Record<string, ReactElement> = {
   // Supplier Sourcing
   '/suppliers': <SuppliersPage />,
   '/transports': <TransportsPage />,
+  '/transporters': <TransportersPage />,
   '/purchase-orders': <PurchaseOrdersPage />,
   // Zone 2 — Procurement & Raw Material Control (FRD Sections 13-17)
   '/procurement-plans': <ProcurementPlansPage />,

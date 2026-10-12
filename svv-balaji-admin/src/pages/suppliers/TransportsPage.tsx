@@ -1,3 +1,4 @@
+import { transportSourceText } from '../../components/TransportSourceFields';
 import {
   CheckCircleOutlined,
   CloseCircleOutlined,
@@ -172,11 +173,12 @@ export function TransportsPage() {
       render: (val: string) => formatDate(val),
     },
     {
-      title: 'Vehicle / Driver',
+      title: 'Transport / Vehicle',
       key: 'logistics',
       render: (_, t) => (
         <Space direction="vertical" size={0}>
-          {t.vehicleNumber ? <Tag>{t.vehicleNumber}</Tag> : <span>-</span>}
+          <Typography.Text style={{ fontSize: 12 }}>{transportSourceText(t) ?? '-'}</Typography.Text>
+          {t.vehicleNumber ? <Tag>{t.vehicleNumber}</Tag> : null}
           {t.driverName && (
             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
               {t.driverName} {t.driverPhone ? `(${t.driverPhone})` : ''}

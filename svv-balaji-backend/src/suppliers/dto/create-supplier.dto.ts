@@ -1,4 +1,5 @@
-import { IsOptional, IsString } from 'class-validator';
+import { IsOptional, IsString, Matches } from 'class-validator';
+import { Transform } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateSupplierDto {
@@ -70,8 +71,10 @@ export class CreateSupplierDto {
   @IsString()
   bankAccountNo?: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ example: 'SBIN0001234' })
   @IsOptional()
-  @IsString()
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim().toUpperCase() : value))
+  // Blank is allowed (not provided yet); anything else must be a real IFSC.
+  @Matches(/^$|^[A-Z]{4}0[A-Z0-9]{6}$/, { message: 'IFSC looks like SBIN0001234' })
   ifscCode?: string;
 }

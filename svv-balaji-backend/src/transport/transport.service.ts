@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma, PurchaseOrderStatus, SupplierStatus, TransportStatus } from '@prisma/client';
+import { Prisma, PurchaseOrderStatus, SupplierStatus, TransportSource, TransportStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { SequenceService } from '../common/sequence.service';
 import { nextRawBatchNumber } from '../common/raw-batch-number';
@@ -7,8 +7,13 @@ import { CreateTransportDto } from './dto/create-transport.dto';
 import { UpdateTransportDto } from './dto/update-transport.dto';
 import { QueryTransportDto } from './dto/query-transport.dto';
 import { DeliverTransportDto } from './dto/deliver-transport.dto';
+import { resolveTransportSource, TRANSPORT_SOURCE_INCLUDE, type ResolvedTransportSource } from '../common/transport-source';
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
+
+/** A supplier delivery always has a source (it defaults to the delivering supplier). */
+const sourceData = (s?: ResolvedTransportSource) =>
+  s ? { transportSource: s.transportSource ?? TransportSource.SUPPLIER, transportSupplierId: s.transportSupplierId, transporterId: s.transporterId } : {};
 
 /**
  * Inbound material from suppliers - the supplier counterpart of a farmer
@@ -47,9 +52,12 @@ export class TransportService {
   async create(dto: CreateTransportDto, createdById: string) {
     const poRate = await this.checkSupplierAndPo(dto.supplierId, dto.purchaseOrderId);
     const purchaseRate = dto.purchaseRate ?? poRate ?? undefined;
+    // Defaults to the delivering supplier's own vehicle.
+    const source = await resolveTransportSource(this.prisma, dto, { allowFarmer: false, defaultSupplierId: dto.supplierId });
     return this.prisma.supplierTransport.create({
       data: {
         ...dto,
+        ...sourceData(source),
         purchaseRate,
         totalAmount: purchaseRate !== undefined ? round2(purchaseRate * dto.quantity) : undefined,
         scheduledDate: new Date(dto.scheduledDate),
@@ -57,6 +65,7 @@ export class TransportService {
       },
       include: {
         supplier: { select: { id: true, fullName: true, supplierCode: true } },
+        ...TRANSPORT_SOURCE_INCLUDE,
       },
     });
   }
@@ -65,6 +74,7 @@ export class TransportService {
     const where: Prisma.SupplierTransportWhereInput = {
       supplierId: query.supplierId,
       warehouseId: query.warehouseId,
+      transporterId: query.transporterId,
       materialName: query.materialName ? { contains: query.materialName, mode: 'insensitive' } : undefined,
       status: query.status,
     };
@@ -76,6 +86,7 @@ export class TransportService {
         supplier: { select: { id: true, fullName: true, supplierCode: true } },
         warehouse: { select: { id: true, name: true } },
         batch: { select: { id: true, batchNumber: true, status: true } },
+        ...TRANSPORT_SOURCE_INCLUDE,
       },
     });
   }
@@ -89,6 +100,7 @@ export class TransportService {
         purchaseOrder: { select: { id: true, poNumber: true, status: true } },
         batch: { select: { id: true, batchNumber: true, status: true } },
         createdBy: { select: { id: true, fullName: true } },
+        ...TRANSPORT_SOURCE_INCLUDE,
       },
     });
     if (!transport) throw new NotFoundException('Transport not found');
@@ -106,11 +118,17 @@ export class TransportService {
     }
     const quantity = dto.quantity ?? Number(transport.quantity);
     const rate = dto.purchaseRate ?? (transport.purchaseRate === null ? null : Number(transport.purchaseRate));
+    const source = await resolveTransportSource(this.prisma, dto, {
+      allowFarmer: false,
+      defaultSupplierId: dto.supplierId ?? transport.supplierId,
+      current: transport,
+    });
 
     return this.prisma.supplierTransport.update({
       where: { id },
       data: {
         ...dto,
+        ...sourceData(source),
         totalAmount: rate !== null ? round2(rate * quantity) : undefined,
         scheduledDate: dto.scheduledDate ? new Date(dto.scheduledDate) : undefined,
       },

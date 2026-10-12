@@ -4235,3 +4235,43 @@ affiliate-program (landing), login/register. Guests can still add to cart; viewi
 Hiding a route is not access control - the API already scopes all of these to the session.
 
 **Verified:** customer `tsc` + `vite build`. Not click-tested.
+
+## 2026-10-13 — Transport source for supplier deliveries and farmer collections; Transporter master (Raunak, via agent)
+
+Client clarification: goods come in on a **supplier's vehicle** or a **transporter registered with us**; farmer
+collections use the same choice (plus, by decision, the **farmer's own vehicle**). Supplier onboarding follows the
+Farmer method for bank details.
+
+**DB** (`20261013100000_transport_source`, checked identical to `prisma migrate diff`): enum `TransportSource`
+(SUPPLIER / TRANSPORTER / FARMER); new `transporters` (TRN-NNNN via `nextInSeries`, contact, GSTIN/PAN, address,
+optional insurance: insurer, policy no., valid-until, document; `isActive`); `supplier_transports` + `transportSource`
+(default SUPPLIER), `transportSupplierId`, `transporterId` - existing rows back-filled to their own supplier;
+`raw_material_collections` + the same three plus `vehicleNumber`, `driverName`, `driverPhone` (all nullable). Vehicle and
+driver live only on the trip, never on the masters. Supplier<->SupplierTransport relation is now named
+`SupplierDeliveries` (no DB change). Upload folder `transporter-documents`.
+
+**API:** `/transporters` GET (q, active), GET :id, POST, PATCH, PATCH :id/active - perms `transporters.view` /
+`transporters.manage` (auto back-filled to roles). `POST/PATCH /transports` and `POST/PATCH /collections` take
+`transportSource`, `transportSupplierId`, `transporterId` (+ vehicle/driver on collections); one rule in
+`src/common/transport-source.ts`: a delivery defaults to the delivering supplier (changeable); the id must match the
+source (a mismatched id is a 400, not dropped); blacklisted/suspended suppliers and inactive transporters refused;
+FARMER only on collections. Reads include `transportSupplier` / `transporter`. `GET /transports?transporterId=`.
+Collection edits: transport fields are correctable any time; the batch-untouched lock now applies only when weights /
+rate / unit / location change. **Supplier approval now refused without complete bank details** (+ IFSC format), same as
+farmers (`suppliers/supplier-readiness.ts`); suppliers already verified are untouched; IFSC validated + upper-cased on
+the supplier DTO. Deliver -> raw batch / stock / receipt / PO unchanged.
+
+**Admin:** Transporters page (search, active filter, insurance status tag, trips count, register / edit / deactivate);
+shared `TransportSourceFields` block in the transport form (replaces its vehicle/driver row) and the collection form
+(optional, with "Farmer's own vehicle"), inline "Register a new transporter"; source shown in transport list/drawer and a
+Transport column on collections; supplier Verify modal blocks Approve and lists missing bank fields. Collection edit now
+sends only changed weight fields so a transport-only correction is not blocked.
+
+**Verified:** `e2e-supplier-transport-flow.py` extended and passing 33/33 on a throwaway DB (approval needs bank; default
+source; transporter register / duplicate phone / inactive / picker; FARMER refused on deliveries; transporter-carried
+delivery -> STORED batch; collection via transporter, corrected to farmer's own vehicle with weights untouched;
+FG -> PB -> supplier batch AND farmer batch both trace). New unit specs: transport-source (16), supplier approval (5).
+Backend + admin + field `tsc`, admin `vite build`. Full jest: only 4 auth tests timed out under load and pass when re-run.
+Not click-tested in the browser.
+
+**Deploy:** `prisma migrate deploy` + generate + API restart; rebuild admin.

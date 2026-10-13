@@ -40,6 +40,8 @@ pnpm-debug.log*
 coverage/
 .cache/
 *.tsbuildinfo
+__pycache__/
+*.py[cod]
 
 # --- Editors and OS --------------------------------------------------------
 .idea/

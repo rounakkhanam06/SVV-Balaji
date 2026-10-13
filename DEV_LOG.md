@@ -4275,7 +4275,6 @@ Backend + admin + field `tsc`, admin `vite build`. Full jest: only 4 auth tests 
 Not click-tested in the browser.
 
 **Deploy:** `prisma migrate deploy` + generate + API restart; rebuild admin.
-
 ---
 
 ## 2026-10-13 — Raunak (agent) — Referral reward trigger cut to two options
@@ -4295,3 +4294,4 @@ confirm alone doesn't pay, first delivery pays, second doesn't, REGISTRATION ign
 Admin + customer `tsc` clean. Not click-tested.
 
 **Deploy:** `prisma migrate deploy` + generate + API restart; rebuild admin + customer.
+

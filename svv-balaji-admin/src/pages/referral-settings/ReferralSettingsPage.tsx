@@ -70,16 +70,6 @@ const TRIGGER_DETAILS: Record<
     icon: '📦',
     badge: 'Recommended',
   },
-  FIRST_ORDER: {
-    title: 'First Successful Order Placed',
-    desc: 'Coins are credited as soon as the friend completes checkout and places their very first order.',
-    icon: '🛒',
-  },
-  ACCOUNT_VERIFICATION: {
-    title: 'Account Verification',
-    desc: 'Coins are awarded after user completes phone OTP & business/profile verification.',
-    icon: '🛡️',
-  },
   REGISTRATION: {
     title: 'Instant Registration (Signup)',
     desc: 'Coins are awarded immediately upon registration & mobile signup, before any order is placed.',

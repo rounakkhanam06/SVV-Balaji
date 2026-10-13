@@ -4275,3 +4275,23 @@ Backend + admin + field `tsc`, admin `vite build`. Full jest: only 4 auth tests 
 Not click-tested in the browser.
 
 **Deploy:** `prisma migrate deploy` + generate + API restart; rebuild admin.
+
+---
+
+## 2026-10-13 — Raunak (agent) — Referral reward trigger cut to two options
+
+**Enum change (API contract):** `ReferralRewardTrigger` is now `REGISTRATION | FIRST_DELIVERY` only.
+`ACCOUNT_VERIFICATION` and `FIRST_ORDER` are removed end to end. Migration `20261013120000_referral_two_triggers`
+maps any existing setting ACCOUNT_VERIFICATION -> REGISTRATION (it already credited at the same moment) and
+FIRST_ORDER -> FIRST_DELIVERY, then recreates the Postgres enum. `PATCH /referral-settings` now rejects the two old values.
+
+**Backend:** `ReferralService.onOrderConfirmed` deleted along with its call in `SalesService.confirm()`;
+`onAccountVerified` matches REGISTRATION only; default FAQ text tables trimmed. **Admin:** Referral Settings
+trigger card shows two radios (Instant Registration, First Order Delivery). **Customer:** ReferralPage labels/types trimmed,
+fallback is FIRST_DELIVERY. **Shared:** `shared/api/types.ts` enum, list and labels trimmed.
+
+**Verified:** backend `tsc`; referral/sales/storefront-auth specs 105/105 (FIRST_ORDER tests rewritten as FIRST_DELIVERY:
+confirm alone doesn't pay, first delivery pays, second doesn't, REGISTRATION ignores delivery, kill switch, failure isolation).
+Admin + customer `tsc` clean. Not click-tested.
+
+**Deploy:** `prisma migrate deploy` + generate + API restart; rebuild admin + customer.

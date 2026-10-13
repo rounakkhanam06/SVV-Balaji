@@ -581,7 +581,7 @@ describe('StorefrontAuthService', () => {
           id: 'rs-1',
           referrerRewardCoins: 100,
           refereeRewardCoins: 50,
-          rewardTrigger: 'FIRST_ORDER',
+          rewardTrigger: 'FIRST_DELIVERY',
           isActive: true,
           createdAt: new Date(),
         };

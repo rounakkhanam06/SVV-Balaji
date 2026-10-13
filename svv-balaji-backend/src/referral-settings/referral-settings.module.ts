@@ -100,8 +100,7 @@ export class UpdateReferralSettingsDto {
 /**
  * The one screen behind this: Referral & Reward Settings. Reads and writes
  * are thin wrappers around ReferralService, which is where the actual
- * crediting logic (and the reasons REGISTRATION/ACCOUNT_VERIFICATION share a
- * trigger point) lives - this controller only exists because that service is
+ * crediting logic (REGISTRATION or FIRST_DELIVERY) lives - this controller only exists because that service is
  * global and has no HTTP surface of its own.
  */
 @ApiTags('referral-settings')

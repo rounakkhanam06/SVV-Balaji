@@ -2199,10 +2199,10 @@ model Referral {
   @@map("referrals")
 }
 
+/// Two options only (13 Oct): instant on signup, or on the referee's first
+/// delivered order. ACCOUNT_VERIFICATION and FIRST_ORDER were removed.
 enum ReferralRewardTrigger {
   REGISTRATION
-  ACCOUNT_VERIFICATION
-  FIRST_ORDER
   FIRST_DELIVERY
 }
 
@@ -2353,9 +2353,8 @@ model CoinTransaction {
   referralId String?
   referral   Referral? @relation(fields: [referralId], references: [id])
 
-  /// The order whose CONFIRMED/DELIVERED transition triggered this reward,
-  /// when the configured trigger is order-based. Null for REGISTRATION/
-  /// ACCOUNT_VERIFICATION rewards (no order exists yet) and for every
+  /// The order whose DELIVERED transition triggered this reward, when the
+  /// configured trigger is FIRST_DELIVERY. Null for REGISTRATION rewards (no order exists yet) and for every
   /// MANUAL_ADJUSTMENT.
   orderId String?
   order   Order?  @relation(fields: [orderId], references: [id])
@@ -2522,7 +2521,7 @@ model Order {
   items       OrderItem[]
   allocations OrderAllocation[]
 
-  /// Set on a referral reward's ledger rows when a FIRST_ORDER/FIRST_DELIVERY
+  /// Set on a referral reward's ledger rows when a FIRST_DELIVERY
   /// trigger paid out because of this specific order - see CoinTransaction.
   coinTransactions CoinTransaction[]
 

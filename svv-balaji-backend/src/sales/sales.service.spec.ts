@@ -773,32 +773,16 @@ describe('SalesService', () => {
       };
     };
 
-    it('credits both sides on the referee\'s first confirmed order when the trigger is FIRST_ORDER', async () => {
-      setUpReferral('FIRST_ORDER');
-      const order: any = await placeOrder('cust-b2c');
-
+    const deliver = async (qty = 5) => {
+      const order: any = await placeOrder('cust-b2c', qty);
       await service.confirm(order.id);
+      await service.allocate(order.id, 'user-1');
+      await service.advance(order.id, 'PACKED' as any, 'user-1');
+      await service.advance(order.id, 'DISPATCHED' as any, 'user-1');
+      return service.advance(order.id, 'DELIVERED' as any, 'user-1');
+    };
 
-      expect(customers['cust-referrer'].coinBalance).toBe(100);
-      expect(customers['cust-b2c'].coinBalance).toBe(50);
-      expect(referrals[0].rewardedAt).not.toBeNull();
-      expect(coinTransactions).toHaveLength(2);
-    });
-
-    it('does not credit again on a second order', async () => {
-      setUpReferral('FIRST_ORDER');
-      const first: any = await placeOrder('cust-b2c');
-      await service.confirm(first.id);
-
-      const second: any = await placeOrder('cust-b2c');
-      await service.confirm(second.id);
-
-      expect(customers['cust-referrer'].coinBalance).toBe(100);
-      expect(customers['cust-b2c'].coinBalance).toBe(50);
-      expect(coinTransactions).toHaveLength(2);
-    });
-
-    it('does not credit an order confirmation when the trigger is FIRST_DELIVERY', async () => {
+    it('does not credit on order confirmation - only delivery pays out', async () => {
       setUpReferral('FIRST_DELIVERY');
       const order: any = await placeOrder('cust-b2c');
       await service.confirm(order.id);
@@ -823,28 +807,48 @@ describe('SalesService', () => {
       expect(customers['cust-referrer'].coinBalance).toBe(100);
       expect(customers['cust-b2c'].coinBalance).toBe(50);
       expect(referrals[0].rewardedAt).not.toBeNull();
+      expect(coinTransactions).toHaveLength(2);
+    });
+
+    it('does not credit again on a second delivered order', async () => {
+      setUpReferral('FIRST_DELIVERY');
+      fgStock({ quantity: 40 });
+      await deliver();
+      await deliver();
+
+      expect(customers['cust-referrer'].coinBalance).toBe(100);
+      expect(customers['cust-b2c'].coinBalance).toBe(50);
+      expect(coinTransactions).toHaveLength(2);
+    });
+
+    it('does not credit a delivery when the trigger is REGISTRATION', async () => {
+      setUpReferral('REGISTRATION');
+      fgStock({ quantity: 40 });
+      await deliver();
+
+      expect(customers['cust-referrer'].coinBalance).toBe(0);
+      expect(referrals[0].rewardedAt).toBeNull();
     });
 
     it('does not credit while the program is switched off', async () => {
-      setUpReferral('FIRST_ORDER');
+      setUpReferral('FIRST_DELIVERY');
       referralSettings.isActive = false;
-      const order: any = await placeOrder('cust-b2c');
-
-      await service.confirm(order.id);
+      fgStock({ quantity: 40 });
+      await deliver();
 
       expect(customers['cust-referrer'].coinBalance).toBe(0);
       expect(referrals[0].rewardedAt).toBeNull();
     });
 
     it('never lets a referral-crediting failure block the order transition', async () => {
-      setUpReferral('FIRST_ORDER');
+      setUpReferral('FIRST_DELIVERY');
       prisma.referralSettings.findFirst = jest.fn(async () => {
         throw new Error('boom');
       });
-      const order: any = await placeOrder('cust-b2c');
+      fgStock({ quantity: 40 });
 
-      const confirmed: any = await service.confirm(order.id);
-      expect(confirmed.status).toBe('CONFIRMED');
+      const delivered: any = await deliver();
+      expect(delivered.status).toBe('DELIVERED');
     });
   });
 

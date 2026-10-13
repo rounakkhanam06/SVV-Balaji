@@ -48,14 +48,6 @@ const TRIGGER_DESCRIPTIONS: Record<string, { label: string; condition: string }>
     label: 'On Registration',
     condition: 'Credited instantly when your friend creates their account.',
   },
-  ACCOUNT_VERIFICATION: {
-    label: 'On Account Verification',
-    condition: 'Credited once your friend verifies their mobile number or KYC is approved.',
-  },
-  FIRST_ORDER: {
-    label: 'On First Order Placed',
-    condition: 'Credited when your friend places and confirms their very first order.',
-  },
   FIRST_DELIVERY: {
     label: 'On First Order Delivered',
     condition: 'Credited when your friend receives their first delivery safely at their doorstep.',
@@ -77,7 +69,7 @@ export function ReferralPage() {
     isActive: true,
     referrerRewardCoins: 100,
     refereeRewardCoins: 50,
-    rewardTrigger: 'FIRST_ORDER',
+    rewardTrigger: 'FIRST_DELIVERY',
   });
 
   const [summaryLoading, setSummaryLoading] = useState(false);
@@ -180,7 +172,7 @@ export function ReferralPage() {
     : 'linear-gradient(135deg, #ea580c 0%, #f97316 50%, #fb923c 100%)';
 
   const triggerInfo =
-    TRIGGER_DESCRIPTIONS[program.rewardTrigger] || TRIGGER_DESCRIPTIONS.FIRST_ORDER;
+    TRIGGER_DESCRIPTIONS[program.rewardTrigger] || TRIGGER_DESCRIPTIONS.FIRST_DELIVERY;
 
   const handleCopyCode = () => {
     if (!activeReferralCode) {

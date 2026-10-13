@@ -2892,23 +2892,12 @@ export interface RejectCustomerAccountInput {
 // see svv-balaji-backend/src/common/referral.service.ts.
 // ---------------------------------------------------------------------------
 
-export type ReferralRewardTrigger =
-  | 'REGISTRATION'
-  | 'ACCOUNT_VERIFICATION'
-  | 'FIRST_ORDER'
-  | 'FIRST_DELIVERY';
+export type ReferralRewardTrigger = 'REGISTRATION' | 'FIRST_DELIVERY';
 
-export const REFERRAL_REWARD_TRIGGERS: readonly ReferralRewardTrigger[] = [
-  'REGISTRATION',
-  'ACCOUNT_VERIFICATION',
-  'FIRST_ORDER',
-  'FIRST_DELIVERY',
-];
+export const REFERRAL_REWARD_TRIGGERS: readonly ReferralRewardTrigger[] = ['REGISTRATION', 'FIRST_DELIVERY'];
 
 export const REFERRAL_REWARD_TRIGGER_LABELS: Record<ReferralRewardTrigger, string> = {
   REGISTRATION: 'After Registration',
-  ACCOUNT_VERIFICATION: 'After Account Verification',
-  FIRST_ORDER: 'After First Successful Order',
   FIRST_DELIVERY: 'After First Order Delivery',
 };
 

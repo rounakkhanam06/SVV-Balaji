@@ -19,15 +19,6 @@ function addMonths(from: Date, months: number): Date {
   return d;
 }
 
-/** Statuses that mean "this order was placed and accepted", for the FIRST_ORDER trigger. */
-const CONFIRMED_OR_LATER: OrderStatus[] = [
-  OrderStatus.CONFIRMED,
-  OrderStatus.ALLOCATED,
-  OrderStatus.PACKED,
-  OrderStatus.DISPATCHED,
-  OrderStatus.DELIVERED,
-];
-
 export interface ReferralFaqItem {
   question: string;
   answer: string;
@@ -54,11 +45,9 @@ export function getDefaultCustomerFaqs(
 ): ReferralFaqItem[] {
   const triggerLabels: Record<ReferralRewardTrigger, { label: string; condition: string }> = {
     REGISTRATION: { label: 'On Registration', condition: 'as soon as your friend completes their registration' },
-    ACCOUNT_VERIFICATION: { label: 'On Account Verification', condition: 'once your friend verifies their mobile number' },
-    FIRST_ORDER: { label: 'On First Order', condition: 'when your friend places and confirms their very first order' },
     FIRST_DELIVERY: { label: 'On First Delivery', condition: 'when your friend receives their first order delivery' },
   };
-  const t = triggerLabels[trigger] || triggerLabels.FIRST_ORDER;
+  const t = triggerLabels[trigger] || triggerLabels.FIRST_DELIVERY;
 
   return [
     {
@@ -91,11 +80,9 @@ export function getDefaultRetailerFaqs(
 ): ReferralFaqItem[] {
   const triggerLabels: Record<ReferralRewardTrigger, { label: string; condition: string }> = {
     REGISTRATION: { label: 'On Registration Submission', condition: 'as soon as your partner store registers' },
-    ACCOUNT_VERIFICATION: { label: 'On GSTIN / KYC Approval', condition: 'once the newly registered business is reviewed and approved by staff' },
-    FIRST_ORDER: { label: 'On First Bulk Order', condition: 'when your partner store confirms their first wholesale consignment' },
     FIRST_DELIVERY: { label: 'On First Delivery', condition: 'when the first wholesale consignment is delivered to their store dispatch point' },
   };
-  const t = triggerLabels[trigger] || triggerLabels.FIRST_ORDER;
+  const t = triggerLabels[trigger] || triggerLabels.FIRST_DELIVERY;
 
   return [
     {
@@ -125,12 +112,13 @@ export function getDefaultRetailerFaqs(
  * Refer-a-friend: every Customer gets a unique, shareable code on creation;
  * a new signup may enter someone else's to create a `Referral` row; and, per
  * staff-configured `ReferralSettings`, a successful referral credits both
- * sides in coins at one of four points in the referee's lifecycle.
+ * sides in coins at one of two points in the referee's lifecycle: signup, or
+ * their first delivered order.
  *
  * Split from CustomersService/StorefrontAuthService/SalesService because all
  * three need it - a staff-registered customer still gets a code, both
- * storefront signup paths resolve one into a `Referral`, and two of the four
- * reward triggers are order-lifecycle events that only SalesService can see.
+ * storefront signup paths resolve one into a `Referral`, and the
+ * FIRST_DELIVERY trigger is an order-lifecycle event that only SalesService can see.
  * Global via CommonModule, same as SequenceService, and for the same reason:
  * no natural single owner among the modules that need it.
  */
@@ -332,25 +320,17 @@ export class ReferralService {
 
   // --- Reward triggers --------------------------------------------------------
   //
-  // Four named events, but this system only has two genuinely distinct
-  // moments to hang them on:
+  // Two options (ACCOUNT_VERIFICATION and FIRST_ORDER removed 13 Oct):
   //
-  //   - REGISTRATION and ACCOUNT_VERIFICATION both resolve to the instant the
-  //     Referral row is created (onAccountVerified). For a B2C consumer,
-  //     phone verification and account creation are the same OTP-verify call
-  //     - there is no later point that is "more verified". For a B2B
-  //     retailer, phoneVerifiedAt is stamped at registration submission, in
-  //     the same write as the rest of the form - so the only real, distinct,
-  //     LATER milestone is staff approving the business, which is what
-  //     onAccountVerified actually fires on for that channel. Rather than
-  //     inventing an earlier hook with no wallet to credit yet, both settings
-  //     values credit at this one, honestly-shared point.
-  //   - FIRST_ORDER and FIRST_DELIVERY are real, distinct order-lifecycle
-  //     events - see onOrderConfirmed / onOrderDelivered, called from
-  //     SalesService.
+  //   - REGISTRATION credits at the instant the Referral row is created
+  //     (onAccountVerified). For a B2C consumer that is the OTP-verify signup
+  //     call; for a B2B retailer it is staff approving the business, the first
+  //     point at which there is a wallet to credit.
+  //   - FIRST_DELIVERY credits on the referee's first DELIVERED order - see
+  //     onOrderDelivered, called from SalesService.
 
   /**
-   * These three are deliberately typed against the real `PrismaService`, not
+   * These two are deliberately typed against the real `PrismaService`, not
    * `Prisma.TransactionClient` like the methods above - each one wraps its
    * own payout in its own transaction (five writes: two balances, two ledger
    * rows, one `rewardedAt` stamp - all or nothing), and Prisma does not
@@ -363,19 +343,7 @@ export class ReferralService {
 
   /** B2C: called from attachConsumerCustomerRecord. B2B: called from approveAccount. */
   async onAccountVerified(prisma: PrismaService, refereeId: string): Promise<void> {
-    await this.creditIfTriggerMatches(prisma, refereeId, [
-      ReferralRewardTrigger.REGISTRATION,
-      ReferralRewardTrigger.ACCOUNT_VERIFICATION,
-    ]);
-  }
-
-  /** Called from SalesService.confirm() after the CONFIRMED transition succeeds. */
-  async onOrderConfirmed(prisma: PrismaService, customerId: string, orderId: string): Promise<void> {
-    const isFirst = (await prisma.order.count({
-      where: { customerId, id: { not: orderId }, status: { in: CONFIRMED_OR_LATER } },
-    })) === 0;
-    if (!isFirst) return;
-    await this.creditIfTriggerMatches(prisma, customerId, [ReferralRewardTrigger.FIRST_ORDER], orderId);
+    await this.creditIfTriggerMatches(prisma, refereeId, [ReferralRewardTrigger.REGISTRATION]);
   }
 
   /** Called from SalesService.advance() after a DELIVERED transition succeeds. */
@@ -391,7 +359,7 @@ export class ReferralService {
     prisma: PrismaService,
     refereeId: string,
     matchingTriggers: ReferralRewardTrigger[],
-    /** The order whose transition fired this check, for the two order-based triggers. */
+    /** The order whose delivery fired this check, for FIRST_DELIVERY. */
     orderId?: string,
   ): Promise<void> {
     const settings = await this.getSettings(prisma);
@@ -407,8 +375,7 @@ export class ReferralService {
 
     await prisma.$transaction(async (tx) => {
       // Re-checked inside the transaction: two trigger events racing for the
-      // same referee (unlikely, but the two order triggers both call this)
-      // must not pay out twice.
+      // same referee must not pay out twice.
       const fresh = await tx.referral.findUnique({ where: { id: referral.id } });
       if (!fresh || fresh.rewardedAt) return;
 

@@ -575,14 +575,6 @@ export class SalesService {
       data: { status: OrderStatus.CONFIRMED },
     });
 
-    // Best-effort and outside any transaction: the FIRST_ORDER referral
-    // reward, if configured. Never lets a coin-crediting bug fail an order
-    // confirmation - see ReferralService's note on why these calls take the
-    // plain PrismaService rather than a nested tx.
-    await this.referrals.onOrderConfirmed(this.prisma, order.customerId, order.id).catch((err) => {
-      this.logger.warn(`Referral reward check failed for confirmed order ${order.orderNumber}: ${err instanceof Error ? err.message : String(err)}`);
-    });
-
     return updated;
   }
 

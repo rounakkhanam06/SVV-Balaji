@@ -112,7 +112,7 @@ export interface ReferralProgramResponse {
   isActive: boolean;
   referrerRewardCoins: number;
   refereeRewardCoins: number;
-  rewardTrigger: 'REGISTRATION' | 'ACCOUNT_VERIFICATION' | 'FIRST_ORDER' | 'FIRST_DELIVERY';
+  rewardTrigger: 'REGISTRATION' | 'FIRST_DELIVERY';
   customerFaqs?: ReferralFaqItem[];
   retailerFaqs?: ReferralFaqItem[];
 }

@@ -15,6 +15,7 @@ import {
 } from '@ant-design/icons';
 import {
   App as AntApp,
+  Avatar,
   Button,
   Card,
   Col,
@@ -188,25 +189,38 @@ export function CustomerDetailPage() {
                   }}
                 />
 
-                {/* Dark Rounded Initials Square Avatar */}
-                <div
-                  style={{
-                    width: 52,
-                    height: 52,
-                    borderRadius: 14,
-                    background: customer.channel === 'B2C' ? '#0f172a' : '#1e293b',
-                    color: '#ffffff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontWeight: 600,
-                    fontSize: 18,
-                    letterSpacing: 1,
-                    boxShadow: '0 4px 12px rgba(15, 23, 42, 0.2)',
-                  }}
-                >
-                  {initials}
-                </div>
+                {/* Profile Photo or Dark Rounded Initials Square Avatar */}
+                {customer.profilePhoto ? (
+                  <Avatar
+                    size={52}
+                    shape="square"
+                    src={customer.profilePhoto}
+                    style={{
+                      borderRadius: 14,
+                      border: '2px solid #e2e8f0',
+                      boxShadow: '0 4px 12px rgba(15, 23, 42, 0.15)',
+                    }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      width: 52,
+                      height: 52,
+                      borderRadius: 14,
+                      background: customer.channel === 'B2C' ? '#0f172a' : '#1e293b',
+                      color: '#ffffff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 600,
+                      fontSize: 18,
+                      letterSpacing: 1,
+                      boxShadow: '0 4px 12px rgba(15, 23, 42, 0.2)',
+                    }}
+                  >
+                    {initials}
+                  </div>
+                )}
 
                 {/* Title and ID info */}
                 <Space direction="vertical" size={2}>
@@ -280,6 +294,21 @@ export function CustomerDetailPage() {
                       )
                     }
                   />
+
+                  {customer.profilePhoto && (
+                    <InfoRow
+                      icon={<Avatar size={16} src={customer.profilePhoto} />}
+                      label="PROFILE PHOTO"
+                      value={
+                        <Space align="center" size={8}>
+                          <Tag color="cyan">Added by Customer</Tag>
+                          <Typography.Link href={customer.profilePhoto} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12 }}>
+                            View full photo &rarr;
+                          </Typography.Link>
+                        </Space>
+                      }
+                    />
+                  )}
 
                   <InfoRow
                     icon={<EnvironmentOutlined style={{ fontSize: 16 }} />}

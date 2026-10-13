@@ -10,6 +10,7 @@ import {
   UsergroupAddOutlined,
 } from '@ant-design/icons';
 import {
+  Avatar,
   Badge,
   Button,
   Card,
@@ -211,22 +212,40 @@ export function CustomerAccountsPage() {
     {
       title: 'Store & Proprietor Name',
       key: 'name',
-      width: 260,
-      render: (_, account) => (
-        <Space direction="vertical" size={2}>
-          <Text strong style={{ fontSize: 13, color: '#0f172a' }}>
-            🏬 {account.businessName ?? account.fullName}
-          </Text>
-          <Text type="secondary" style={{ fontSize: 11 }}>
-            Proprietor: <strong>{account.fullName}</strong>
-          </Text>
-          {account.referralCode && (
-            <Tag color="orange" style={{ fontSize: 10, padding: '0 4px' }}>
-              Ref: {account.referralCode}
-            </Tag>
-          )}
-        </Space>
-      ),
+      width: 280,
+      render: (_, account) => {
+        const photo = account.profilePhoto;
+        return (
+          <Space align="center" size={12}>
+            <Avatar
+              size={42}
+              shape="square"
+              src={photo || undefined}
+              icon={!photo && <ShopOutlined style={{ fontSize: 20 }} />}
+              style={{
+                borderRadius: 10,
+                background: photo ? undefined : '#f0fdf4',
+                color: '#065f46',
+                border: '1px solid #e2e8f0',
+                flexShrink: 0,
+              }}
+            />
+            <Space direction="vertical" size={2}>
+              <Text strong style={{ fontSize: 13, color: '#0f172a' }}>
+                {account.businessName ?? account.fullName}
+              </Text>
+              <Text type="secondary" style={{ fontSize: 11 }}>
+                Proprietor: <strong>{account.fullName}</strong>
+              </Text>
+              {account.referralCode && (
+                <Tag color="orange" style={{ fontSize: 10, padding: '0 4px' }}>
+                  Ref: {account.referralCode}
+                </Tag>
+              )}
+            </Space>
+          </Space>
+        );
+      },
     },
     {
       title: 'Channel',

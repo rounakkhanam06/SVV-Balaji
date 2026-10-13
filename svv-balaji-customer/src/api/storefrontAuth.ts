@@ -82,6 +82,22 @@ export const storefrontAuthApi = {
       .then((r) => r.data);
   },
 
+  uploadProfilePhoto(file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api
+      .post<{ url: string; account: StorefrontAccountSummary }>('/storefront/auth/profile/photo', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      .then((r) => r.data);
+  },
+
+  removeProfilePhoto() {
+    return api
+      .delete<StorefrontAccountSummary>('/storefront/auth/profile/photo')
+      .then((r) => r.data);
+  },
+
   /** Tokens are passed explicitly: the caller clears the local store right after, before the request interceptor would read it. */
   logout(tokens: { accessToken?: string | null; refreshToken?: string | null }) {
     return api

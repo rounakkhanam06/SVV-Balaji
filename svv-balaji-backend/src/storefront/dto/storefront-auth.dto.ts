@@ -202,6 +202,12 @@ export class UpdateStorefrontProfileDto {
   @IsOptional()
   @IsEmail()
   email?: string;
+
+  @ApiPropertyOptional({ nullable: true })
+  @IsOptional()
+  @ValidateIf((_, val) => val !== null)
+  @IsString()
+  profilePhoto?: string | null;
 }
 
 /** Staff-side filter when reviewing the retailer signup queue. */

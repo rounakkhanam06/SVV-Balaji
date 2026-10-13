@@ -48,6 +48,7 @@ export const UPLOAD_FOLDERS = {
   'rider-documents': 'svv-balaji/rider-documents',
   'return-media': 'svv-balaji/return-media',
   'transporter-documents': 'svv-balaji/transporter-documents',
+  'profile-photos': 'svv-balaji/profile-photos',
 } as const;
 
 export type UploadFolder = keyof typeof UPLOAD_FOLDERS;

@@ -85,7 +85,7 @@ export function AppLayout() {
   const can = useCanFn();
 
   // The whole panel listens for orders and support messages: any screen gets notified, and views refresh live.
-  const live = useLiveOrders(can('ORDER_VIEW') || can('supportTickets.view') || can('supportTickets.reply'), (path) => navigate(path));
+  const live = useLiveOrders(can('ORDER_VIEW') || can('SUPPORT_TICKETS_VIEW') || can('SUPPORT_TICKETS_REPLY'), (path) => navigate(path));
 
   const soundMuted = useOrderSoundMuted();
   useEffect(() => {

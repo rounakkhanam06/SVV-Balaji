@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, HttpException, HttpStatus, Injectable, Logger, NotFoundException, UnauthorizedException, Optional } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, HttpException, HttpStatus, Injectable, InternalServerErrorException, Logger, NotFoundException, UnauthorizedException, Optional } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import {
   CustomerAccount,
@@ -21,6 +21,7 @@ import {
   UpdateStorefrontProfileDto,
   VerifyOtpDto,
 } from './dto/storefront-auth.dto';
+import { StorageService, type UploadedFileLike } from '../uploads/storage.service';
 import { normalisePhone, maskPhone } from './phone.util';
 import {
   OTP_MAX_ATTEMPTS,
@@ -79,6 +80,7 @@ const ACCOUNT_STAFF_SELECT = {
   phone: true,
   email: true,
   fullName: true,
+  profilePhoto: true,
   channel: true,
   status: true,
   phoneVerifiedAt: true,
@@ -99,7 +101,7 @@ const ACCOUNT_STAFF_SELECT = {
   referralCode: true,
   createdAt: true,
   updatedAt: true,
-  customer: { select: { id: true, customerCode: true, referralCode: true } },
+  customer: { select: { id: true, customerCode: true, referralCode: true, profilePhoto: true } },
 } as const;
 
 /**
@@ -119,6 +121,7 @@ export class StorefrontAuthService {
     private readonly jwtService: JwtService,
     private readonly sequence: SequenceService,
     private readonly referrals: ReferralService,
+    @Optional() private readonly storage?: StorageService,
     @Optional() private readonly staffAlerts?: StaffAlertsService,
   ) {
     warnIfMockMode(this.otpMode, this.logger);
@@ -452,6 +455,7 @@ export class StorefrontAuthService {
           name: account.fullName,
           phone: account.phone,
           email: account.email,
+          profilePhoto: account.profilePhoto,
           billingAddress: account.addressLine ?? 'Not provided',
           paymentTerms: PaymentTerms.PREPAID,
           status: CustomerStatus.ACTIVE,
@@ -645,7 +649,7 @@ export class StorefrontAuthService {
   async me(accountId: string) {
     const account = await this.prisma.customerAccount.findUnique({
       where: { id: accountId },
-      include: { customer: { select: { id: true, customerCode: true, status: true, referralCode: true } } },
+      include: { customer: { select: { id: true, customerCode: true, status: true, referralCode: true, profilePhoto: true } } },
     });
     if (!account) throw new UnauthorizedException('Session is no longer valid - sign in again');
     return { ...this.toPublicAccount(account, account.customer), ...(await this.profileExtras(account)) };
@@ -690,22 +694,71 @@ export class StorefrontAuthService {
   }
 
   async updateProfile(accountId: string, dto: UpdateStorefrontProfileDto) {
+    const data: { fullName?: string; email?: string; profilePhoto?: string | null } = {};
+    if (dto.fullName !== undefined) data.fullName = dto.fullName;
+    if (dto.email !== undefined) data.email = dto.email;
+    if (dto.profilePhoto !== undefined) data.profilePhoto = dto.profilePhoto;
+
     const account = await this.prisma.customerAccount.update({
       where: { id: accountId },
-      data: { fullName: dto.fullName, email: dto.email },
+      data,
+      include: { customer: { select: { id: true, customerCode: true, status: true, referralCode: true, profilePhoto: true } } },
     });
-    return this.toPublicAccount(account);
+
+    if (account.customerId && (dto.fullName !== undefined || dto.email !== undefined || dto.profilePhoto !== undefined)) {
+      await this.prisma.customer.update({
+        where: { id: account.customerId },
+        data: {
+          ...(dto.fullName !== undefined ? { name: dto.fullName } : {}),
+          ...(dto.email !== undefined ? { email: dto.email } : {}),
+          ...(dto.profilePhoto !== undefined ? { profilePhoto: dto.profilePhoto } : {}),
+        },
+      }).catch((err) => {
+        this.logger.warn(`Could not sync profile update to Customer ${account.customerId}: ${String(err)}`);
+      });
+    }
+
+    return this.toPublicAccount(account, account.customer);
+  }
+
+  async uploadProfilePhoto(accountId: string, file: UploadedFileLike) {
+    const account = await this.prisma.customerAccount.findUnique({ where: { id: accountId } });
+    if (!account) throw new NotFoundException('Account not found');
+    if (!this.storage) throw new InternalServerErrorException('Storage service is not available');
+
+    const stored = await this.storage.put(file, 'profile-photos');
+
+    const updated = await this.prisma.customerAccount.update({
+      where: { id: accountId },
+      data: { profilePhoto: stored.url },
+      include: { customer: { select: { id: true, customerCode: true, status: true, referralCode: true, profilePhoto: true } } },
+    });
+
+    if (updated.customerId) {
+      await this.prisma.customer.update({
+        where: { id: updated.customerId },
+        data: { profilePhoto: stored.url },
+      }).catch((err) => {
+        this.logger.warn(`Could not sync profile photo to Customer ${updated.customerId}: ${String(err)}`);
+      });
+    }
+
+    return {
+      url: stored.url,
+      account: this.toPublicAccount(updated, updated.customer),
+    };
   }
 
   private toPublicAccount(
     account: CustomerAccount,
-    customer?: { id: string; customerCode: string; status: string; referralCode: string } | null,
+    customer?: { id: string; customerCode: string; status: string; referralCode: string; profilePhoto?: string | null } | null,
   ) {
     return {
       id: account.id,
       phone: account.phone,
       fullName: account.fullName,
       email: account.email,
+      profilePhoto: account.profilePhoto ?? customer?.profilePhoto ?? null,
       channel: account.channel,
       status: account.status,
       customerId: account.customerId,
@@ -778,6 +831,7 @@ export class StorefrontAuthService {
           contactName: account.fullName,
           phone: account.phone,
           email: account.email,
+          profilePhoto: account.profilePhoto,
           gstin: account.gstin,
           udyamRegistration: account.udyamRegistration,
           pan: account.pan,

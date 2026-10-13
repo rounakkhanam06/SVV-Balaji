@@ -22,6 +22,7 @@ export interface CustomerUserProfile {
   totalOrders: number;
   walletBalance: number;
   couponsCount: number;
+  profilePhoto?: string;
   /** This account's own shareable refer-a-friend code. Undefined until the account has a Customer row. */
   referralCode?: string;
 }
@@ -47,6 +48,7 @@ export interface RetailerUserProfile {
   creditUsed: number;
   /** Always PREPAID since 10 Oct 2026 (no credit for retailers). */
   paymentTerms: string;
+  profilePhoto?: string;
   /** This account's own shareable refer-a-friend code. Undefined until the account has a Customer row. */
   referralCode?: string;
 }
@@ -67,6 +69,9 @@ export interface CustomerAuthContextType {
   verifyOtp: (phone: string, code: string, audience: AuthAudience, fullName?: string, referralCode?: string) => Promise<VerifyOtpOutcome>;
   registerRetailer: (payload: RegisterRetailerPayload) => Promise<RegisterRetailerResponse>;
   refreshProfile: () => Promise<void>;
+  uploadProfilePhoto: (file: File) => Promise<string>;
+  removeProfilePhoto: () => Promise<void>;
+  updateProfileData: (data: { fullName?: string; email?: string; profilePhoto?: string | null }) => Promise<void>;
   /**
    * A pending retailer's registration status, applied to the profile: approval
    * loads the full account, rejection records the reason. Null when it could
@@ -104,6 +109,7 @@ function toCustomerProfile(account: StorefrontAccountSummary): CustomerUserProfi
     totalOrders: 0,
     walletBalance: 0,
     couponsCount: 0,
+    profilePhoto: account.profilePhoto ?? undefined,
     referralCode: account.referralCode ?? undefined,
   };
 }
@@ -126,6 +132,7 @@ function toRetailerProfile(account: StorefrontAccountSummary): RetailerUserProfi
     creditLimit: account.creditLimit ?? 0,
     creditUsed: account.creditUsed ?? 0,
     paymentTerms: account.paymentTerms ?? 'PREPAID',
+    profilePhoto: account.profilePhoto ?? undefined,
     referralCode: account.referralCode ?? undefined,
   };
 }
@@ -266,6 +273,28 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
     [applyAccount],
   );
 
+  const uploadProfilePhoto = useCallback(
+    async (file: File): Promise<string> => {
+      const result = await storefrontAuthApi.uploadProfilePhoto(file);
+      applyAccount(result.account);
+      return result.url;
+    },
+    [applyAccount],
+  );
+
+  const removeProfilePhoto = useCallback(async (): Promise<void> => {
+    const updated = await storefrontAuthApi.removeProfilePhoto();
+    applyAccount(updated);
+  }, [applyAccount]);
+
+  const updateProfileData = useCallback(
+    async (data: { fullName?: string; email?: string; profilePhoto?: string | null }): Promise<void> => {
+      const updated = await storefrontAuthApi.updateProfile(data);
+      applyAccount(updated);
+    },
+    [applyAccount],
+  );
+
   const logout = useCallback(() => {
     // Capture the tokens BEFORE clearing: the request is sent asynchronously and would otherwise go
     // out unauthenticated, leaving the server-side session alive.
@@ -288,10 +317,27 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
       verifyOtp,
       registerRetailer,
       refreshProfile,
+      uploadProfilePhoto,
+      removeProfilePhoto,
+      updateProfileData,
       checkRegistration,
       logout,
     }),
-    [role, initialising, customerProfile, retailerProfile, requestOtp, verifyOtp, registerRetailer, refreshProfile, checkRegistration, logout],
+    [
+      role,
+      initialising,
+      customerProfile,
+      retailerProfile,
+      requestOtp,
+      verifyOtp,
+      registerRetailer,
+      refreshProfile,
+      uploadProfilePhoto,
+      removeProfilePhoto,
+      updateProfileData,
+      checkRegistration,
+      logout,
+    ],
   );
 
   return <CustomerAuthContext.Provider value={value}>{children}</CustomerAuthContext.Provider>;

@@ -1,5 +1,7 @@
-import { Body, Controller, Get, Headers, HttpCode, HttpStatus, Ip, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { BadRequestException, Body, Controller, Delete, Get, Headers, HttpCode, HttpStatus, Ip, Param, Patch, Post, Query, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import type { UploadedFileLike } from '../uploads/storage.service';
 import { SalesChannel } from '@prisma/client';
 import { StorefrontAuthService } from './storefront-auth.service';
 import {
@@ -165,6 +167,36 @@ export class StorefrontAuthController {
   @UseGuards(CustomerJwtAuthGuard)
   updateProfile(@CurrentCustomer() customer: CustomerJwtPayload, @Body() dto: UpdateStorefrontProfileDto) {
     return this.service.updateProfile(customer.sub, dto);
+  }
+
+  @Post('profile/photo')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @UseGuards(CustomerJwtAuthGuard)
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiOperation({ summary: 'Upload customer or retailer profile photo' })
+  uploadProfilePhoto(
+    @CurrentCustomer() customer: CustomerJwtPayload,
+    @UploadedFile() file: UploadedFileLike,
+  ) {
+    if (!file) {
+      throw new BadRequestException('No photo was received. Send it as multipart field "file".');
+    }
+    const mime = file.mimetype.toLowerCase();
+    if (!['image/jpeg', 'image/png', 'image/webp', 'image/heic'].includes(mime)) {
+      throw new BadRequestException('Send a photograph (JPEG, PNG, WebP, HEIC) as field "file"');
+    }
+    return this.service.uploadProfilePhoto(customer.sub, file);
+  }
+
+  @Delete('profile/photo')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @UseGuards(CustomerJwtAuthGuard)
+  @ApiOperation({ summary: 'Remove customer or retailer profile photo' })
+  removeProfilePhoto(@CurrentCustomer() customer: CustomerJwtPayload) {
+    return this.service.updateProfile(customer.sub, { profilePhoto: null });
   }
 }
 

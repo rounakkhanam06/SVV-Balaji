@@ -2408,6 +2408,7 @@ export interface Customer {
   contactName: string | null;
   phone: string;
   email: string | null;
+  profilePhoto?: string | null;
 
   /** B2B only. It is what goes on the tax invoice. */
   gstin: string | null;
@@ -2848,6 +2849,7 @@ export interface CustomerAccount {
   phone: string;
   email: string | null;
   fullName: string;
+  profilePhoto?: string | null;
   channel: SalesChannel;
   status: CustomerAccountStatus;
   phoneVerifiedAt: string | null;

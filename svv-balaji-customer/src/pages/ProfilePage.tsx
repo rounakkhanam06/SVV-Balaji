@@ -21,9 +21,11 @@ import {
   UserOutlined,
   WalletOutlined,
   ShareAltOutlined,
+  CameraOutlined,
+  UploadOutlined,
 } from '@ant-design/icons';
 import { Avatar, Badge, Breadcrumb, Button, Card, Divider, Modal, Switch, Tabs, Tag, Typography, message, Skeleton } from 'antd';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCustomerAuth, type UserRole } from '../auth/CustomerAuthContext';
 import { useLoyalty } from '../loyalty/useLoyalty';
@@ -31,9 +33,76 @@ import { useAccountStats } from '../hooks/useAccountStats';
 
 export function ProfilePage() {
   const navigate = useNavigate();
-  const { role, customerProfile, retailerProfile, logout } = useCustomerAuth();
+  const { role, customerProfile, retailerProfile, uploadProfilePhoto, removeProfilePhoto, logout } = useCustomerAuth();
   const loyalty = useLoyalty();
   const stats = useAccountStats();
+
+  const [photoModalOpen, setPhotoModalOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const isRetailer = role === 'RETAILER';
+  const isGuest = role === 'GUEST';
+  const currentPhoto = isRetailer ? retailerProfile?.profilePhoto : customerProfile?.profilePhoto;
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      message.error('Please select an image file (PNG, JPG, WebP)');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      message.error('Image size must be less than 5MB');
+      return;
+    }
+    setSelectedFile(file);
+    const objectUrl = URL.createObjectURL(file);
+    setPreviewUrl(objectUrl);
+  };
+
+  const handleSavePhoto = async () => {
+    if (!selectedFile) return;
+    try {
+      setUploadingPhoto(true);
+      await uploadProfilePhoto(selectedFile);
+      message.success('Profile photo updated successfully!');
+      setPhotoModalOpen(false);
+      setSelectedFile(null);
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+    } catch (err: any) {
+      message.error(err?.response?.data?.message || err?.message || 'Failed to upload photo');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const handleRemovePhoto = () => {
+    Modal.confirm({
+      title: 'Remove profile photo?',
+      content: 'Your account will revert to the default avatar icon.',
+      okText: 'Remove',
+      okType: 'danger',
+      onOk: async () => {
+        try {
+          setUploadingPhoto(true);
+          await removeProfilePhoto();
+          message.success('Profile photo removed');
+          setPhotoModalOpen(false);
+          setSelectedFile(null);
+          if (previewUrl) URL.revokeObjectURL(previewUrl);
+          setPreviewUrl(null);
+        } catch (err: any) {
+          message.error(err?.response?.data?.message || err?.message || 'Failed to remove photo');
+        } finally {
+          setUploadingPhoto(false);
+        }
+      },
+    });
+  };
 
   const handleLogout = () => {
     Modal.confirm({
@@ -63,8 +132,7 @@ export function ProfilePage() {
     });
   };
 
-  const isRetailer = role === 'RETAILER';
-  const isGuest = role === 'GUEST';
+
 
   const referralCode = (isRetailer ? retailerProfile?.referralCode : customerProfile?.referralCode) ?? null;
 
@@ -145,6 +213,15 @@ export function ProfilePage() {
     {
       title: 'Account & Settings',
       items: [
+        {
+          key: 'photo',
+          icon: <CameraOutlined />,
+          iconBg: '#fff7ed',
+          iconColor: '#ea580c',
+          label: 'Profile Photo',
+          subtitle: customerProfile?.profilePhoto ? 'Photo added · Tap to change' : 'Upload personal profile photo',
+          action: () => setPhotoModalOpen(true),
+        },
         {
           key: 'addresses',
           icon: <ShopOutlined />,
@@ -233,6 +310,15 @@ export function ProfilePage() {
       title: 'Business & Compliance',
       items: [
         {
+          key: 'photo',
+          icon: <CameraOutlined />,
+          iconBg: '#ecfdf5',
+          iconColor: '#059669',
+          label: 'Store Profile Photo',
+          subtitle: retailerProfile?.profilePhoto ? 'Store photo added · Tap to change' : 'Upload storefront or business logo',
+          action: () => setPhotoModalOpen(true),
+        },
+        {
           key: 'addresses',
           icon: <ShopOutlined />,
           iconBg: '#fefce8',
@@ -318,11 +404,13 @@ export function ProfilePage() {
           <div style={{ position: 'absolute', top: 20, right: 40, width: 60, height: 60, borderRadius: '50%', background: 'rgba(255,255,255,0.06)' }} />
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, position: 'relative' }}>
-            <div style={{ position: 'relative' }}>
+            <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => setPhotoModalOpen(true)}>
               {isRetailer ? (
                 /* Retailer / Store Avatar */
                 <Avatar
                   size={74}
+                  src={retailerProfile?.profilePhoto}
+                  icon={!retailerProfile?.profilePhoto && <ShopOutlined style={{ fontSize: 36, color: '#065f46' }} />}
                   style={{
                     background: '#ffffff',
                     color: '#065f46',
@@ -333,13 +421,13 @@ export function ProfilePage() {
                     border: '3px solid #34d399',
                     boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
                   }}
-                >
-                  <ShopOutlined style={{ fontSize: 36, color: '#065f46' }} />
-                </Avatar>
+                />
               ) : (
                 /* Customer / Personal Shopper Avatar */
                 <Avatar
                   size={74}
+                  src={customerProfile?.profilePhoto}
+                  icon={!customerProfile?.profilePhoto && <UserOutlined style={{ fontSize: 36, color: '#ea580c' }} />}
                   style={{
                     background: '#ffffff',
                     color: '#ea580c',
@@ -350,10 +438,31 @@ export function ProfilePage() {
                     border: '3px solid rgba(255,255,255,0.95)',
                     boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
                   }}
-                >
-                  <UserOutlined style={{ fontSize: 36, color: '#ea580c' }} />
-                </Avatar>
+                />
               )}
+
+              {/* Camera edit badge on avatar */}
+              <div
+                style={{
+                  position: 'absolute',
+                  bottom: 0,
+                  right: isRetailer ? 16 : 0,
+                  width: 26,
+                  height: 26,
+                  borderRadius: '50%',
+                  background: isRetailer ? '#047857' : '#ea580c',
+                  color: '#ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '2px solid #ffffff',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                  fontSize: 13,
+                }}
+                title="Change photo"
+              >
+                <CameraOutlined />
+              </div>
 
               {isRetailer && (
                 <Tag
@@ -700,10 +809,16 @@ export function ProfilePage() {
                   boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
                 }}
               >
-                <div style={{ position: 'relative', width: 88, height: 88, margin: '0 auto 16px' }}>
+                <div
+                  style={{ position: 'relative', width: 88, height: 88, margin: '0 auto 12px', cursor: 'pointer' }}
+                  onClick={() => setPhotoModalOpen(true)}
+                  title="Click to edit profile photo"
+                >
                   {isRetailer ? (
                     <Avatar
                       size={88}
+                      src={retailerProfile?.profilePhoto}
+                      icon={!retailerProfile?.profilePhoto && <ShopOutlined style={{ fontSize: 42, color: '#065f46' }} />}
                       style={{
                         background: '#f0fdf4',
                         color: '#065f46',
@@ -713,12 +828,12 @@ export function ProfilePage() {
                         justifyContent: 'center',
                         boxShadow: '0 4px 12px rgba(6, 95, 70, 0.1)',
                       }}
-                    >
-                      <ShopOutlined style={{ fontSize: 42, color: '#065f46' }} />
-                    </Avatar>
+                    />
                   ) : (
                     <Avatar
                       size={88}
+                      src={customerProfile?.profilePhoto}
+                      icon={!customerProfile?.profilePhoto && <UserOutlined style={{ fontSize: 42, color: '#ea580c' }} />}
                       style={{
                         background: '#fff7ed',
                         color: '#ea580c',
@@ -728,10 +843,31 @@ export function ProfilePage() {
                         justifyContent: 'center',
                         boxShadow: '0 4px 12px rgba(234, 88, 12, 0.1)',
                       }}
-                    >
-                      <UserOutlined style={{ fontSize: 42, color: '#ea580c' }} />
-                    </Avatar>
+                    />
                   )}
+
+                  {/* Camera overlay badge */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      bottom: 0,
+                      right: isRetailer ? 18 : 0,
+                      width: 28,
+                      height: 28,
+                      borderRadius: '50%',
+                      background: isRetailer ? '#065f46' : '#ea580c',
+                      color: '#ffffff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      border: '2px solid #ffffff',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
+                      fontSize: 14,
+                    }}
+                    title="Change photo"
+                  >
+                    <CameraOutlined />
+                  </div>
 
                   {isRetailer && (
                     <Tag
@@ -742,6 +878,15 @@ export function ProfilePage() {
                     </Tag>
                   )}
                 </div>
+
+                <Button
+                  size="small"
+                  icon={<CameraOutlined />}
+                  onClick={() => setPhotoModalOpen(true)}
+                  style={{ marginBottom: 14, borderRadius: 8, fontSize: 12, borderColor: '#cbd5e1' }}
+                >
+                  {currentPhoto ? 'Change Photo' : 'Upload Photo'}
+                </Button>
 
                 <Typography.Title level={4} style={{ margin: '0 0 4px 0', color: '#0f172a', fontWeight: 700 }}>
                   {isRetailer
@@ -1088,6 +1233,125 @@ export function ProfilePage() {
           </div>
         </div>
       </div>
+
+      {/* Profile Photo Edit Modal */}
+      <Modal
+        open={photoModalOpen}
+        onCancel={() => {
+          setPhotoModalOpen(false);
+          setSelectedFile(null);
+          if (previewUrl) {
+            URL.revokeObjectURL(previewUrl);
+            setPreviewUrl(null);
+          }
+        }}
+        footer={null}
+        centered
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 16 }}>
+            <CameraOutlined style={{ color: isRetailer ? '#059669' : '#ea580c' }} />
+            <span>{isRetailer ? 'Store / Business Profile Photo' : 'Personal Profile Photo'}</span>
+          </div>
+        }
+        width={420}
+      >
+        <div style={{ textAlign: 'center', padding: '16px 8px 8px' }}>
+          {/* Avatar Preview */}
+          <div style={{ position: 'relative', width: 120, height: 120, margin: '0 auto 16px' }}>
+            <Avatar
+              size={120}
+              src={previewUrl || currentPhoto}
+              icon={
+                !(previewUrl || currentPhoto) &&
+                (isRetailer ? (
+                  <ShopOutlined style={{ fontSize: 56, color: '#065f46' }} />
+                ) : (
+                  <UserOutlined style={{ fontSize: 56, color: '#ea580c' }} />
+                ))
+              }
+              style={{
+                background: isRetailer ? '#f0fdf4' : '#fff7ed',
+                border: `3px solid ${isRetailer ? '#34d399' : '#fdba74'}`,
+                boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+              }}
+            />
+          </div>
+
+          <Typography.Paragraph type="secondary" style={{ fontSize: 13, marginBottom: 20 }}>
+            {isRetailer
+              ? 'Upload your store facade or business logo. This photo will be visible to Super Admin for verification and orders.'
+              : 'Add a clear personal photo. This helps our delivery riders and support team identify your profile.'}
+          </Typography.Paragraph>
+
+          <input
+            type="file"
+            ref={fileInputRef}
+            accept="image/png,image/jpeg,image/webp,image/heic"
+            style={{ display: 'none' }}
+            onChange={handleFileChange}
+          />
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <Button
+              type={selectedFile ? 'default' : 'primary'}
+              icon={<UploadOutlined />}
+              onClick={() => fileInputRef.current?.click()}
+              style={{
+                borderRadius: 8,
+                height: 42,
+                fontWeight: 600,
+                background: !selectedFile ? (isRetailer ? '#059669' : '#ea580c') : undefined,
+                borderColor: !selectedFile ? (isRetailer ? '#059669' : '#ea580c') : undefined,
+              }}
+            >
+              {selectedFile ? 'Choose Different Image' : currentPhoto ? 'Replace Photo' : 'Choose Photo from Device'}
+            </Button>
+
+            {selectedFile && (
+              <Button
+                type="primary"
+                loading={uploadingPhoto}
+                onClick={handleSavePhoto}
+                style={{
+                  borderRadius: 8,
+                  height: 42,
+                  fontWeight: 600,
+                  background: isRetailer ? '#059669' : '#ea580c',
+                  borderColor: isRetailer ? '#059669' : '#ea580c',
+                }}
+              >
+                Save &amp; Update Photo
+              </Button>
+            )}
+
+            {currentPhoto && !selectedFile && (
+              <Button
+                danger
+                icon={<DeleteOutlined />}
+                loading={uploadingPhoto}
+                onClick={handleRemovePhoto}
+                style={{ borderRadius: 8, height: 40 }}
+              >
+                Remove Current Photo
+              </Button>
+            )}
+
+            <Button
+              onClick={() => {
+                setPhotoModalOpen(false);
+                setSelectedFile(null);
+                if (previewUrl) {
+                  URL.revokeObjectURL(previewUrl);
+                  setPreviewUrl(null);
+                }
+              }}
+              style={{ borderRadius: 8, height: 40 }}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

@@ -2073,6 +2073,7 @@ model Customer {
   contactName String?
   phone       String
   email       String?
+  profilePhoto String?
 
   /// Required for B2B (needed on the tax invoice), never required for B2C.
   /// Enforced in CustomersService, not by the database, so the rule is testable.
@@ -3137,6 +3138,7 @@ model CustomerAccount {
   email String?
 
   fullName String
+  profilePhoto String?
 
   /// Which storefront they signed up through. B2C self-serves; B2B is the
   /// retailer registration flow and requires approval.

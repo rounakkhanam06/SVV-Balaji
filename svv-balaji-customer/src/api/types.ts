@@ -28,6 +28,7 @@ export interface StorefrontAccountSummary {
   phone: string;
   fullName: string;
   email?: string | null;
+  profilePhoto?: string | null;
   channel: StorefrontChannel;
   status: StorefrontAccountStatus;
   customerId?: string | null;
@@ -96,6 +97,7 @@ export type RegisterRetailerResponse = StorefrontSession | { status: StorefrontA
 export interface UpdateStorefrontProfilePayload {
   fullName?: string;
   email?: string;
+  profilePhoto?: string | null;
 }
 
 export interface ReferralCheckResponse {

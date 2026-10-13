@@ -266,22 +266,37 @@ export function RetailerDetailPage() {
                   }}
                 />
 
-                <div
-                  style={{
-                    width: 52,
-                    height: 52,
-                    borderRadius: 14,
-                    background: status === 'PENDING_APPROVAL' ? 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)' : 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
-                    color: '#ffffff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 22,
-                    boxShadow: status === 'PENDING_APPROVAL' ? '0 4px 12px rgba(249, 115, 22, 0.25)' : '0 4px 12px rgba(15, 23, 42, 0.2)',
-                  }}
-                >
-                  <ShopOutlined />
-                </div>
+                {/* Profile Photo or Store Icon Square */}
+                {account?.profilePhoto || customer?.profilePhoto ? (
+                  <Avatar
+                    size={52}
+                    shape="square"
+                    src={account?.profilePhoto || customer?.profilePhoto || undefined}
+                    style={{
+                      borderRadius: 14,
+                      border: '2px solid #e2e8f0',
+                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+                      flexShrink: 0,
+                    }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      width: 52,
+                      height: 52,
+                      borderRadius: 14,
+                      background: status === 'PENDING_APPROVAL' ? 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)' : 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+                      color: '#ffffff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 22,
+                      boxShadow: status === 'PENDING_APPROVAL' ? '0 4px 12px rgba(249, 115, 22, 0.25)' : '0 4px 12px rgba(15, 23, 42, 0.2)',
+                    }}
+                  >
+                    <ShopOutlined />
+                  </div>
+                )}
 
                 <Space direction="vertical" size={2}>
                   <Space align="center" size={10} style={{ flexWrap: 'wrap' }}>
@@ -473,6 +488,31 @@ export function RetailerDetailPage() {
                         </Descriptions.Item>
                         <Descriptions.Item label="Business Email">
                           {email ? <Text copyable>{email}</Text> : EM_DASH}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Profile / Store Photo" span={2}>
+                          {account?.profilePhoto || customer?.profilePhoto ? (
+                            <Space align="center" size={14}>
+                              <Avatar
+                                size={56}
+                                shape="square"
+                                src={account?.profilePhoto || customer?.profilePhoto || undefined}
+                                style={{ borderRadius: 10, border: '1px solid #cbd5e1' }}
+                              />
+                              <Space direction="vertical" size={2}>
+                                <Tag color="cyan">Profile Photo Added</Tag>
+                                <Typography.Link
+                                  href={account?.profilePhoto || customer?.profilePhoto || undefined}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  style={{ fontSize: 12 }}
+                                >
+                                  View full size image &rarr;
+                                </Typography.Link>
+                              </Space>
+                            </Space>
+                          ) : (
+                            <Text type="secondary">No profile photo added</Text>
+                          )}
                         </Descriptions.Item>
                       </Descriptions>
                     </Card>

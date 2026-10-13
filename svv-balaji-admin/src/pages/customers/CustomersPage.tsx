@@ -140,6 +140,7 @@ export function CustomersPage() {
         <Space align="center" size={10}>
           <Avatar
             size="small"
+            src={customer.profilePhoto || undefined}
             style={{
               backgroundColor: customer.channel === 'B2C' ? '#722ed1' : '#1677ff',
               fontSize: 12,

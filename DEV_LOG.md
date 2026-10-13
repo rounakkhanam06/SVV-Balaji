@@ -4295,3 +4295,49 @@ Admin + customer `tsc` clean. Not click-tested.
 
 **Deploy:** `prisma migrate deploy` + generate + API restart; rebuild admin + customer.
 
+
+---
+
+## 2026-10-13 — Raunak (agent) — Support chat: full history stored, customer notified on staff reply
+
+**Problem:** the order-support chat (`svv-balaji-customer/src/pages/OrderSupportPage.tsx`) kept the conversation in
+React state only. Every typed message created a *new* ticket whose description was boilerplate ("Customer selected
+resolution: Custom Query…"), so the admin inbox never saw what the customer actually wrote. The chat vanished on reload,
+and staff replies never appeared there.
+
+**Customer:** OrderSupportPage now binds to a stored ticket. It reuses the order's latest non-closed ticket (one
+conversation per order), shows the real thread (opening message + every customer/staff message, polled every 2.5 s),
+and sends typed messages as replies. A guided-menu submit stores the full path ("Issue: A → B → C" + "Resolution requested")
+as the description; a typed first message is stored verbatim. Help & Support opens a ticket chat from `/support?ticket=<id>`.
+
+**Backend:** `SupportTicketsService` now imports `NotificationsModule`. A staff reply → inbox row + FCM push "Support replied ·
+TKT-…" to the raising customer's/retailer's `CustomerAccount`. Status → RESOLVED/CLOSED and `POST :id/resolve` notify too.
+Best-effort; never fails the staff action. No route/DTO changes. Nothing deletes tickets or messages (only the Customer cascade).
+
+**Verified:** backend + customer `tsc` clean; new `support-tickets.service.spec.ts` 4/4. Not click-tested.
+
+**Deploy:** API restart; rebuild customer.
+
+---
+
+## 2026-10-13 — Raunak (agent) — One notification sound for every non-order alert, all apps
+
+**Sound:** `public/sounds/notification.mp3` (universfield-new-notification-040) added to admin, customer, field, rider.
+Player `notificationSound.ts` per app (admin/rider `src/live/`, customer/field `src/notifications/`): unlocks on first
+tap/key (browser autoplay rule), 1.5 s de-dupe so socket + push for the same alert ring once.
+
+**Order sounds untouched:** admin `new-order.mp3` (`playOrderSound`), rider `new-order.wav` (OFFER / TASK_ASSIGNED ring),
+customer order-status pushes (tag `order-…`) keep the device default sound.
+
+**Where it plays (app open):** admin — `playMessageSound` (support tickets/messages) now plays the mp3 instead of the
+synthesized chime and still obeys the top-bar mute; also non-NEW_ORDER `alerts:new` and foreground pushes.
+Customer/retailer + field — foreground pushes (customer skips order tags). Rider — `notification` socket event (except
+OFFER/TASK_ASSIGNED) and foreground pushes. Foreground system notifications are `silent` where we play our own sound.
+
+**API change (rider socket):** `notification` event now carries `type` alongside `id` (`delivery-core.ts`, `dispatch.service.ts`,
+`rider.gateway.ts`). Additive.
+
+**Limit:** app closed/background = OS push, which plays the phone's own sound. Web Push cannot set a custom file.
+
+**Verified:** customer, field, rider, backend `tsc` clean. Admin `tsc` shows 3 errors from someone else's uncommitted edits
+(AppLayout `can('supportTickets.*')`, SupportTicketsPage missing `notification` import), not this change. Not tested by ear.

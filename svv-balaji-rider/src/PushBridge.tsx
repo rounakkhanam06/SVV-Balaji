@@ -1,7 +1,8 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { riderApi } from './api/rider';
 import { useAuth } from './auth/AuthContext';
-import { usePushRegistration } from './push';
+import { playNotificationSound } from './live/notificationSound';
+import { isOrderPush, usePushRegistration } from './push';
 
 /** Registers this phone for push while a rider is signed in, removes it on sign-out. Renders nothing. */
 export function PushBridge() {
@@ -12,7 +13,10 @@ export function PushBridge() {
     identity: rider?.id,
     register: riderApi.registerPushDevice,
     unregister: riderApi.unregisterPushDevice,
-    onPush: () => void qc.invalidateQueries({ queryKey: ['notifications'] }),
+    onPush: (p) => {
+      void qc.invalidateQueries({ queryKey: ['notifications'] });
+      if (!isOrderPush(p)) playNotificationSound();
+    },
   });
   return null;
 }

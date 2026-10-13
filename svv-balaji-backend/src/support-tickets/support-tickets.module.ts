@@ -9,6 +9,8 @@ import { RequirePermission } from '../auth/decorators/require-permission.decorat
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy';
 import { AdminOrdersGateway } from '../realtime/admin-orders.gateway';
+import { NotificationsModule } from '../notifications/notifications.module';
+import { NotificationsService } from '../notifications/notifications.service';
 
 export class StaffReplyDto {
   @IsString()
@@ -47,6 +49,14 @@ export class ResolveTicketDto {
   @MaxLength(1000)
   internalAuditNote?: string;
 }
+
+/** What the customer is told when staff record a formal resolution. */
+const RESOLUTION_MESSAGE: Partial<Record<SupportResolutionAction, string>> = {
+  REFUND_APPROVED: 'Your refund has been approved.',
+  REPLACEMENT_DISPATCHED: 'A replacement for your item is on its way.',
+  REVERSE_PICKUP: 'A pickup has been scheduled to collect the item from you.',
+  REJECTED: 'Your request was reviewed and closed. Reply in the chat if you need more help.',
+};
 
 const CUSTOMER_SELECT = { id: true, name: true, phone: true, customerCode: true, channel: true } as const;
 
@@ -173,7 +183,32 @@ export class SupportTicketsService {
   constructor(
     private readonly prisma: PrismaService,
     @Optional() private readonly gateway?: AdminOrdersGateway,
+    @Optional() private readonly notifications?: NotificationsService,
   ) {}
+
+  /**
+   * In-app inbox row + push to the customer/retailer who raised the ticket.
+   * Best-effort: a notification failure must never fail the staff action, and
+   * a customer without a storefront login (staff-created) simply gets nothing.
+   */
+  private async notifyCustomer(ticketId: string, title: string, body: string) {
+    if (!this.notifications) return;
+    try {
+      const t = await this.prisma.supportTicket.findUnique({
+        where: { id: ticketId },
+        select: { customer: { select: { account: { select: { id: true, status: true } } } } },
+      });
+      const account = t?.customer.account;
+      if (!account || account.status !== 'ACTIVE') return;
+      await this.notifications.notifyCustomerAccount(account.id, {
+        title,
+        body: body.replace(/\s+/g, ' ').slice(0, 220),
+        link: `/support?ticket=${encodeURIComponent(ticketId)}`,
+      });
+    } catch {
+      /* best-effort - see above */
+    }
+  }
 
   async list(filters: { status?: SupportTicketStatus; channel?: SalesChannel; search?: string }) {
     const search = filters.search?.trim();
@@ -372,6 +407,7 @@ export class SupportTicketsService {
       lastActivityAt: now.toISOString(),
       awaitingReply: false,
     });
+    void this.notifyCustomer(id, `Support replied · ${thread.ticketNumber}`, text);
 
     return thread;
   }
@@ -400,6 +436,13 @@ export class SupportTicketsService {
       resolvedAt: thread.resolvedAt,
       resolvedBy: thread.resolvedBy,
     });
+    if (dto.status === SupportTicketStatus.RESOLVED || dto.status === SupportTicketStatus.CLOSED) {
+      void this.notifyCustomer(
+        id,
+        `Ticket ${thread.ticketNumber} ${dto.status === SupportTicketStatus.RESOLVED ? 'resolved' : 'closed'}`,
+        `Your support request "${thread.subject}" was marked ${dto.status.toLowerCase()}. Reply in the chat if you still need help.`,
+      );
+    }
 
     return thread;
   }
@@ -442,6 +485,11 @@ export class SupportTicketsService {
       resolvedAt: thread.resolvedAt,
       resolvedBy: thread.resolvedBy,
     });
+    void this.notifyCustomer(
+      id,
+      `Update on ticket ${thread.ticketNumber}`,
+      RESOLUTION_MESSAGE[dto.action] ?? `Your support request "${thread.subject}" has been resolved.`,
+    );
 
     return thread;
   }
@@ -498,6 +546,7 @@ export class SupportTicketsController {
 }
 
 @Module({
+  imports: [NotificationsModule],
   controllers: [SupportTicketsController],
   providers: [SupportTicketsService],
 })

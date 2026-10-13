@@ -8,6 +8,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { apiErrorMessage } from './api/client';
 import { CustomerAuthProvider } from './auth/CustomerAuthContext';
 import { PushBridge } from './notifications/PushBridge';
+import { installNotificationSoundUnlock } from './notifications/notificationSound';
 import { App } from './App';
 import { CartProvider } from './cart/CartProvider';
 import { LoyaltyProvider } from './loyalty/LoyaltyProvider';
@@ -60,6 +61,8 @@ const queryClient = new QueryClient({
     },
   }),
 });
+
+installNotificationSoundUnlock();
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>

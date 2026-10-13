@@ -33,8 +33,8 @@ import {
   Tag,
   Typography,
 } from 'antd';
-import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useCustomerAuth } from '../auth/CustomerAuthContext';
 import { useStorefrontSupport } from '@shared/hooks/useSupportSettings';
 import type { SupportFaqItem } from '@shared/api/types';
@@ -80,6 +80,17 @@ export function HelpSupportPage() {
   const myTickets = ticketsQuery.data ?? [];
   const createTicket = useCreateSupportTicket();
   const [openTicketId, setOpenTicketId] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // A "Support replied" notification links here with ?ticket=<id> - open that chat.
+  useEffect(() => {
+    const fromLink = searchParams.get('ticket');
+    if (!fromLink) return;
+    setOpenTicketId(fromLink);
+    const next = new URLSearchParams(searchParams);
+    next.delete('ticket');
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   // Active FAQs based on user's role
   const activeFaqs: SupportFaqItem[] = useMemo(() => {

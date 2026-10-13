@@ -18,6 +18,8 @@ export async function showSystemNotification(n: { title: string; body: string; t
     badge: LOGO,
     tag: n.tag,
     requireInteraction: true,
+    // The open panel plays its own sound (new-order.mp3 / notification.mp3).
+    silent: true,
     data: { url: n.link },
   };
   try {

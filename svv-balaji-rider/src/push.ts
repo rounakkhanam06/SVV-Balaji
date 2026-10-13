@@ -34,6 +34,9 @@ export interface PushPayload {
 /** With the app open these are shown by the in-app pop-up (with its own sound), not as a system notification. */
 const IN_APP_KINDS = new Set(['OFFER', 'TASK_ASSIGNED']);
 
+/** True for order alerts, which keep their own sound (see live/alerts.ts). */
+export const isOrderPush = (p: PushPayload) => Boolean(p.kind && IN_APP_KINDS.has(p.kind));
+
 const storage = {
   get: () => {
     try {
@@ -104,6 +107,8 @@ async function listenForeground(onPush: (p: PushPayload) => void): Promise<() =>
       badge: LOGO,
       tag: d.tag ?? 'svv-broadcast',
       renotify: true,
+      // App open: the page plays notification.mp3 itself, so keep the OS one quiet.
+      silent: !isOrderPush(d),
       data: { link: d.link ?? '' },
     };
     if (d.imageUrl) options.image = d.imageUrl;

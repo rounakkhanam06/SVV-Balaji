@@ -97,6 +97,8 @@ async function listenForeground(onPush: (p: PushPayload) => void): Promise<() =>
       badge: LOGO,
       tag: d.tag ?? 'svv-broadcast',
       renotify: true,
+      // App open: new orders ring new-order.mp3, everything else notification.mp3 - keep the OS one quiet.
+      silent: true,
       data: { link: d.link ?? '' },
     };
     if (d.imageUrl) options.image = d.imageUrl;

@@ -2,6 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { PUSH_KEYS, pushNotificationsApi } from '@shared/api/pushNotifications';
 import { useAuth } from '@shared/auth/useAuth';
 import { usePushRegistration } from '../push';
+import { playNotificationSound } from './notificationSound';
 
 /** Registers this phone for push while signed in, removes it on sign-out. Renders nothing. */
 export function PushBridge() {
@@ -12,7 +13,10 @@ export function PushBridge() {
     identity: user?.id,
     register: (token) => pushNotificationsApi.registerDevice(token, 'FIELD'),
     unregister: (token) => pushNotificationsApi.unregisterDevice(token),
-    onPush: () => void qc.invalidateQueries({ queryKey: PUSH_KEYS.inbox }),
+    onPush: () => {
+      void qc.invalidateQueries({ queryKey: PUSH_KEYS.inbox });
+      playNotificationSound();
+    },
   });
   return null;
 }

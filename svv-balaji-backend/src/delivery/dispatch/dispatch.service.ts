@@ -105,7 +105,7 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
     if (!riderIds.length) return;
     for (const riderId of riderIds) {
       const n = await this.prisma.riderNotification.create({ data: { riderId, type, title, body, taskId } });
-      this.events.publish({ kind: 'notification', riderId, notificationId: n.id });
+      this.events.publish({ kind: 'notification', riderId, notificationId: n.id, type });
     }
     // Offers and assignments are urgent; the rest are ordinary inbox pushes.
     const urgent = type === 'OFFER' || type === 'TASK_ASSIGNED';

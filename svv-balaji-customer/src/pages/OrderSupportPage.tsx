@@ -9,12 +9,17 @@ import {
 } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
 import { Button, Input, Skeleton, Tag, message } from 'antd';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { checkoutApi, type OrderDetail, type OrderSummaryRow } from '../api/checkout';
 import type { SupportTicketCategory } from '../api/supportTickets';
 import { useCustomerAuth } from '../auth/CustomerAuthContext';
-import { useCreateSupportTicket } from '../hooks/useSupportTickets';
+import {
+  useCreateSupportTicket,
+  useReplyToSupportTicket,
+  useSupportTicketThread,
+  useSupportTickets,
+} from '../hooks/useSupportTickets';
 import { formatInr } from '../utils/money';
 import { statusColor, statusLabel } from './orderStatus';
 
@@ -39,6 +44,16 @@ interface ChatMessage {
 const getCurrentTimeStr = () =>
   new Date().toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true });
 
+const timeOf = (iso: string) =>
+  new Date(iso).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true });
+
+const TICKET_STATUS_LABEL: Record<string, string> = {
+  OPEN: 'Open',
+  IN_PROGRESS: 'In progress',
+  RESOLVED: 'Resolved',
+  CLOSED: 'Closed',
+};
+
 export function OrderSupportPage() {
   const navigate = useNavigate();
   const { orderId: paramOrderId } = useParams<{ orderId: string }>();
@@ -48,6 +63,8 @@ export function OrderSupportPage() {
 
   const { isLoggedIn, customerProfile } = useCustomerAuth();
   const createTicket = useCreateSupportTicket();
+  const replyTicket = useReplyToSupportTicket();
+  const ticketsQuery = useSupportTickets();
 
   // Fetch orders list if no active order is selected or for order picker
   const ordersQuery = useQuery({
@@ -71,6 +88,24 @@ export function OrderSupportPage() {
   const [inputText, setInputText] = useState('');
   const [botTyping, setBotTyping] = useState(false);
   const streamRef = useRef<HTMLDivElement>(null);
+  // What the customer picked in the guided menu so far - goes into the ticket
+  // so support sees the whole conversation, not a one-line summary.
+  const pathRef = useRef<string[]>([]);
+
+  // Every message is stored on a support ticket (never only in this page), so
+  // the chat survives a reload and support sees exactly what was sent. One
+  // conversation per order: reuse its latest ticket unless that one is closed.
+  const [createdTicketId, setCreatedTicketId] = useState<string | null>(null);
+  const existingTicket = useMemo(
+    () =>
+      (ticketsQuery.data ?? []).find(
+        (t) => (t.orderNumber ?? null) === (activeOrderNumber ?? null) && t.status !== 'CLOSED',
+      ) ?? null,
+    [ticketsQuery.data, activeOrderNumber],
+  );
+  const activeTicketId = createdTicketId ?? existingTicket?.id ?? null;
+  const thread = useSupportTicketThread(activeTicketId);
+  const ticket = thread.data && thread.data.status !== 'CLOSED' ? thread.data : null;
 
   // Scroll the chat pane itself, not the window — on desktop the chat is a card
   // inside the page and scrollIntoView would drag the whole page along.
@@ -91,6 +126,11 @@ export function OrderSupportPage() {
     if (!order || !order.items || order.items.length === 0) return 'Various Grocery Items';
     return order.items.map((i) => `${i.name || 'Item'} (×${i.quantity})`).join(', ');
   };
+
+  useEffect(() => {
+    setCreatedTicketId(null);
+    pathRef.current = [];
+  }, [activeOrderNumber]);
 
   // Initialize Conversation
   useEffect(() => {
@@ -157,6 +197,7 @@ export function OrderSupportPage() {
 
   // Add User message and trigger bot response
   const addUserMessage = (text: string) => {
+    pathRef.current.push(text);
     const userMsg: ChatMessage = {
       id: `user-${Date.now()}`,
       sender: 'user',
@@ -187,6 +228,7 @@ export function OrderSupportPage() {
     addUserMessage(userLabel);
 
     if (flowKey === 'main-menu') {
+      pathRef.current = [];
       addBotMessage('Here is the main menu. How else can I assist you?', getMainOptions(activeOrderNumber));
       return;
     }
@@ -345,52 +387,59 @@ export function OrderSupportPage() {
     submitTicketAndFinalize(category, issueSubject, 'Logged Ticket');
   };
 
-  const submitTicketAndFinalize = (category: SupportTicketCategory, subject: string, resolutionChoice: string) => {
+  /**
+   * Store the request: a reply on this order's open ticket if there is one,
+   * otherwise a new ticket. `body` is exactly what support will read.
+   */
+  const sendToSupport = (category: SupportTicketCategory, subject: string, body: string, onDone?: () => void) => {
+    const fail = (e: unknown) => {
+      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      message.error(typeof msg === 'string' ? msg : 'Could not send your message. Please try again.');
+    };
+    if (activeTicketId && ticket) {
+      replyTicket.mutate({ id: activeTicketId, body }, { onSuccess: () => onDone?.(), onError: fail });
+      return;
+    }
     createTicket.mutate(
       {
         category,
-        subject: `[DesiTokri Support] ${subject}`,
-        description: `Customer selected resolution: ${resolutionChoice}. Order Number: ${activeOrderNumber || 'N/A'}.`,
+        subject: `[DesiTokri Support] ${subject}`.slice(0, 160),
+        description: body.slice(0, 2000),
         orderNumber: activeOrderNumber || undefined,
       },
       {
-        onSuccess: (ticket) => {
-          addBotMessage(
-            `✅ Ticket #${ticket.ticketNumber || 'TK-1042'} has been created! Our Desi Tokri support executive is processing your ${resolutionChoice.toLowerCase()}. You will receive updates via SMS and WhatsApp.`,
-            [
-              {
-                id: 'fin-orders',
-                text: 'View My Orders',
-                action: () => navigate('/orders'),
-              },
-              {
-                id: 'fin-menu',
-                text: 'Go back to main menu',
-                action: () => handleSelectOption('Go back to main menu', 'main-menu'),
-              },
-            ],
-          );
+        onSuccess: (created) => {
+          setCreatedTicketId(created.id);
+          onDone?.();
         },
-        onError: () => {
-          addBotMessage(`Your request for "${subject}" has been logged. Our Desi Tokri team will contact you within 15 minutes!`, [
-            {
-              id: 'err-menu',
-              text: 'Go back to main menu',
-              action: () => handleSelectOption('Go back to main menu', 'main-menu'),
-            },
-          ]);
-        },
+        onError: fail,
       },
     );
+  };
+
+  const menuSteps = () => pathRef.current.filter((p) => p !== 'Go back to main menu');
+
+  const submitTicketAndFinalize = (category: SupportTicketCategory, subject: string, resolutionChoice: string) => {
+    const steps = menuSteps();
+    const body = [
+      `Issue: ${steps.length ? steps.join(' → ') : subject}`,
+      `Resolution requested: ${resolutionChoice}`,
+    ].join('\n');
+    sendToSupport(category, subject, body, () => {
+      pathRef.current = [];
+    });
   };
 
   // Custom User Typing Send
   const handleSendCustomText = () => {
     if (!inputText.trim()) return;
     const txt = inputText.trim();
-    setInputText('');
-    addUserMessage(txt);
-    submitTicketAndFinalize('OTHER', txt, 'Custom Query');
+    const steps = menuSteps();
+    const body = steps.length && !ticket ? `${txt}\n\n(Selected: ${steps.join(' → ')})` : txt;
+    sendToSupport('OTHER', txt.slice(0, 120), body, () => {
+      setInputText('');
+      pathRef.current = [];
+    });
   };
 
   const handleEndChat = () => {
@@ -402,8 +451,25 @@ export function OrderSupportPage() {
     }
   };
 
+  // Once a ticket exists the chat IS that ticket - every message from both
+  // sides as stored, so it reads the same after a reload or on another device.
+  const displayMessages: ChatMessage[] = ticket
+    ? [
+        ...messages.slice(0, 1).map((m) => ({ ...m, options: undefined })),
+        { id: 'ticket-opening', sender: 'user' as const, text: ticket.description, timestamp: timeOf(ticket.createdAt) },
+        ...ticket.messages.map((m) => ({
+          id: m.id,
+          sender: m.author === 'CUSTOMER' ? ('user' as const) : ('bot' as const),
+          senderName: 'Desi Tokri Support',
+          text: m.body,
+          timestamp: timeOf(m.createdAt),
+        })),
+      ]
+    : messages;
+
   // Only the newest set of choices is live; older ones stay visible as history.
-  const lastOptionsId = [...messages].reverse().find((m) => m.options?.length)?.id;
+  const lastOptionsId = [...displayMessages].reverse().find((m) => m.options?.length)?.id;
+  const sending = createTicket.isPending || replyTicket.isPending;
   const loadingOrder = Boolean(activeOrderNumber) && orderDetailsQuery.isLoading;
   const orderLink = activeOrderNumber ? `/orders/${activeOrderNumber}` : '/orders';
 
@@ -466,7 +532,7 @@ export function OrderSupportPage() {
               </div>
               <div style={{ fontSize: 12.5, color: '#64748b', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
-                {botTyping ? 'typing…' : 'Online · virtual assistant'}
+                {botTyping ? 'typing…' : ticket ? 'Support team · replies appear here' : 'Online · virtual assistant'}
               </div>
             </div>
             <button type="button" className="osp-end-btn" onClick={handleEndChat}>
@@ -506,7 +572,15 @@ export function OrderSupportPage() {
               </div>
             ) : null}
 
-            {messages.map((msg) => {
+            {ticket ? (
+              <div style={{ textAlign: 'center' }}>
+                <span style={{ fontSize: 12, color: '#166534', fontWeight: 500, background: '#dcfce7', padding: '3px 12px', borderRadius: 12 }}>
+                  Ticket #{ticket.ticketNumber} · {TICKET_STATUS_LABEL[ticket.status] ?? ticket.status}
+                </span>
+              </div>
+            ) : null}
+
+            {displayMessages.map((msg) => {
               const isUser = msg.sender === 'user';
               const optionsLive = msg.id === lastOptionsId && !botTyping;
               return (
@@ -523,7 +597,7 @@ export function OrderSupportPage() {
                       </div>
                     ) : null}
                     <div className={`osp-bubble osp-bubble--${isUser ? 'user' : 'bot'}`}>
-                      <div>{msg.text}</div>
+                      <div style={{ whiteSpace: 'pre-wrap' }}>{msg.text}</div>
                       {msg.orderInfo ? (
                         <div style={{ marginTop: 10, padding: '8px 10px', background: '#f8fafc', borderRadius: 10, fontSize: 13, color: '#334155' }}>
                           <span style={{ fontWeight: 600, color: '#0f172a' }}>Order contents: </span>
@@ -572,6 +646,7 @@ export function OrderSupportPage() {
               onPressEnter={(e) => {
                 if (e.shiftKey) return;
                 e.preventDefault();
+                if (sending) return;
                 handleSendCustomText();
               }}
               autoSize={{ minRows: 1, maxRows: 4 }}
@@ -584,7 +659,7 @@ export function OrderSupportPage() {
               icon={<SendOutlined />}
               onClick={handleSendCustomText}
               disabled={!inputText.trim()}
-              loading={createTicket.isPending}
+              loading={sending}
               aria-label="Send message"
               style={{
                 background: inputText.trim() ? '#16a34a' : '#cbd5e1',

@@ -34,6 +34,13 @@ export interface PushPayload {
   tag?: string;
 }
 
+/**
+ * Order status alerts (tag `order-<number>-...`, see the backend's
+ * customer-order-notifications) keep the device's normal sound; everything
+ * else plays notification.mp3 while the app is open.
+ */
+export const isOrderPush = (p: PushPayload) => Boolean(p.tag?.startsWith('order-'));
+
 async function supported(): Promise<boolean> {
   return (
     typeof window !== "undefined" &&
@@ -109,10 +116,10 @@ async function listenForeground(
       badge: LOGO,
       tag: d.tag ?? "svv-broadcast",
       renotify: true,
-      // Explicitly allow the browser/OS default notification sound. Web Push
-      // cannot choose an audio file; the user's device notification settings
-      // remain authoritative.
-      silent: false,
+      // Order alerts: the browser/OS default notification sound, as before.
+      // Everything else: the page plays notification.mp3 itself, so keep the
+      // OS sound quiet to avoid ringing twice.
+      silent: !isOrderPush(d),
       data: { link: d.link ?? "" },
     };
     if (d.imageUrl) options.image = d.imageUrl;

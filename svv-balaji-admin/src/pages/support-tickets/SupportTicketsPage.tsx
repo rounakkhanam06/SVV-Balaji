@@ -68,6 +68,7 @@ import {
 } from '@shared/hooks/useSupportTickets';
 import { PageHeader } from '../../components/PageHeader';
 import { useTicketSocketEvents } from '../../live/adminSocket';
+import { playMessageSound } from '../../live/orderSound';
 
 dayjs.extend(relativeTime);
 
@@ -653,6 +654,9 @@ export function SupportTicketsPage() {
   // Real-time instant socket updates: incoming messages from customer appear immediately
   useTicketSocketEvents({
     onMessage: (payload) => {
+      if (payload.message?.author === 'CUSTOMER') {
+        playMessageSound();
+      }
       if (selectedId && payload.ticketId === selectedId) {
         qc.setQueryData<SupportTicketThread>(
           [...SUPPORT_TICKETS_KEY, 'thread', selectedId],
@@ -673,12 +677,32 @@ export function SupportTicketsPage() {
             };
           },
         );
+      } else if (payload.message?.author === 'CUSTOMER') {
+        // Customer replied to a ticket that is not the currently open one
+        notification.info({
+          key: `ticket-msg-${payload.message.id}`,
+          message: '💬 Support Message',
+          description: payload.message.body.length > 80 ? `${payload.message.body.slice(0, 80)}...` : payload.message.body,
+          placement: 'bottomRight',
+          duration: 6,
+          onClick: () => setSelectedId(payload.ticketId),
+        });
       }
       void qc.invalidateQueries({ queryKey: [...SUPPORT_TICKETS_KEY, 'inbox'] });
     },
-    onNewTicket: () => {
+    onNewTicket: (payload) => {
+      playMessageSound();
+      notification.info({
+        key: `ticket-new-${payload.ticketId}`,
+        message: `💬 New Support Ticket: ${payload.ticketNumber}`,
+        description: payload.subject,
+        placement: 'bottomRight',
+        duration: 8,
+        onClick: () => setSelectedId(payload.ticketId),
+      });
       void qc.invalidateQueries({ queryKey: [...SUPPORT_TICKETS_KEY, 'inbox'] });
     },
+
     onTicketUpdated: (payload) => {
       if (selectedId && payload.ticketId === selectedId) {
         qc.setQueryData<SupportTicketThread>(

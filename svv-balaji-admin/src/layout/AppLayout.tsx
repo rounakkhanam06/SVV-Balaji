@@ -23,6 +23,7 @@ import { BellOutlined } from '@ant-design/icons';
 import { enableOrderAlerts, orderAlertSupport } from '../live/orderAlerts';
 import { useLiveOrders } from '../live/useLiveOrders';
 import { installOrderSoundUnlock, playOrderSound, setOrderSoundMuted, useOrderSoundMuted } from '../live/orderSound';
+import { installNotificationSoundUnlock } from '../live/notificationSound';
 import { NotificationBell } from '../notifications/NotificationBell';
 import { NAV_SECTIONS, findNavItem, type AdminZone, type NavItem } from './navigation';
 import { useAdminZone } from './useAdminZone';
@@ -83,10 +84,14 @@ export function AppLayout() {
 
   const can = useCanFn();
 
-  // The whole panel listens for orders: any screen gets notified, and every orders view refreshes.
-  const live = useLiveOrders(can('ORDER_VIEW'), (path) => navigate(path));
+  // The whole panel listens for orders and support messages: any screen gets notified, and views refresh live.
+  const live = useLiveOrders(can('ORDER_VIEW') || can('supportTickets.view') || can('supportTickets.reply'), (path) => navigate(path));
+
   const soundMuted = useOrderSoundMuted();
-  useEffect(() => installOrderSoundUnlock(), []);
+  useEffect(() => {
+    installOrderSoundUnlock();
+    installNotificationSoundUnlock();
+  }, []);
   // Browser alerts (new orders, rider sign-ups, returns, approvals...) for every staff member.
   // Already allowed on this browser -> (re)register silently; not decided yet -> offer the button.
   const [alertsReady, setAlertsReady] = useState(false);

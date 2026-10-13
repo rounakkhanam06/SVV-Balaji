@@ -5,6 +5,10 @@ import { refreshSession, tokens } from '../api/client';
 import { riderApi } from '../api/rider';
 import { riderEvents, type OfferClosed, type TaskAssigned } from './alerts';
 import { currentPosition } from './geo';
+import { playNotificationSound } from './notificationSound';
+
+/** Order alerts - these ring with the incoming-order sound (IncomingAlerts), not the general one. */
+const ORDER_KINDS = new Set(['OFFER', 'TASK_ASSIGNED']);
 
 /**
  * Live link to the server while the rider is signed in (namespace /rider).
@@ -33,7 +37,10 @@ export function useLive(enabled: boolean, online: boolean) {
       refresh(['dashboard'], ['tasks'], ['task', p.taskId]);
     });
     s.on('task:updated', (p: { taskId: string }) => refresh(['dashboard'], ['tasks'], ['task', p.taskId]));
-    s.on('notification', () => refresh(['notifications']));
+    s.on('notification', (p: { id: string; type?: string }) => {
+      refresh(['notifications']);
+      if (!p?.type || !ORDER_KINDS.has(p.type)) playNotificationSound();
+    });
     // Re-sync everything after a reconnect: events sent while offline are gone.
     s.on('ready', () => refresh(['offers'], ['dashboard'], ['tasks'], ['notifications']));
     s.on('unauthorized', async () => {

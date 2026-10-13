@@ -9,6 +9,7 @@ import { api, apiErrorMessage } from '@shared/api/client';
 import { AuthProvider } from '@shared/auth/AuthProvider';
 import { App } from './App';
 import { PushBridge } from './notifications/PushBridge';
+import { installNotificationSoundUnlock } from './notifications/notificationSound';
 import { installOfflineAdapter, isUnreachable } from './offline/adapter';
 import { persistQueryCache, restoreQueryCache } from './offline/persist';
 import { offlineProfile } from './offline/session';
@@ -92,6 +93,8 @@ async function boot() {
 }
 
 function render() {
+installNotificationSoundUnlock();
+
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
     <ConfigProvider theme={theme} locale={enGB}>

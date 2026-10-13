@@ -138,7 +138,7 @@ export type DeliveryEvent =
   | { kind: 'task:updated'; riderId: string | null; taskId: string; orderId: string | null; status: string }
   /** A task is now this rider's - by their own accept or by staff. The app shows the "assigned" pop-up. */
   | { kind: 'task:assigned'; riderId: string; taskId: string; by: 'ACCEPT' | 'STAFF' }
-  | { kind: 'notification'; riderId: string; notificationId: string };
+  | { kind: 'notification'; riderId: string; notificationId: string; type?: string };
 
 /**
  * In-process bus for delivery changes. The rider socket gateway listens; order

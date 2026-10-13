@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react';
+import { playNotificationSound } from './notificationSound';
 
 /**
  * The new-order chime for the staff panel (public/sounds/new-order.mp3).
@@ -15,6 +16,22 @@ const MUTE_KEY = 'svv.orderSound.muted';
 let audio: HTMLAudioElement | null = null;
 let unlocked = false;
 let lastPlayed = 0;
+let audioCtx: AudioContext | null = null;
+
+function getAudioContext(): AudioContext | null {
+  if (typeof window === 'undefined') return null;
+  const AudioContextClass =
+    window.AudioContext ||
+    (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+  if (!AudioContextClass) return null;
+  if (!audioCtx) {
+    audioCtx = new AudioContextClass();
+  }
+  if (audioCtx.state === 'suspended') {
+    void audioCtx.resume();
+  }
+  return audioCtx;
+}
 
 function player(): HTMLAudioElement | null {
   if (typeof Audio === 'undefined') return null;
@@ -29,6 +46,14 @@ function player(): HTMLAudioElement | null {
 export function installOrderSoundUnlock() {
   if (unlocked || typeof window === 'undefined') return;
   const unlock = () => {
+    try {
+      const ctx = getAudioContext();
+      if (ctx && ctx.state === 'suspended') {
+        void ctx.resume();
+      }
+    } catch {
+      // ignore
+    }
     const a = player();
     if (!a) return;
     a.muted = true;
@@ -93,4 +118,14 @@ export function playOrderSound(force = false) {
   if (!a) return;
   a.currentTime = 0;
   void a.play().catch(() => undefined);
+}
+
+/**
+ * Every non-order alert (support tickets and messages, staff alerts, pushes):
+ * public/sounds/notification.mp3 - see notificationSound.ts. Orders keep
+ * playOrderSound above. The top-bar mute switch silences both.
+ */
+export function playMessageSound(force = false) {
+  if (muted && !force) return;
+  playNotificationSound();
 }

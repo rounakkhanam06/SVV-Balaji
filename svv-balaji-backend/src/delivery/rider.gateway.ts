@@ -32,7 +32,7 @@ export class RiderGateway implements OnGatewayConnection, OnModuleInit {
       else if (e.kind === 'offer:closed') this.server.to(room(e.riderId)).emit('offer:closed', { offerId: e.offerId, taskId: e.taskId, status: e.status });
       else if (e.kind === 'task:updated' && e.riderId) this.server.to(room(e.riderId)).emit('task:updated', { taskId: e.taskId, status: e.status });
       else if (e.kind === 'task:assigned') this.server.to(room(e.riderId)).emit('task:assigned', { taskId: e.taskId, by: e.by });
-      else if (e.kind === 'notification') this.server.to(room(e.riderId)).emit('notification', { id: e.notificationId });
+      else if (e.kind === 'notification') this.server.to(room(e.riderId)).emit('notification', { id: e.notificationId, type: e.type });
     });
   }
 

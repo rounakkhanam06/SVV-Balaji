@@ -6,8 +6,9 @@ import { checkoutAdminApi, type OrderSummary } from '@shared/api/checkout';
 import { PUSH_KEYS } from '@shared/api/pushNotifications';
 import { queryKeys } from '@shared/api/queryKeys';
 import { tokenStore } from '@shared/api/tokenStore';
-import { playOrderSound } from './orderSound';
+import { playMessageSound, playOrderSound } from './orderSound';
 import { showSystemNotification } from './systemNotify';
+import type { TicketMessagePayload, TicketNewPayload } from './adminSocket';
 
 const LAST_FETCHED_KEY = 'svv.orders.lastFetchedAt';
 const LOGO = `${import.meta.env.BASE_URL}svv-balaji.png`;
@@ -153,6 +154,7 @@ export function useLiveOrders(enabled: boolean, onOpen: (path: string) => void):
       socket.on('alerts:new', (a: StaffAlert) => {
         void qc.invalidateQueries({ queryKey: PUSH_KEYS.inbox });
         if (a.type === 'NEW_ORDER') return;
+        playMessageSound();
         notification.info({
           key: a.tag,
           message: a.title,
@@ -162,10 +164,62 @@ export function useLiveOrders(enabled: boolean, onOpen: (path: string) => void):
           onClick: () => openRef.current(a.link),
         });
       });
-      socket.on('tickets:new', () => void qc.invalidateQueries({ queryKey: ['support-tickets'] }));
-      socket.on('tickets:message', () => void qc.invalidateQueries({ queryKey: ['support-tickets'] }));
+      socket.on('tickets:new', (payload: TicketNewPayload) => {
+        void qc.invalidateQueries({ queryKey: ['support-tickets'] });
+        playMessageSound();
+        const ticketNumber = payload?.ticketNumber || 'New Ticket';
+        const subject = payload?.subject || 'A customer has raised a support ticket.';
+        const link = payload?.ticketId ? `/support-tickets?ticket=${payload.ticketId}` : '/support-tickets';
+        void showSystemNotification(
+          {
+            title: `Support: ${ticketNumber}`,
+            body: `${subject}${payload?.orderNumber ? ` · Order ${payload.orderNumber}` : ''}`,
+            tag: `ticket-new-${payload?.ticketId || Date.now()}`,
+            link,
+          },
+          (p) => openRef.current(p),
+        );
+        if (!window.location.pathname.startsWith('/support-tickets')) {
+          notification.info({
+            key: `ticket-new-${payload?.ticketId || Date.now()}`,
+            message: `💬 Support Ticket: ${ticketNumber}`,
+            description: `${subject}${payload?.orderNumber ? ` (Order ${payload.orderNumber})` : ''}`,
+            placement: 'bottomRight',
+            duration: 8,
+            onClick: () => openRef.current(link),
+          });
+        }
+      });
+      socket.on('tickets:message', (payload: TicketMessagePayload) => {
+        void qc.invalidateQueries({ queryKey: ['support-tickets'] });
+        if (payload?.message?.author === 'CUSTOMER') {
+          playMessageSound();
+          const body = payload.message.body || 'New message received.';
+          const link = payload?.ticketId ? `/support-tickets?ticket=${payload.ticketId}` : '/support-tickets';
+          void showSystemNotification(
+            {
+              title: 'Customer Support Message',
+              body,
+              tag: `ticket-msg-${payload.message.id}`,
+              link,
+            },
+            (p) => openRef.current(p),
+          );
+          if (!window.location.pathname.startsWith('/support-tickets')) {
+            notification.info({
+              key: `ticket-msg-${payload.message.id}`,
+              message: '💬 Customer Message (Support)',
+              description: body.length > 80 ? `${body.slice(0, 80)}...` : body,
+              placement: 'bottomRight',
+              duration: 8,
+              onClick: () => openRef.current(link),
+            });
+          }
+        }
+      });
       socket.on('tickets:updated', () => void qc.invalidateQueries({ queryKey: ['support-tickets'] }));
     };
+
 
     connect();
     const onVisible = () => {

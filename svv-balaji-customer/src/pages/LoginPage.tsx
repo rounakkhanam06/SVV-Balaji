@@ -346,7 +346,7 @@ export function LoginPage() {
             </div>
           )}
 
-          <LegalConsent audience={loginRole} />
+          {step !== 'OTP' && <LegalConsent audience={loginRole} />}
 
         </div>
       </div>

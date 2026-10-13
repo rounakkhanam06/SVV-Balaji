@@ -18,8 +18,13 @@ export function useBuyAgain() {
     enabled: isLoggedIn,
     staleTime: 60_000,
   });
+  const rawList = query.data ?? [];
+  // Show only items from the shopper's most recent (last) order, not all past orders
+  const latestDate = rawList[0]?.lastOrderedAt;
+  const lastOrderProducts = latestDate ? rawList.filter((p) => p.lastOrderedAt === latestDate) : [];
+
   const items: BuyAgainItem[] = isLoggedIn
-    ? (query.data ?? []).map((p) => ({
+    ? lastOrderProducts.map((p) => ({
         ...toShelfProduct(p),
         lastOrderedAt: p.lastOrderedAt,
         lastQuantity: p.lastQuantity,

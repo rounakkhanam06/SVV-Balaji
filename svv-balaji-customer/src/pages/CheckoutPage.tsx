@@ -797,6 +797,13 @@ export function CheckoutPage() {
                   {/* Price Breakdown */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <PriceRow label="Items Subtotal" value={formatInr(quote.totals.subtotal)} />
+                    {(quote.totals.schemeDiscount ?? 0) > 0 ? (
+                      <PriceRow
+                        label={`Offer Scheme (${quote.scheme?.title || 'Buy X Get Y Free'})`}
+                        value={`− ${formatInr(quote.totals.schemeDiscount!)}`}
+                        green
+                      />
+                    ) : null}
                     {quote.totals.couponDiscount > 0 ? (
                       <PriceRow
                         label={`Coupon Discount (${quote.coupon?.code})`}

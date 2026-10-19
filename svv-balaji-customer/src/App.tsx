@@ -83,6 +83,7 @@ const RegisterPage = lazy(() =>
 const UnderReviewPage = lazy(() =>
   import('./pages/UnderReviewPage').then((m) => ({ default: m.UnderReviewPage })),
 );
+const DealProductsPage = lazy(() => import('./pages/DealProductsPage').then((m) => ({ default: m.DealProductsPage })));
 const NotFoundPage = lazy(() =>
   import('./pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage })),
 );
@@ -108,6 +109,7 @@ export function App() {
           {/* --- Public ------------------------------------------------------ */}
           <Route index element={<HomePage />} />
           <Route path="categories" element={<CategoriesPage />} />
+          <Route path="deals" element={<DealProductsPage />} />
           <Route path="products/:categoryId" element={<ProductsPage />} />
           <Route path="product-detail/:productId" element={<ProductDetailPage />} />
           <Route path="search" element={<SearchPage />} />

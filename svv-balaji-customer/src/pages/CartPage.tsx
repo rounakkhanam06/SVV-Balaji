@@ -18,6 +18,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCart } from '../cart/useCart';
 import { useLoyaltyEstimate } from '../loyalty/useLoyaltyEstimate';
 import { couponsApi } from '@shared/api/coupons';
+import { useStorefrontSchemes } from '@shared/hooks/useSchemes';
+import { api as storefrontApi } from '../api/client';
 import type { Coupon } from '@shared/api/types';
 import { checkoutApi, type OfferCoupon, type Address, type CheckoutRequest } from '../api/checkout';
 import Lottie from 'lottie-react';
@@ -169,18 +171,96 @@ export function CartPage() {
     );
   }
 
+  const schemesQuery = useStorefrontSchemes(isRetailer ? 'B2B' : 'B2C', storefrontApi);
+  const activeSchemes = schemesQuery.data ?? [];
+
+  // Active BOGO Scheme Evaluation
+  const bogoEvaluation = useMemo(() => {
+    const bogoSchemes = activeSchemes.filter(
+      (s) => s.ruleType === 'BUY_X_GET_Y' && Array.isArray(s.productIds) && s.productIds.length > 0,
+    );
+
+    let bestScheme: (typeof activeSchemes)[0] | null = null;
+    let maxDiscount = 0;
+    let freeCount = 0;
+    let bestNudge: {
+      scheme: (typeof activeSchemes)[0];
+      needed: number;
+      candidateProductId: string;
+      candidateProductName: string;
+    } | null = null;
+
+    for (const scheme of bogoSchemes) {
+      const eligiblePids = new Set(scheme.productIds ?? []);
+      const buyX = scheme.buyQty ?? 1;
+      const getY = scheme.getQty ?? 1;
+      const bundleSize = buyX + getY;
+
+      const matchingCartLines = cart.lines.filter((l) => eligiblePids.has(l.productId));
+      const totalMatchingQty = matchingCartLines.reduce((acc, l) => acc + l.quantity, 0);
+
+      // Check if qualifies for free items
+      if (totalMatchingQty >= bundleSize) {
+        const unitPrices: number[] = [];
+        for (const line of matchingCartLines) {
+          const price = line.displayUnitPrice || 0;
+          for (let q = 0; q < line.quantity; q++) {
+            unitPrices.push(price);
+          }
+        }
+        unitPrices.sort((a, b) => a - b);
+        const freeUnits = Math.floor(totalMatchingQty / bundleSize) * getY;
+        const discount = unitPrices.slice(0, freeUnits).reduce((acc, val) => acc + val, 0);
+
+        if (discount > maxDiscount) {
+          maxDiscount = discount;
+          freeCount = freeUnits;
+          bestScheme = scheme;
+        }
+      }
+
+      // Check if customer qualifies for a nudge (has buyX or remainder >= buyX)
+      const remainder = totalMatchingQty % bundleSize;
+      if (remainder >= buyX && remainder < bundleSize && matchingCartLines.length > 0) {
+        const needed = bundleSize - remainder;
+        const candidate = matchingCartLines[0];
+        if (!bestNudge || needed < bestNudge.needed) {
+          bestNudge = {
+            scheme,
+            needed,
+            candidateProductId: candidate.productId,
+            candidateProductName: candidate.productName,
+          };
+        }
+      }
+    }
+
+    return {
+      appliedScheme: bestScheme,
+      schemeDiscount: maxDiscount,
+      freeUnits: freeCount,
+      nudge: bestNudge,
+    };
+  }, [activeSchemes, cart.lines]);
+
   // Calculations: use real server quote when available so Cart and Checkout amounts match 100%
   const totalMrp = cart.lines.reduce((acc, line) => acc + ((line.mrp || line.displayUnitPrice || 0) * line.quantity), 0);
   const rawSubtotal = cart.indicativeTotal || 0;
   const productDiscount = Math.max(0, totalMrp - rawSubtotal);
 
+  const schemeDiscount = quote?.totals?.schemeDiscount !== undefined
+    ? quote.totals.schemeDiscount
+    : bogoEvaluation.schemeDiscount;
+
+  const appliedSchemeTitle = quote?.scheme?.title || bogoEvaluation.appliedScheme?.title;
+
   const couponDiscount = quote
     ? quote.totals.couponDiscount
-    : (appliedCoupon ? couponsApi.calculateDiscount(appliedCoupon, rawSubtotal) : 0);
+    : (appliedCoupon ? couponsApi.calculateDiscount(appliedCoupon, Math.max(0, rawSubtotal - schemeDiscount)) : 0);
 
   const gst = quote
     ? quote.totals.tax
-    : Math.max(0, rawSubtotal - Math.round(rawSubtotal / 1.05));
+    : Math.max(0, (rawSubtotal - schemeDiscount) - Math.round((rawSubtotal - schemeDiscount) / 1.05));
 
   const deliveryCharge = quote
     ? quote.totals.deliveryFee
@@ -188,9 +268,9 @@ export function CartPage() {
 
   const grandTotal = quote
     ? quote.totals.totalPayable
-    : Math.max(0, rawSubtotal + deliveryCharge - couponDiscount);
+    : Math.max(0, rawSubtotal + deliveryCharge - couponDiscount - schemeDiscount);
 
-  const totalSavings = productDiscount + couponDiscount + (deliveryCharge === 0 && rawSubtotal <= 500 ? 50 : 0);
+  const totalSavings = productDiscount + schemeDiscount + couponDiscount + (deliveryCharge === 0 && rawSubtotal <= 500 ? 50 : 0);
 
   const handleApplyCode = (codeToApply?: string) => {
     const code = (codeToApply || couponInput).trim().toUpperCase();
@@ -322,6 +402,79 @@ export function CartPage() {
               </Button>
             </div>
 
+            {/* Active BOGO Applied Alert */}
+            {schemeDiscount > 0 && (
+              <div
+                style={{
+                  background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
+                  border: '1px solid #6ee7b7',
+                  borderRadius: 12,
+                  padding: '14px 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  boxShadow: '0 2px 6px rgba(16,185,129,0.08)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <span style={{ fontSize: 24, lineHeight: 1 }}>🎉</span>
+                  <div>
+                    <Typography.Text strong style={{ fontSize: 14, color: '#065f46', display: 'block' }}>
+                      {appliedSchemeTitle || 'Offer Discount'} Applied!
+                    </Typography.Text>
+                    <Typography.Text style={{ fontSize: 12, color: '#047857' }}>
+                      You received {quote?.scheme?.freeQty || bogoEvaluation.freeUnits} FREE item(s) worth {formatInr(schemeDiscount)}!
+                    </Typography.Text>
+                  </div>
+                </div>
+                <Tag color="green" style={{ fontSize: 13, fontWeight: 700, padding: '4px 10px', borderRadius: 8, margin: 0 }}>
+                  -{formatInr(schemeDiscount)}
+                </Tag>
+              </div>
+            )}
+
+            {/* BOGO Nudge (When close to unlocking free items) */}
+            {bogoEvaluation.nudge && (
+              <div
+                style={{
+                  background: 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)',
+                  border: '1px solid #fdba74',
+                  borderRadius: 12,
+                  padding: '14px 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 12,
+                  boxShadow: '0 2px 6px rgba(249,115,22,0.08)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <span style={{ fontSize: 24, lineHeight: 1 }}>🎁</span>
+                  <div>
+                    <Typography.Text strong style={{ fontSize: 13.5, color: '#9a3412', display: 'block' }}>
+                      {bogoEvaluation.nudge.scheme.title}: Add {bogoEvaluation.nudge.needed} more to get {bogoEvaluation.nudge.scheme.getQty ?? 1} FREE!
+                    </Typography.Text>
+                    <Typography.Text type="secondary" style={{ fontSize: 11.5, color: '#c2410c' }}>
+                      Eligible on {bogoEvaluation.nudge.candidateProductName}
+                    </Typography.Text>
+                  </div>
+                </div>
+                <Button
+                  size="small"
+                  type="primary"
+                  style={{ background: '#ea580c', borderColor: '#ea580c', fontWeight: 600, borderRadius: 8, height: 32, padding: '0 12px' }}
+                  onClick={() => {
+                    const pid = bogoEvaluation.nudge!.candidateProductId;
+                    const existing = cart.lines.find((l) => l.productId === pid);
+                    cart.setQuantity(pid, (existing?.quantity || 0) + bogoEvaluation.nudge!.needed);
+                    message.success(`Added ${bogoEvaluation.nudge!.needed} more! Free item applied 🎉`);
+                  }}
+                >
+                  + Add {bogoEvaluation.nudge.needed} Free
+                </Button>
+              </div>
+            )}
+
             {/* Cart Item Cards */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {cart.lines.map((line) => {
@@ -343,7 +496,8 @@ export function CartPage() {
                   >
                     <div style={{ display: 'flex', gap: 18 }}>
                       {/* Product Thumbnail */}
-                      <div
+                      <Link
+                        to={`/product-detail/${line.productId}`}
                         style={{
                           width: 84,
                           height: 84,
@@ -355,6 +509,7 @@ export function CartPage() {
                           flexShrink: 0,
                           overflow: 'hidden',
                           padding: 6,
+                          cursor: 'pointer',
                         }}
                       >
                         {line.imageUrl ? (
@@ -362,14 +517,29 @@ export function CartPage() {
                         ) : (
                           <Typography.Text type="secondary" style={{ fontSize: 11 }}>No Image</Typography.Text>
                         )}
-                      </div>
+                      </Link>
 
                       {/* Product Details */}
                       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                         <div>
-                          <Typography.Text strong style={{ fontSize: 15, color: '#1c1917', display: 'block', lineHeight: 1.3 }}>
-                            {line.productName}
-                          </Typography.Text>
+                          <Link
+                            to={`/product-detail/${line.productId}`}
+                            style={{ textDecoration: 'none', color: 'inherit' }}
+                          >
+                            <Typography.Text
+                              strong
+                              style={{
+                                fontSize: 15,
+                                color: '#1c1917',
+                                display: 'block',
+                                lineHeight: 1.3,
+                                cursor: 'pointer',
+                              }}
+                              className="cart-product-title"
+                            >
+                              {line.productName}
+                            </Typography.Text>
+                          </Link>
                           <Typography.Text type="secondary" style={{ fontSize: 12, marginTop: 2, display: 'block' }}>
                             {line.unit} {line.packSize ? `(${line.packSize})` : ''}
                           </Typography.Text>
@@ -378,6 +548,17 @@ export function CartPage() {
                               MOQ: {line.moqB2B} pcs {line.quantity < (line.moqB2B ?? 1) ? '(Below Minimum)' : ''}
                             </Tag>
                           )}
+                          {(() => {
+                            const qualifyingScheme = activeSchemes.find(
+                              (s) => s.ruleType === 'BUY_X_GET_Y' && s.productIds?.includes(line.productId),
+                            );
+                            if (!qualifyingScheme) return null;
+                            return (
+                              <Tag color="orange" style={{ marginTop: 4, borderRadius: 4, fontWeight: 600, fontSize: 11 }}>
+                                🎁 {qualifyingScheme.title} (Buy {qualifyingScheme.buyQty ?? 10} Get {qualifyingScheme.getQty ?? 1} Free)
+                              </Tag>
+                            );
+                          })()}
                         </div>
 
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10, flexWrap: 'wrap', gap: 10 }}>
@@ -566,6 +747,15 @@ export function CartPage() {
                   <span style={{ color: '#4b5563' }}>Wholesale Discount</span>
                   <span style={{ color: '#059669', fontWeight: 600 }}>-{formatInr(productDiscount)}</span>
                 </div>
+
+                {schemeDiscount > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#059669', fontWeight: 600 }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <span>🎁</span> Offer Scheme ({appliedSchemeTitle || 'BOGO Free Items'})
+                    </span>
+                    <span>-{formatInr(schemeDiscount)}</span>
+                  </div>
+                )}
 
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ color: '#4b5563' }}>Coupon Savings {appliedCoupon ? `(${appliedCoupon.code})` : ''}</span>
@@ -791,6 +981,12 @@ export function CartPage() {
           setAddressModalOpen(false);
         }}
       />
+
+      <style>{`
+        .cart-product-title:hover {
+          color: #ea580c !important;
+        }
+      `}</style>
     </div>
   );
 }

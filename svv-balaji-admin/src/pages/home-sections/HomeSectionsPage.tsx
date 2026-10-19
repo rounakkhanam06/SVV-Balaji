@@ -303,7 +303,7 @@ function HomeSectionFormDrawer({ open, section, saving, onClose, onSave }: HomeS
               },
             ]}
           >
-            <PriceTilesEditor categories={allCategories} />
+            <PriceTilesEditor categories={allCategories} products={allProducts} />
           </Form.Item>
         )}
 

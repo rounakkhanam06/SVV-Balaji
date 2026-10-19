@@ -304,7 +304,7 @@ export function ReferralPage() {
       </header>
 
       {/* Main Container */}
-      <div style={{ maxWidth: 1000, margin: '0 auto', padding: '16px 16px 40px' }}>
+      <div className="referral-container">
         {/* Desktop Breadcrumb */}
         <div className="desktop-only" style={{ marginBottom: 16 }}>
           <Breadcrumb
@@ -320,15 +320,10 @@ export function ReferralPage() {
         {/* 🎁 HERO BANNER                                                            */}
         {/* ========================================================================= */}
         <div
+          className="referral-hero-card"
           style={{
             background: brandBgGradient,
-            borderRadius: 20,
-            padding: '28px 24px',
-            color: '#ffffff',
-            position: 'relative',
-            overflow: 'hidden',
             boxShadow: `0 10px 25px -5px ${isRetailer ? 'rgba(5, 150, 105, 0.35)' : 'rgba(234, 88, 12, 0.35)'}`,
-            marginBottom: 20,
           }}
         >
           {/* Ambient decorative elements */}
@@ -337,8 +332,8 @@ export function ReferralPage() {
               position: 'absolute',
               top: -40,
               right: -40,
-              width: 160,
-              height: 160,
+              width: 140,
+              height: 140,
               borderRadius: '50%',
               background: 'rgba(255, 255, 255, 0.1)',
             }}
@@ -348,37 +343,35 @@ export function ReferralPage() {
               position: 'absolute',
               bottom: -20,
               left: -20,
-              width: 100,
-              height: 100,
+              width: 90,
+              height: 90,
               borderRadius: '50%',
               background: 'rgba(255, 255, 255, 0.08)',
             }}
           />
 
           <div style={{ position: 'relative', zIndex: 1 }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.2)', padding: '4px 12px', borderRadius: 20, marginBottom: 12 }}>
-              <GiftOutlined style={{ fontSize: 13, color: '#fef08a' }} />
-              <Typography.Text style={{ color: '#fff', fontSize: 12, fontWeight: 700, letterSpacing: 0.4 }}>
-                {isRetailer ? 'B2B WHOLESALE REFERRAL' : 'DESI TOKRI REFERRAL PROGRAM'}
-              </Typography.Text>
+            <div className="referral-hero-badge">
+              <GiftOutlined style={{ fontSize: 12, color: '#fef08a' }} />
+              <span>{isRetailer ? 'B2B WHOLESALE REFERRAL' : 'DESI TOKRI REFERRAL'}</span>
             </div>
 
-            <Typography.Title level={2} style={{ color: '#ffffff', margin: '0 0 8px', fontSize: 26, fontWeight: 800, lineHeight: 1.25 }}>
+            <Typography.Title level={2} className="referral-hero-title">
               Earn {program.referrerRewardCoins} Coins for Every Friend!
             </Typography.Title>
 
-            <Typography.Text style={{ color: 'rgba(255,255,255,0.92)', fontSize: 14, display: 'block', maxWidth: 640, lineHeight: 1.5 }}>
-              Share your unique referral code with friends. When they sign up and complete their qualification, you get{' '}
-              <strong style={{ color: '#fef08a' }}>{program.referrerRewardCoins} Desi Coins (₹{program.referrerRewardCoins})</strong> and they get{' '}
+            <Typography.Text className="referral-hero-text">
+              Share your unique referral code. When friends join, you get{' '}
+              <strong style={{ color: '#fef08a' }}>{program.referrerRewardCoins} Coins (₹{program.referrerRewardCoins})</strong> and they get{' '}
               <strong style={{ color: '#fef08a' }}>{program.refereeRewardCoins} Coins (₹{program.refereeRewardCoins})</strong>.
             </Typography.Text>
 
             {/* Program Trigger Pill */}
-            <div style={{ marginTop: 14, display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(0,0,0,0.18)', padding: '6px 14px', borderRadius: 10 }}>
-              <ClockCircleFilled style={{ color: '#fef08a', fontSize: 13 }} />
-              <Typography.Text style={{ color: '#ffffff', fontSize: 12 }}>
-                Reward Milestone: <strong>{triggerInfo.label}</strong> ({triggerInfo.condition})
-              </Typography.Text>
+            <div className="referral-hero-milestone">
+              <ClockCircleFilled style={{ color: '#fef08a', fontSize: 12 }} />
+              <span>
+                Reward: <strong>{triggerInfo.label}</strong> ({triggerInfo.condition})
+              </span>
             </div>
           </div>
         </div>
@@ -386,35 +379,25 @@ export function ReferralPage() {
         {/* ========================================================================= */}
         {/* 🎟️ REFERRAL CODE & SHARING ACTION CARD                                     */}
         {/* ========================================================================= */}
-        <Card
-          bordered={false}
-          style={{
-            borderRadius: 18,
-            boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
-            marginBottom: 24,
-            background: '#ffffff',
-            border: '1px solid #e2e8f0',
-          }}
-          bodyStyle={{ padding: '24px 20px' }}
-        >
+        <Card bordered={false} className="referral-action-card">
           {isGuest ? (
             <div style={{ textAlign: 'center', padding: '16px 8px' }}>
-              <Avatar size={56} icon={<UserAddOutlined />} style={{ background: '#fff7ed', color: '#ea580c', marginBottom: 12 }} />
-              <Typography.Title level={4} style={{ margin: '0 0 6px', fontWeight: 700 }}>
+              <Avatar size={52} icon={<UserAddOutlined />} style={{ background: '#fff7ed', color: '#ea580c', marginBottom: 10 }} />
+              <Typography.Title level={4} style={{ margin: '0 0 6px', fontWeight: 700, fontSize: 16 }}>
                 Sign in to Get Your Referral Code
               </Typography.Title>
-              <Typography.Text type="secondary" style={{ fontSize: 13, display: 'block', marginBottom: 16 }}>
+              <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 14 }}>
                 Log in with your registered mobile OTP to unlock your personalized shareable invite link and track your earnings.
               </Typography.Text>
               <Button
                 type="primary"
-                size="large"
+                size="middle"
                 style={{
                   background: brandPrimary,
                   borderColor: brandPrimary,
                   borderRadius: 10,
                   fontWeight: 700,
-                  padding: '0 32px',
+                  padding: '0 24px',
                 }}
                 onClick={() => navigate('/login')}
               >
@@ -423,34 +406,24 @@ export function ReferralPage() {
             </div>
           ) : (
             <div>
-              <div style={{ textAlign: 'center', marginBottom: 20 }}>
-                <Typography.Text type="secondary" style={{ fontSize: 12, fontWeight: 700, letterSpacing: 0.8, display: 'block', marginBottom: 6 }}>
+              <div style={{ textAlign: 'center', marginBottom: 14 }}>
+                <Typography.Text type="secondary" style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.8, display: 'block', marginBottom: 6 }}>
                   YOUR EXCLUSIVE REFERRAL CODE
                 </Typography.Text>
 
                 {activeReferralCode ? (
                   <div
+                    className="referral-code-pill"
                     style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 12,
                       background: isRetailer ? '#f0fdf4' : '#fff7ed',
                       border: `2px dashed ${isRetailer ? '#10b981' : '#f97316'}`,
-                      borderRadius: 14,
-                      padding: '12px 28px',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
                     }}
                     onClick={handleCopyCode}
                   >
                     <Typography.Text
+                      className="referral-code-text"
                       style={{
-                        fontSize: 24,
-                        fontWeight: 800,
                         color: brandDark,
-                        letterSpacing: 2,
-                        fontFamily: 'monospace',
                       }}
                     >
                       {activeReferralCode}
@@ -462,28 +435,25 @@ export function ReferralPage() {
                     />
                   </div>
                 ) : (
-                  <Skeleton.Button active style={{ width: 220, height: 48, borderRadius: 14 }} />
+                  <Skeleton.Button active style={{ width: 180, height: 42, borderRadius: 12 }} />
                 )}
 
-                <div style={{ marginTop: 8 }}>
-                  <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                <div style={{ marginTop: 6 }}>
+                  <Typography.Text type="secondary" style={{ fontSize: 11 }}>
                     {copiedCode ? '✓ Copied to clipboard!' : 'Tap to copy your code'}
                   </Typography.Text>
                 </div>
               </div>
 
               {/* Action Buttons Grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+              <div className="referral-share-actions">
                 <Button
                   type="primary"
-                  size="large"
-                  icon={<WhatsAppOutlined style={{ fontSize: 18 }} />}
+                  className="referral-share-btn"
+                  icon={<WhatsAppOutlined style={{ fontSize: 17 }} />}
                   style={{
                     background: '#25D366',
                     borderColor: '#25D366',
-                    borderRadius: 10,
-                    fontWeight: 700,
-                    height: 46,
                   }}
                   onClick={handleWhatsAppShare}
                   block
@@ -491,36 +461,39 @@ export function ReferralPage() {
                   Share via WhatsApp
                 </Button>
 
-                <Button
-                  size="large"
-                  icon={copiedLink ? <CheckOutlined style={{ color: '#16a34a' }} /> : <CopyOutlined />}
-                  style={{
-                    borderRadius: 10,
-                    fontWeight: 600,
-                    height: 46,
-                    borderColor: copiedLink ? '#16a34a' : '#cbd5e1',
-                  }}
-                  onClick={handleCopyLink}
-                  block
-                >
-                  {copiedLink ? 'Link Copied!' : 'Copy Invite Link'}
-                </Button>
-
-                {typeof navigator !== 'undefined' && 'share' in navigator && (
+                <div className="referral-share-subactions">
                   <Button
-                    size="large"
-                    icon={<ShareAltOutlined />}
+                    className="referral-sub-btn"
+                    icon={copiedLink ? <CheckOutlined style={{ color: '#16a34a' }} /> : <CopyOutlined />}
                     style={{
-                      borderRadius: 10,
-                      fontWeight: 600,
-                      height: 46,
+                      borderColor: copiedLink ? '#16a34a' : '#cbd5e1',
                     }}
-                    onClick={handleNativeShare}
+                    onClick={handleCopyLink}
                     block
                   >
-                    More Sharing Options
+                    {copiedLink ? 'Link Copied!' : 'Copy Invite Link'}
                   </Button>
-                )}
+
+                  {typeof navigator !== 'undefined' && 'share' in navigator ? (
+                    <Button
+                      className="referral-sub-btn"
+                      icon={<ShareAltOutlined />}
+                      onClick={handleNativeShare}
+                      block
+                    >
+                      More Sharing Options
+                    </Button>
+                  ) : (
+                    <Button
+                      className="referral-sub-btn"
+                      icon={<CopyOutlined />}
+                      onClick={handleCopyCode}
+                      block
+                    >
+                      Copy Code
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           )}

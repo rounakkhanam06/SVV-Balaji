@@ -1470,6 +1470,10 @@ export interface Scheme {
   targetAudience: BannerAudience;
   displayOrder: number;
   isActive: boolean;
+  productIds?: string[];
+  ruleType?: 'NONE' | 'BUY_X_GET_Y';
+  buyQty?: number;
+  getQty?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -1489,6 +1493,10 @@ export interface CreateSchemeInput {
   targetAudience?: BannerAudience;
   displayOrder?: number;
   isActive?: boolean;
+  productIds?: string[];
+  ruleType?: 'NONE' | 'BUY_X_GET_Y';
+  buyQty?: number;
+  getQty?: number;
 }
 
 export type UpdateSchemeInput = Partial<CreateSchemeInput>;
@@ -3283,6 +3291,8 @@ export interface HomePriceTile {
   color: PriceTileColor;
   /** Category the tile opens; null opens the full catalogue. */
   categoryId?: string | null;
+  /** Specific product IDs for this tile (when selecting custom products). */
+  productIds?: string[];
 }
 
 export interface HomeSection {

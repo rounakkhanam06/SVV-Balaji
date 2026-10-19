@@ -85,13 +85,14 @@ export interface Quote {
     gross: number; discount: number; taxable: number; tax: number; total: number;
   }>;
   totals: {
-    subtotal: number; couponDiscount: number; loyaltyDiscount: number; referralDiscount: number; discount: number;
+    subtotal: number; schemeDiscount?: number; couponDiscount: number; loyaltyDiscount: number; referralDiscount: number; discount: number;
     taxable: number; tax: number; deliveryFee: number; totalPayable: number;
     /** Paid from the Refund Wallet (a payment - totalPayable, the invoice value, is unchanged). */
     refundWalletApplied?: number;
     /** Left to pay online / in cash. */
     amountDue?: number;
   };
+  scheme?: { id: string; title: string; discount: number; freeQty: number } | null;
   refundWallet?: { balance: number; applied: number };
   coupon: { code: string; discount: number } | null;
   loyalty: { enabled: boolean; balance: number; pointValueInr: number; redeemPoints: number; maxPoints: number; minPoints: number };

@@ -22,7 +22,13 @@
   scrollbar-width: none;
 }
 
-html,
+html {
+  min-height: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: #059669; /* Theme emerald green for mobile phone notch & status bar */
+}
+
 body,
 #root {
   min-height: 100%;
@@ -138,7 +144,7 @@ select {
     left: 0;
     right: 0;
     height: var(--store-top-gap);
-    background: #ffffff;
+    background: #059669; /* Theme emerald green matching phone notch/Dynamic Island */
     z-index: 200;
   }
   .store-content {
@@ -151,7 +157,10 @@ select {
   .store-content .store-safe-top {
     padding-top: 0;
   }
-  .store-content header[style*='sticky'] {
+  .store-content header[style*='sticky'],
+  .store-content header[style*='Sticky'],
+  .store-content header.mobile-flex,
+  .store-content .mobile-flex[style*='sticky'] {
     top: var(--store-top-gap) !important;
   }
 }
@@ -549,8 +558,6 @@ select {
     padding: 0 5px !important;
     margin-right: 4px !important;
   }
-
-  width: 100%;
 }
 
 @media (min-width: 992px) {
@@ -1457,3 +1464,182 @@ select {
 .order-product-item-link:hover span.ant-typography:first-of-type {
   color: #15803d !important;
 }
+
+/* ---------------------------------------------------------------------------
+   Referral & Earn Page Mobile Optimization (Compact & Clean)
+   --------------------------------------------------------------------------- */
+.referral-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 12px 12px 40px !important;
+}
+
+.referral-hero-card {
+  padding: 16px 16px !important;
+  border-radius: 16px !important;
+  margin-bottom: 12px !important;
+  position: relative;
+  overflow: hidden;
+  color: #ffffff;
+}
+
+.referral-hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 3px 10px !important;
+  border-radius: 20px;
+  margin-bottom: 8px !important;
+  font-size: 11px !important;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  color: #ffffff;
+}
+
+.referral-hero-title {
+  color: #ffffff !important;
+  font-size: 18px !important;
+  font-weight: 800 !important;
+  line-height: 1.25 !important;
+  margin: 0 0 6px 0 !important;
+}
+
+.referral-hero-text {
+  color: rgba(255, 255, 255, 0.92) !important;
+  font-size: 12px !important;
+  line-height: 1.45 !important;
+  display: block;
+}
+
+.referral-hero-milestone {
+  margin-top: 10px !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.18);
+  padding: 4px 10px !important;
+  border-radius: 8px !important;
+  font-size: 11px !important;
+  color: #ffffff;
+}
+
+.referral-action-card {
+  border-radius: 16px !important;
+  margin-bottom: 16px !important;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04) !important;
+}
+
+.referral-action-card .ant-card-body {
+  padding: 16px 14px !important;
+}
+
+.referral-code-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 8px 18px !important;
+  border-radius: 12px !important;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.referral-code-text {
+  font-size: 18px !important;
+  font-weight: 800 !important;
+  letter-spacing: 1.5px !important;
+  font-family: monospace;
+}
+
+.referral-share-actions {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+}
+
+.referral-share-subactions {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 8px !important;
+}
+
+.referral-share-btn {
+  height: 40px !important;
+  font-size: 13.5px !important;
+  font-weight: 700 !important;
+  border-radius: 10px !important;
+}
+
+.referral-sub-btn {
+  height: 38px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  border-radius: 10px !important;
+  padding: 0 8px !important;
+}
+
+@media (min-width: 768px) {
+  .referral-container {
+    padding: 16px 16px 40px !important;
+  }
+  .referral-hero-card {
+    padding: 28px 24px !important;
+    border-radius: 20px !important;
+    margin-bottom: 20px !important;
+  }
+  .referral-hero-badge {
+    padding: 4px 12px !important;
+    margin-bottom: 12px !important;
+    font-size: 12px !important;
+  }
+  .referral-hero-title {
+    font-size: 25px !important;
+    margin: 0 0 8px 0 !important;
+  }
+  .referral-hero-text {
+    font-size: 14px !important;
+    line-height: 1.5 !important;
+  }
+  .referral-hero-milestone {
+    margin-top: 14px !important;
+    padding: 6px 14px !important;
+    font-size: 12px !important;
+    border-radius: 10px !important;
+  }
+  .referral-action-card {
+    border-radius: 18px !important;
+    margin-bottom: 24px !important;
+  }
+  .referral-action-card .ant-card-body {
+    padding: 24px 20px !important;
+  }
+  .referral-code-pill {
+    padding: 12px 28px !important;
+    border-radius: 14px !important;
+  }
+  .referral-code-text {
+    font-size: 24px !important;
+    letter-spacing: 2px !important;
+  }
+  .referral-share-actions {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) !important;
+    gap: 12px !important;
+  }
+  .referral-share-subactions {
+    display: contents !important;
+  }
+  .referral-share-btn {
+    height: 46px !important;
+    font-size: 14px !important;
+  }
+  .referral-sub-btn {
+    height: 46px !important;
+    font-size: 14px !important;
+    padding: 0 16px !important;
+  }
+}
+

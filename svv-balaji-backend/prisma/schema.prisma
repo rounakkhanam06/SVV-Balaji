@@ -3294,6 +3294,10 @@ model Scheme {
   targetAudience  BannerAudience @default(ALL)
   displayOrder    Int            @default(0)
   isActive        Boolean        @default(true)
+  productIds      String[]       @default([])
+  ruleType        String         @default("NONE")
+  buyQty          Int?           @default(1)
+  getQty          Int?           @default(1)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

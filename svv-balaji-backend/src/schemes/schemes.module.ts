@@ -22,7 +22,7 @@ import {
   PartialType,
 } from '@nestjs/swagger';
 import { BannerAudience } from '@prisma/client';
-import { IsBoolean, IsEnum, IsInt, IsOptional, IsString, Min } from 'class-validator';
+import { IsArray, IsBoolean, IsEnum, IsInt, IsOptional, IsString, Min } from 'class-validator';
 import { PrismaService } from '../prisma/prisma.service';
 import { SetActiveDto } from '../common/dto/set-active.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -96,6 +96,29 @@ export class CreateSchemeDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @ApiPropertyOptional({ description: 'Specific products linked to this scheme.', type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  productIds?: string[];
+
+  @ApiPropertyOptional({ description: 'Promotion rule type, e.g. NONE or BUY_X_GET_Y', default: 'NONE' })
+  @IsOptional()
+  @IsString()
+  ruleType?: string;
+
+  @ApiPropertyOptional({ description: 'Required buy quantity for BUY_X_GET_Y rule', default: 1 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  buyQty?: number;
+
+  @ApiPropertyOptional({ description: 'Free quantity granted for BUY_X_GET_Y rule', default: 1 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  getQty?: number;
 }
 
 export class UpdateSchemeDto extends PartialType(CreateSchemeDto) {}
@@ -121,7 +144,11 @@ export class SchemesService {
         targetAudience: dto.targetAudience ?? BannerAudience.ALL,
         displayOrder: dto.displayOrder ?? 0,
         isActive: dto.isActive ?? true,
-      },
+        productIds: dto.productIds ?? [],
+        ruleType: dto.ruleType ?? 'NONE',
+        buyQty: dto.buyQty ?? 1,
+        getQty: dto.getQty ?? 1,
+      } as any,
     });
   }
 
@@ -159,7 +186,11 @@ export class SchemesService {
         targetAudience: dto.targetAudience,
         displayOrder: dto.displayOrder,
         isActive: dto.isActive,
-      },
+        productIds: dto.productIds !== undefined ? dto.productIds : scheme.productIds,
+        ruleType: dto.ruleType !== undefined ? dto.ruleType : (scheme as any).ruleType,
+        buyQty: dto.buyQty !== undefined ? dto.buyQty : (scheme as any).buyQty,
+        getQty: dto.getQty !== undefined ? dto.getQty : (scheme as any).getQty,
+      } as any,
     });
   }
 

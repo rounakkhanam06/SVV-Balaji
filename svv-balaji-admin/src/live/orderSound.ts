@@ -92,6 +92,12 @@ export function setOrderSoundMuted(next: boolean) {
   } catch {
     /* private mode: holds for this session */
   }
+  if (next) {
+    const a = player();
+    if (a) a.pause();
+  } else if (alarmActive) {
+    startOrderAlarm();
+  }
   listeners.forEach((l) => l());
 }
 
@@ -106,8 +112,7 @@ export function useOrderSoundMuted() {
 }
 
 /**
- * Play the chime. Several orders landing together (e.g. the catch-up after a
- * reconnect) ring once, not once each.
+ * Play the chime once. Several orders landing together ring once, not once each.
  */
 export function playOrderSound(force = false) {
   if (muted && !force) return;
@@ -118,6 +123,58 @@ export function playOrderSound(force = false) {
   if (!a) return;
   a.currentTime = 0;
   void a.play().catch(() => undefined);
+}
+
+let loopInterval: number | null = null;
+let alarmActive = false;
+
+/** Continuous ringing alarm for new broadcast order until acknowledged */
+export function startOrderAlarm() {
+  alarmActive = true;
+  if (muted) return;
+  try {
+    navigator.vibrate?.([400, 200, 400, 200, 400]);
+  } catch {
+    // ignore
+  }
+  const a = player();
+  if (!a) return;
+  a.loop = true;
+  a.currentTime = 0;
+  void a.play().catch(() => undefined);
+
+  if (loopInterval) clearInterval(loopInterval);
+  loopInterval = window.setInterval(() => {
+    if (!alarmActive || muted) return;
+    const aud = player();
+    if (aud && aud.paused) {
+      aud.currentTime = 0;
+      void aud.play().catch(() => undefined);
+    }
+  }, 3500);
+}
+
+export function stopOrderAlarm() {
+  alarmActive = false;
+  if (loopInterval) {
+    clearInterval(loopInterval);
+    loopInterval = null;
+  }
+  const a = player();
+  if (a) {
+    a.pause();
+    a.loop = false;
+    a.currentTime = 0;
+  }
+  try {
+    navigator.vibrate?.(0);
+  } catch {
+    // ignore
+  }
+}
+
+export function isOrderAlarmActive(): boolean {
+  return alarmActive;
 }
 
 /**

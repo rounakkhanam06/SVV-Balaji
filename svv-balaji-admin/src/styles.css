@@ -349,3 +349,55 @@ body {
 
 /* Delivery Board: a task waiting on staff */
 .row-attention > td { background: #fff7ed !important; }
+
+/* Reports & Analytics: KPI card interaction */
+.kpi-hover-card {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease !important;
+}
+.kpi-hover-card.is-clickable {
+  cursor: pointer !important;
+  user-select: none;
+}
+.kpi-hover-card.is-clickable:hover {
+  transform: translateY(-3px) !important;
+  box-shadow: 0 12px 28px rgba(16, 185, 129, 0.12), 0 4px 10px rgba(0, 0, 0, 0.04) !important;
+  border-color: #10b981 !important;
+}
+.kpi-hover-card.is-clickable:hover .kpi-click-arrow {
+  color: #10b981 !important;
+  transform: rotate(45deg) translate(2px, -2px) !important;
+}
+.kpi-hover-card.is-clickable:hover .kpi-action-hint {
+  color: #10b981 !important;
+  text-decoration: underline;
+}
+.kpi-hover-card.is-clickable:active {
+  transform: translateY(-1px) !important;
+}
+
+/* ---------------------------------------------------------------------------
+   Super Admin Incoming Order Broadcast Modal (Stable, High-Contrast Alert Card)
+   --------------------------------------------------------------------------- */
+.broadcast-modal-card {
+  border-radius: 20px !important;
+  overflow: hidden !important;
+}
+
+.broadcast-modal-card .ant-modal-content {
+  background-color: #ffffff !important;
+  box-shadow: 0 25px 60px -10px rgba(0, 0, 0, 0.45) !important;
+  border: 2px solid #16a34a !important;
+  border-radius: 20px !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+.broadcast-dot {
+  width: 10px;
+  height: 10px;
+  background-color: #22c55e;
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.35);
+}
+

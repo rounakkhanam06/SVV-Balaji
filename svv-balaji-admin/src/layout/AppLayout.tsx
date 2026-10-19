@@ -25,6 +25,7 @@ import { useLiveOrders } from '../live/useLiveOrders';
 import { installOrderSoundUnlock, playOrderSound, setOrderSoundMuted, useOrderSoundMuted } from '../live/orderSound';
 import { installNotificationSoundUnlock } from '../live/notificationSound';
 import { NotificationBell } from '../notifications/NotificationBell';
+import { IncomingOrderBroadcastModal } from '../components/IncomingOrderBroadcastModal';
 import { NAV_SECTIONS, findNavItem, type AdminZone, type NavItem } from './navigation';
 import { useAdminZone } from './useAdminZone';
 
@@ -395,7 +396,9 @@ export function AppLayout() {
             ) : null}
             <NotificationBell />
             {user?.branch ? <Tag>{user.branch.name}</Tag> : null}
-            <Tag color="blue">{user ? ROLE_LABELS[user.role] : ''}</Tag>
+            {user && user.fullName?.trim().toLowerCase() !== ROLE_LABELS[user.role]?.trim().toLowerCase() ? (
+              <Tag color="blue">{ROLE_LABELS[user.role]}</Tag>
+            ) : null}
 
             <Dropdown
               menu={{
@@ -441,6 +444,7 @@ export function AppLayout() {
           </Suspense>
         </Content>
       </Layout>
+      <IncomingOrderBroadcastModal />
     </Layout>
   );
 }

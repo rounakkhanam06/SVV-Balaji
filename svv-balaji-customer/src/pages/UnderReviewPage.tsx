@@ -30,13 +30,22 @@ export function UnderReviewPage() {
   const rejected = retailerProfile?.kycStatus === 'REJECTED';
   const support = useStorefrontSupport('RETAILER');
 
-  // Auto-redirect if profile becomes VERIFIED
+  // Auto-redirect if profile becomes VERIFIED (show toast only once upon approval)
   useEffect(() => {
     if (retailerProfile?.kycStatus === 'VERIFIED') {
-      message.success('🎉 Your retailer account has been approved by Super Admin!');
+      const retailerKey = retailerProfile.phone || retailerProfile.gstin || 'retailer';
+      const notifiedKey = `svv.retailer.approval_notified.${retailerKey}`;
+      try {
+        if (!localStorage.getItem(notifiedKey)) {
+          localStorage.setItem(notifiedKey, '1');
+          message.success('🎉 Your retailer account has been approved by Super Admin!');
+        }
+      } catch {
+        // ignore storage error
+      }
       navigate('/', { replace: true });
     }
-  }, [retailerProfile?.kycStatus, navigate]);
+  }, [retailerProfile?.kycStatus, retailerProfile?.phone, retailerProfile?.gstin, navigate]);
 
   // The auth context checks every 30 s while pending; this only records when, for the label.
   useEffect(() => {

@@ -10,6 +10,7 @@ import {
   PlusOutlined,
   ReloadOutlined,
   RocketOutlined,
+  ShoppingOutlined,
   TagsOutlined,
   ThunderboltOutlined,
 } from '@ant-design/icons';
@@ -26,6 +27,7 @@ import {
   Form,
   Input,
   InputNumber,
+  Modal,
   Popconfirm,
   Radio,
   Row,
@@ -43,7 +45,10 @@ import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import { useEffect, useState } from 'react';
 import { apiErrorMessage } from '../../api/client';
-import type { Coupon, CreateCouponInput, CreateSchemeInput, Scheme } from '../../api/types';
+import type { Coupon, CreateCouponInput, CreateSchemeInput, Product, Scheme } from '../../api/types';
+import { useProducts } from '@shared/hooks/useProduction';
+import { useCategories } from '@shared/hooks/useCategories';
+import { ProductPicker } from '../home-sections/ProductPicker';
 import { Can } from '../../components/Can';
 import { PageHeader } from '../../components/PageHeader';
 import {
@@ -91,6 +96,13 @@ function SchemeFormDrawer({
   const [form] = Form.useForm<CreateSchemeInput>();
   const isEdit = Boolean(scheme);
 
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>(scheme?.productIds ?? []);
+  const [productModalOpen, setProductModalOpen] = useState(false);
+  const productsQuery = useProducts();
+  const allProducts = productsQuery.data?.data ?? (Array.isArray(productsQuery.data) ? productsQuery.data : []);
+  const categoriesQuery = useCategories();
+  const allCategories = categoriesQuery.data?.data ?? [];
+
   const defaultValues: CreateSchemeInput = {
     tag: '',
     title: '',
@@ -106,6 +118,10 @@ function SchemeFormDrawer({
     targetAudience: 'ALL',
     displayOrder: 1,
     isActive: true,
+    productIds: [],
+    ruleType: 'NONE',
+    buyQty: 10,
+    getQty: 1,
   };
 
   const initialValues: CreateSchemeInput = scheme
@@ -124,28 +140,42 @@ function SchemeFormDrawer({
         targetAudience: scheme.targetAudience ?? 'ALL',
         displayOrder: scheme.displayOrder ?? 1,
         isActive: scheme.isActive ?? true,
+        productIds: scheme.productIds ?? [],
+        ruleType: scheme.ruleType ?? 'NONE',
+        buyQty: scheme.buyQty ?? 10,
+        getQty: scheme.getQty ?? 1,
       }
     : defaultValues;
+
+  const ruleType = Form.useWatch('ruleType', form) ?? scheme?.ruleType ?? 'NONE';
+  const buyQty = Form.useWatch('buyQty', form) ?? scheme?.buyQty ?? 10;
+  const getQty = Form.useWatch('getQty', form) ?? scheme?.getQty ?? 1;
 
   useEffect(() => {
     if (!open) return;
     if (scheme) {
-      form.setFieldsValue(initialValues);
+      const pIds = scheme.productIds ?? [];
+      form.setFieldsValue({ ...initialValues, productIds: pIds });
+      setSelectedProductIds(pIds);
     } else {
       form.resetFields();
       form.setFieldsValue(defaultValues);
+      setSelectedProductIds([]);
     }
   }, [open, scheme, form]);
 
   const handleSubmit = async () => {
     const values = await form.validateFields();
-    onSave(values);
+    onSave({
+      ...values,
+      productIds: selectedProductIds,
+    });
   };
 
   return (
     <Drawer
       title={isEdit ? `Edit Scheme: ${scheme?.title}` : 'Add New Homepage Scheme'}
-      width={640}
+      width={680}
       open={open}
       onClose={onClose}
       extra={
@@ -183,6 +213,156 @@ function SchemeFormDrawer({
         </Form.Item>
 
         <Divider orientation="left" plain>
+          Offer Products (What Customer Sees on Click)
+        </Divider>
+
+        <Form.Item
+          label="Products Included in this Offer"
+          extra="Select the specific items that shoppers see and can purchase when clicking this offer. When products are selected, shoppers are directed to a dedicated deal page."
+        >
+          <div style={{ background: '#fafafa', border: '1px solid #e2e8f0', borderRadius: 10, padding: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: selectedProductIds.length > 0 ? 12 : 0 }}>
+              <Space>
+                <ShoppingOutlined style={{ fontSize: 18, color: '#ea580c' }} />
+                <Typography.Text strong style={{ fontSize: 13.5 }}>
+                  {selectedProductIds.length > 0
+                    ? `${selectedProductIds.length} Products Linked to this Offer`
+                    : 'No specific products linked yet'}
+                </Typography.Text>
+              </Space>
+              <Button
+                type="primary"
+                ghost
+                icon={<ShoppingOutlined />}
+                onClick={() => setProductModalOpen(true)}
+              >
+                {selectedProductIds.length > 0 ? 'Change Products' : 'Select Products'}
+              </Button>
+            </div>
+            {selectedProductIds.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, maxHeight: 120, overflowY: 'auto' }}>
+                {selectedProductIds.map((id) => {
+                  const p = allProducts.find((item: Product) => item.id === id);
+                  return (
+                    <Tag
+                      key={id}
+                      closable
+                      onClose={() => {
+                        const next = selectedProductIds.filter((x) => x !== id);
+                        form.setFieldValue('productIds', next);
+                        setSelectedProductIds(next);
+                      }}
+                      color="orange"
+                    >
+                      {p?.name || id}
+                    </Tag>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </Form.Item>
+
+        {/* Modal for Selecting Specific Products */}
+        <Modal
+          title={
+            <Space>
+              <ShoppingOutlined style={{ color: '#ea580c' }} />
+              <span>Select Products for Offer: &ldquo;{form.getFieldValue('title') || 'Scheme'}&rdquo;</span>
+            </Space>
+          }
+          open={productModalOpen}
+          onOk={() => setProductModalOpen(false)}
+          onCancel={() => setProductModalOpen(false)}
+          width={850}
+          okText="Done"
+          cancelButtonProps={{ style: { display: 'none' } }}
+          destroyOnClose
+        >
+          <div style={{ marginTop: 12 }}>
+            <ProductPicker
+              products={allProducts}
+              categories={allCategories}
+              value={selectedProductIds}
+              onChange={(ids) => {
+                setSelectedProductIds(ids);
+                form.setFieldValue('productIds', ids);
+              }}
+            />
+          </div>
+        </Modal>
+
+        <Divider orientation="left" plain>
+          Offer Promotion Rule (Cart Auto-Discount)
+        </Divider>
+
+        <Form.Item
+          name="ruleType"
+          label="Discount / BOGO Engine Rule"
+          extra="Choose whether this scheme gives an automatic discount in cart when customers add the required items."
+        >
+          <Radio.Group buttonStyle="solid" style={{ width: '100%' }}>
+            <Radio.Button value="NONE" style={{ width: '50%', textAlign: 'center' }}>
+              Standard Banner (No Auto Cart Rule)
+            </Radio.Button>
+            <Radio.Button value="BUY_X_GET_Y" style={{ width: '50%', textAlign: 'center' }}>
+              🎁 Buy X Get Y Free (BOGO / Bulk)
+            </Radio.Button>
+          </Radio.Group>
+        </Form.Item>
+
+        {ruleType === 'BUY_X_GET_Y' && (
+          <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10, padding: 16, marginBottom: 18 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+              <GiftOutlined style={{ fontSize: 18, color: '#16a34a' }} />
+              <Typography.Text strong style={{ fontSize: 14, color: '#166534' }}>
+                Buy X Get Y Free Configuration
+              </Typography.Text>
+            </div>
+
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item
+                  name="buyQty"
+                  label="Customer Buys (Qty X)"
+                  rules={[{ required: true, message: 'Please enter Buy Quantity' }]}
+                  extra="e.g. 10 for 'Buy 10' or 1 for 'Buy 1'"
+                >
+                  <InputNumber min={1} max={999} style={{ width: '100%' }} placeholder="10" />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  name="getQty"
+                  label="Customer Gets FREE (Qty Y)"
+                  rules={[{ required: true, message: 'Please enter Free Quantity' }]}
+                  extra="e.g. 1 for 'Get 1 Free'"
+                >
+                  <InputNumber min={1} max={999} style={{ width: '100%' }} placeholder="1" />
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <Alert
+              type="success"
+              showIcon
+              style={{ fontSize: 12, marginTop: 4 }}
+              message={
+                <span>
+                  <strong>Rule Summary:</strong> Customers buying <strong>{(buyQty || 1) + (getQty || 1)}</strong> eligible items
+                  will automatically get <strong>{getQty || 1}</strong> item(s) <strong>FREE (100% discount)</strong> in their cart!
+                  {selectedProductIds.length === 0 && (
+                    <span style={{ display: 'block', color: '#b91c1c', marginTop: 4 }}>
+                      ⚠️ Notice: Please select eligible products above so the cart engine knows which products qualify for this offer!
+                    </span>
+                  )}
+                </span>
+              }
+            />
+          </div>
+        )}
+
+        <Divider orientation="left" plain>
           CTA Button
         </Divider>
         <Row gutter={16}>
@@ -192,7 +372,11 @@ function SchemeFormDrawer({
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item name="ctaLink" label="Button Route Link">
+            <Form.Item
+              name="ctaLink"
+              label="Button Route Link (Fallback)"
+              extra={selectedProductIds.length > 0 ? 'Auto-routed to selected offer products above' : 'Direct link if no products selected'}
+            >
               <Input placeholder="/products/atta-flour" prefix={<LinkOutlined />} />
             </Form.Item>
           </Col>
@@ -686,19 +870,40 @@ export function SchemesPage() {
       ),
     },
     {
-      title: 'CTA Button',
+      title: 'Action / Destination',
       key: 'cta',
-      width: 160,
+      width: 180,
       render: (_, record) => (
-        <Space direction="vertical" size={0}>
+        <Space direction="vertical" size={2}>
           <Text strong style={{ fontSize: 12 }}>
             {record.ctaText}
           </Text>
-          <Text type="secondary" style={{ fontSize: 11 }}>
-            {record.ctaLink}
-          </Text>
+          {Array.isArray(record.productIds) && record.productIds.length > 0 ? (
+            <Tag color="orange" style={{ margin: 0, fontSize: 10, fontWeight: 600 }}>
+              🛍️ {record.productIds.length} Linked Product{record.productIds.length === 1 ? '' : 's'}
+            </Tag>
+          ) : (
+            <Text type="secondary" style={{ fontSize: 11 }}>
+              {record.ctaLink}
+            </Text>
+          )}
         </Space>
       ),
+    },
+    {
+      title: 'Cart Rule',
+      key: 'ruleType',
+      width: 150,
+      render: (_, record) => {
+        if (record.ruleType === 'BUY_X_GET_Y') {
+          return (
+            <Tag color="green" style={{ fontWeight: 600, fontSize: 11, padding: '2px 8px', borderRadius: 6 }}>
+              🎁 Buy {record.buyQty ?? 10} Get {record.getQty ?? 1} Free
+            </Tag>
+          );
+        }
+        return <Tag color="default" style={{ fontSize: 11 }}>Standard</Tag>;
+      },
     },
     {
       title: 'Target Audience',

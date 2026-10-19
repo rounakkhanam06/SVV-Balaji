@@ -95,6 +95,14 @@ export function LoginPage() {
         return;
       }
 
+      if (outcome.channel === 'B2B') {
+        try {
+          localStorage.setItem(`svv.retailer.approval_notified.${cleanPhone()}`, '1');
+        } catch {
+          // ignore storage error
+        }
+      }
+
       message.success(
         outcome.channel === 'B2B'
           ? 'Welcome back! Signed in as Store Partner'
@@ -102,7 +110,7 @@ export function LoginPage() {
             ? 'Welcome! Your account is ready.'
             : 'Welcome back!',
       );
-      const fallback = outcome.channel === 'B2B' ? '/retailers/under-review' : '/';
+      const fallback = '/';
       navigate(destination || fallback, { replace: true });
     } catch (error) {
       message.error(apiErrorMessage(error, 'Invalid code. Please try again.'));

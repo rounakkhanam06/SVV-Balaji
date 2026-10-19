@@ -88,6 +88,12 @@ export class PriceTileDto {
   @IsOptional()
   @IsUUID()
   categoryId?: string | null;
+
+  @ApiPropertyOptional({ description: 'Specific product IDs to display when this tile is clicked.', type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  productIds?: string[];
 }
 
 export class CreateHomeSectionDto {
@@ -151,7 +157,12 @@ export class CreateHomeSectionDto {
 export class UpdateHomeSectionDto extends PartialType(CreateHomeSectionDto) {}
 
 function parseTiles(raw: Prisma.JsonValue): PriceTileDto[] {
-  return Array.isArray(raw) ? (raw as unknown as PriceTileDto[]) : [];
+  return Array.isArray(raw)
+    ? (raw as unknown as any[]).map((t) => ({
+        ...t,
+        productIds: Array.isArray(t.productIds) ? t.productIds : [],
+      }))
+    : [];
 }
 
 @Injectable()

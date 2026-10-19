@@ -19,6 +19,8 @@ export interface StorefrontCatalogueQuery {
   /** Free-text search across name, brand, SKU, pack label and category. */
   q?: string;
   limit?: number;
+  /** Explicit list of product IDs to fetch directly. */
+  ids?: string[];
 }
 
 /**
@@ -44,6 +46,7 @@ export const storefrontCatalogueApi = {
         ...(query.dailyStaple ? { dailyStaple: true } : {}),
         ...(query.q?.trim() ? { q: query.q.trim() } : {}),
         ...(query.limit ? { limit: query.limit } : {}),
+        ...(query.ids && query.ids.length > 0 ? { ids: query.ids.join(',') } : {}),
       },
     });
     return unwrapList<StorefrontProductCard>(response.data).data;

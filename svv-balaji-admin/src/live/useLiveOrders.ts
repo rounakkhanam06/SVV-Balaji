@@ -7,6 +7,7 @@ import { PUSH_KEYS } from '@shared/api/pushNotifications';
 import { queryKeys } from '@shared/api/queryKeys';
 import { tokenStore } from '@shared/api/tokenStore';
 import { playMessageSound, playOrderSound } from './orderSound';
+import { incomingOrderStore } from './incomingOrderStore';
 import { showSystemNotification } from './systemNotify';
 import type { TicketMessagePayload, TicketNewPayload } from './adminSocket';
 
@@ -83,20 +84,24 @@ export function useLiveOrders(enabled: boolean, onOpen: (path: string) => void):
       if (seen.current.has(key)) return;
       seen.current.add(key);
       if (seen.current.size > SEEN_LIMIT) seen.current = new Set([...seen.current].slice(-SEEN_LIMIT / 2));
-      playOrderSound();
       const link = `/${o.channel === 'B2B' ? 'b2b' : 'b2c'}-orders/${o.id}`;
       // Outside the app too (OS notification centre), with the logo - same tag as the server push.
       // A catch-up after hours away does not flood the tray: only orders from the last 10 minutes.
       const recent = !fromCatchUp || Date.now() - new Date(o.createdAt).getTime() < 10 * 60_000;
-      if (recent) void showSystemNotification(
-        {
-          title: `New ${o.channel === 'B2B' ? 'retailer ' : ''}order ${o.orderNumber}`,
-          body: `${o.customerName} · ₹${o.total.toFixed(2)} · ${o.fulfillmentMethod ?? o.channel} · ${o.nodeName}`,
-          tag: `new_order-${o.id}`,
-          link,
-        },
-        (path) => openRef.current(path),
-      );
+      if (recent) {
+        incomingOrderStore.add(o);
+        void showSystemNotification(
+          {
+            title: `New ${o.channel === 'B2B' ? 'retailer ' : ''}order ${o.orderNumber}`,
+            body: `${o.customerName} · ₹${o.total.toFixed(2)} · ${o.fulfillmentMethod ?? o.channel} · ${o.nodeName}`,
+            tag: `new_order-${o.id}`,
+            link,
+          },
+          (path) => openRef.current(path),
+        );
+      } else {
+        playOrderSound();
+      }
       notification.open({
         key: o.id,
         icon: logoIcon(),

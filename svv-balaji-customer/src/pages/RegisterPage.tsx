@@ -162,6 +162,11 @@ export function RegisterPage() {
         referralCode: referralCode.trim() || undefined,
       });
 
+      try {
+        localStorage.removeItem(`svv.retailer.approval_notified.${phone.trim()}`);
+      } catch {
+        // ignore
+      }
       message.success('Registration submitted! You are logged in while your account is reviewed.');
       navigate('/retailers/under-review', { replace: true });
     } catch (error) {

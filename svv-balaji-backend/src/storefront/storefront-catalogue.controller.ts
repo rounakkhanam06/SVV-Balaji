@@ -32,6 +32,7 @@ export class StorefrontCatalogueController {
   @ApiQuery({ name: 'dailyStaple', required: false, type: Boolean })
   @ApiQuery({ name: 'q', required: false, description: 'Search text - every word must match name, brand, SKU, pack label or category' })
   @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'ids', required: false, description: 'Comma-separated product IDs to fetch directly' })
   list(
     @Query('channel') channel: SalesChannel = SalesChannel.B2C,
     @Query('customerType') customerType?: CustomerType,
@@ -40,7 +41,14 @@ export class StorefrontCatalogueController {
     @Query('dailyStaple') dailyStaple?: string,
     @Query('limit') limit?: string,
     @Query('q') q?: string,
+    @Query('ids') ids?: string,
   ) {
+    if (ids?.trim()) {
+      const idList = ids.split(',').map((s) => s.trim()).filter(Boolean);
+      if (idList.length > 0) {
+        return this.service.listProductsByIds(idList, { channel, customerType });
+      }
+    }
     const parsedLimit = limit ? Number(limit) : undefined;
     return this.service.listProducts({
       channel,

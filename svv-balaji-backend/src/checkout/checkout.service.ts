@@ -10,6 +10,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  BannerAudience,
   CheckoutSessionStatus,
   Customer,
   CustomerType,
@@ -73,7 +74,7 @@ export interface StoredQuote {
     gross: number; discount: number; taxable: number; tax: number; total: number;
   }>;
   totals: {
-    subtotal: number; couponDiscount: number; loyaltyDiscount: number; referralDiscount: number; discount: number;
+    subtotal: number; schemeDiscount?: number; couponDiscount: number; loyaltyDiscount: number; referralDiscount: number; discount: number;
     taxable: number; tax: number; deliveryFee: number; totalPayable: number;
     /** Paid from the rupee Refund Wallet - a payment, so `totalPayable` (the invoice value) is unchanged. */
     refundWalletApplied?: number;
@@ -81,6 +82,7 @@ export interface StoredQuote {
     amountDue?: number;
   };
   refundWallet?: { balance: number; applied: number };
+  scheme?: { id: string; title: string; discount: number; freeQty: number } | null;
   coupon: { code: string; discount: number } | null;
   loyalty: {
     enabled: boolean; balance: number; pointValueInr: number;
@@ -219,16 +221,72 @@ export class CheckoutService {
     );
     const grossSubtotal = round2(priced.reduce((n, l) => n + l.unitPrice * l.quantity, 0));
 
-    // 5. Coupon (server-validated against the server's subtotal).
+    // 4.5 Evaluate Active BOGO Schemes (Buy X Get Y Free)
+    const activeSchemes = await this.prisma.scheme.findMany({
+      where: {
+        isActive: true,
+        ruleType: 'BUY_X_GET_Y',
+        targetAudience: { in: [BannerAudience.ALL, b2b ? BannerAudience.B2B : BannerAudience.B2C] },
+      } as any,
+      orderBy: [{ displayOrder: 'asc' }, { createdAt: 'asc' }],
+    });
+
+    let schemeDiscount = 0;
+    let appliedScheme: { id: string; title: string; discount: number; freeQty: number } | null = null;
+
+    for (const s of activeSchemes) {
+      const eligiblePids = new Set(s.productIds ?? []);
+      if (eligiblePids.size === 0) continue;
+
+      const buyX = (s as any).buyQty ?? 1;
+      const getY = (s as any).getQty ?? 1;
+      const bundleSize = buyX + getY;
+
+      // Collect all units matching this scheme's products with their unit prices
+      const eligibleUnits: number[] = [];
+      for (const p of priced) {
+        if (eligiblePids.has(p.productId)) {
+          for (let q = 0; q < p.quantity; q++) {
+            eligibleUnits.push(p.unitPrice);
+          }
+        }
+      }
+
+      if (eligibleUnits.length >= bundleSize) {
+        // Sort lowest unit price first so customer gets free items on qualifying units
+        eligibleUnits.sort((a, b) => a - b);
+        const freeCount = Math.floor(eligibleUnits.length / bundleSize) * getY;
+        const discountForScheme = round2(
+          eligibleUnits.slice(0, freeCount).reduce((sum, val) => sum + val, 0),
+        );
+
+        if (discountForScheme > schemeDiscount) {
+          schemeDiscount = discountForScheme;
+          appliedScheme = {
+            id: s.id,
+            title: s.title,
+            discount: discountForScheme,
+            freeQty: freeCount,
+          };
+        }
+      }
+    }
+
+    // 5. Coupon (server-validated against the server's subtotal minus scheme discount).
     let coupon: AppliedCoupon | null = null;
     if (dto.couponCode?.trim()) {
-      coupon = await this.coupons.validate(this.prisma, { code: dto.couponCode, customerId: customer.id, channel, subtotal: grossSubtotal });
+      coupon = await this.coupons.validate(this.prisma, {
+        code: dto.couponCode,
+        customerId: customer.id,
+        channel,
+        subtotal: Math.max(0, grossSubtotal - schemeDiscount),
+      });
     }
     const couponDiscount = coupon?.discount ?? 0;
 
     // 6. Wallet coins spent - referral and loyalty, only if their program allows it, never more
     // than their caps. Mode (SEPARATE vs COMBINED) comes from Super Admin's wallet settings.
-    const offer = await this.wallet.redemptionOffer(customer.id, grossSubtotal - couponDiscount);
+    const offer = await this.wallet.redemptionOffer(customer.id, Math.max(0, grossSubtotal - schemeDiscount - couponDiscount));
     const loyaltyPool = offer.pools.find((p) => p.source === 'LOYALTY')!;
     const referralPool = offer.pools.find((p) => p.source === 'REFERRAL')!;
     const wantedLoyalty = Math.max(0, Math.floor(dto.redeemPoints ?? 0));
@@ -280,11 +338,12 @@ export class CheckoutService {
 
     // 7. Fee depends on the goods total AFTER discounts; then final figures.
     const lineInputs = priced.map((l) => ({ key: l.productId, quantity: l.quantity, unitPrice: l.unitPrice, gstRatePercent: l.gstRatePercent }));
-    const goods = priceCart(lineInputs, couponDiscount + walletDiscount, 0);
+    const totalOrderDiscount = round2(schemeDiscount + couponDiscount + walletDiscount);
+    const goods = priceCart(lineInputs, totalOrderDiscount, 0);
     const standardFee = deliveryFeeFor(standardRoute.method, b2b, goods.goodsTotal, settings.fees);
     const quickFeeValue = quick?.feeRule ? quickFee(goods.goodsTotal, quick.feeRule.fee, quick.feeRule.freeAbove) : null;
     const fee = wantQuick ? quickFeeValue! : standardFee;
-    const cart = priceCart(lineInputs, couponDiscount + walletDiscount, fee);
+    const cart = priceCart(lineInputs, totalOrderDiscount, fee);
 
     // 8. Refund Wallet (rupees) - a payment instrument applied after every discount and fee.
     const walletBalance = await this.refundWallet.balance(customer.id);
@@ -342,10 +401,11 @@ export class CheckoutService {
         };
       }),
       totals: {
-        subtotal: cart.subtotal, couponDiscount, loyaltyDiscount, referralDiscount, discount: cart.discount,
+        subtotal: cart.subtotal, schemeDiscount, couponDiscount, loyaltyDiscount, referralDiscount, discount: cart.discount,
         taxable: cart.taxable, tax: cart.tax, deliveryFee: cart.deliveryFee, totalPayable: cart.totalPayable,
         refundWalletApplied: walletApplied, amountDue,
       },
+      scheme: appliedScheme,
       refundWallet: { balance: walletBalance, applied: walletApplied },
       coupon: coupon ? { code: coupon.code, discount: coupon.discount } : null,
       loyalty: {

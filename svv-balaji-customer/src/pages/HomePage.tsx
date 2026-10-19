@@ -775,119 +775,143 @@ export function HomePage() {
             {/* Mobile horizontal scroller */}
             <div className="mobile-only">
               <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 4 }} className="hide-scrollbar">
-                {schemes.map((scheme) => (
-                  <div
-                    key={scheme.id}
-                    style={{
-                      flex: '0 0 auto',
-                      width: 270,
-                      borderRadius: 14,
-                      padding: 18,
-                      background: scheme.backgroundColor,
-                      color: scheme.textColor,
-                    }}
-                  >
-                    <Typography.Text
+                {schemes.map((scheme) => {
+                  const targetUrl =
+                    Array.isArray(scheme.productIds) && scheme.productIds.length > 0
+                      ? `/deals?title=${encodeURIComponent(scheme.title)}&subtitle=${encodeURIComponent(scheme.subtitle || '')}&ids=${scheme.productIds.join(',')}`
+                      : scheme.ctaLink || '/categories';
+
+                  return (
+                    <div
+                      key={scheme.id}
+                      onClick={() => navigate(targetUrl)}
                       style={{
-                        color: scheme.badgeTextColor,
-                        fontSize: 9,
-                        fontWeight: 800,
-                        letterSpacing: 0.5,
-                        background: scheme.badgeColor,
-                        padding: '2px 6px',
-                        borderRadius: 4,
-                        textTransform: 'uppercase',
+                        flex: '0 0 auto',
+                        width: 270,
+                        borderRadius: 14,
+                        padding: 18,
+                        background: scheme.backgroundColor,
+                        color: scheme.textColor,
+                        cursor: 'pointer',
                       }}
                     >
-                      {scheme.tag}
-                    </Typography.Text>
-                    <Typography.Title level={4} style={{ color: scheme.textColor, margin: '10px 0 2px', fontWeight: 700, fontSize: 17 }}>
-                      {scheme.title}
-                    </Typography.Title>
-                    <Typography.Text style={{ color: scheme.textColor, fontSize: 13, fontWeight: 500 }}>
-                      {scheme.subtitle}
-                    </Typography.Text>
-                    <div style={{ marginTop: 14 }}>
-                      <Button
-                        block
+                      <Typography.Text
                         style={{
-                          background: scheme.buttonColor,
-                          color: scheme.buttonTextColor,
-                          fontWeight: 700,
-                          border: 'none',
-                          borderRadius: 8,
+                          color: scheme.badgeTextColor,
+                          fontSize: 9,
+                          fontWeight: 800,
+                          letterSpacing: 0.5,
+                          background: scheme.badgeColor,
+                          padding: '2px 6px',
+                          borderRadius: 4,
+                          textTransform: 'uppercase',
                         }}
-                        onClick={() => navigate(scheme.ctaLink)}
                       >
-                        {scheme.ctaText}
-                      </Button>
+                        {scheme.tag}
+                      </Typography.Text>
+                      <Typography.Title level={4} style={{ color: scheme.textColor, margin: '10px 0 2px', fontWeight: 700, fontSize: 17 }}>
+                        {scheme.title}
+                      </Typography.Title>
+                      <Typography.Text style={{ color: scheme.textColor, fontSize: 13, fontWeight: 500 }}>
+                        {scheme.subtitle}
+                      </Typography.Text>
+                      <div style={{ marginTop: 14 }}>
+                        <Button
+                          block
+                          style={{
+                            background: scheme.buttonColor,
+                            color: scheme.buttonTextColor,
+                            fontWeight: 700,
+                            border: 'none',
+                            borderRadius: 8,
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(targetUrl);
+                          }}
+                        >
+                          {scheme.ctaText}
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
             {/* Desktop 3-column schemes grid */}
             <div className="desktop-only">
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
-                {schemes.map((scheme) => (
-                  <div
-                    key={scheme.id}
-                    className="product-card-hover"
-                    style={{
-                      borderRadius: 16,
-                      padding: '24px 22px',
-                      background: scheme.backgroundColor,
-                      color: scheme.textColor,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'space-between',
-                    }}
-                  >
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span
+                {schemes.map((scheme) => {
+                  const targetUrl =
+                    Array.isArray(scheme.productIds) && scheme.productIds.length > 0
+                      ? `/deals?title=${encodeURIComponent(scheme.title)}&subtitle=${encodeURIComponent(scheme.subtitle || '')}&ids=${scheme.productIds.join(',')}`
+                      : scheme.ctaLink || '/categories';
+
+                  return (
+                    <div
+                      key={scheme.id}
+                      className="product-card-hover"
+                      onClick={() => navigate(targetUrl)}
+                      style={{
+                        borderRadius: 16,
+                        padding: '24px 22px',
+                        background: scheme.backgroundColor,
+                        color: scheme.textColor,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span
+                            style={{
+                              color: scheme.badgeTextColor,
+                              fontSize: 10,
+                              fontWeight: 800,
+                              letterSpacing: 0.5,
+                              background: scheme.badgeColor,
+                              padding: '3px 8px',
+                              borderRadius: 6,
+                              textTransform: 'uppercase',
+                            }}
+                          >
+                            {scheme.tag}
+                          </span>
+                          <span style={{ fontSize: 11, opacity: 0.8, color: scheme.textColor }}>⚡ Limited Time</span>
+                        </div>
+                        <Typography.Title level={4} style={{ color: scheme.textColor, margin: '14px 0 6px', fontWeight: 800, fontSize: 20 }}>
+                          {scheme.title}
+                        </Typography.Title>
+                        <Typography.Text style={{ color: scheme.textColor, fontSize: 14, fontWeight: 500, lineHeight: 1.4, display: 'block' }}>
+                          {scheme.subtitle}
+                        </Typography.Text>
+                      </div>
+
+                      <div style={{ marginTop: 20 }}>
+                        <Button
+                          block
+                          size="large"
                           style={{
-                            color: scheme.badgeTextColor,
-                            fontSize: 10,
-                            fontWeight: 800,
-                            letterSpacing: 0.5,
-                            background: scheme.badgeColor,
-                            padding: '3px 8px',
-                            borderRadius: 6,
-                            textTransform: 'uppercase',
+                            background: scheme.buttonColor,
+                            color: scheme.buttonTextColor,
+                            fontWeight: 700,
+                            border: 'none',
+                            borderRadius: 10,
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(targetUrl);
                           }}
                         >
-                          {scheme.tag}
-                        </span>
-                        <span style={{ fontSize: 11, opacity: 0.8, color: scheme.textColor }}>⚡ Limited Time</span>
+                          {scheme.ctaText} &rarr;
+                        </Button>
                       </div>
-                      <Typography.Title level={4} style={{ color: scheme.textColor, margin: '14px 0 6px', fontWeight: 800, fontSize: 20 }}>
-                        {scheme.title}
-                      </Typography.Title>
-                      <Typography.Text style={{ color: scheme.textColor, fontSize: 14, fontWeight: 500, lineHeight: 1.4, display: 'block' }}>
-                        {scheme.subtitle}
-                      </Typography.Text>
                     </div>
-
-                    <div style={{ marginTop: 20 }}>
-                      <Button
-                        block
-                        size="large"
-                        style={{
-                          background: scheme.buttonColor,
-                          color: scheme.buttonTextColor,
-                          fontWeight: 700,
-                          border: 'none',
-                          borderRadius: 10,
-                        }}
-                        onClick={() => navigate(scheme.ctaLink)}
-                      >
-                        {scheme.ctaText} &rarr;
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </section>
@@ -1075,11 +1099,14 @@ function ManagedSection({ section, isRetailer }: { section: StorefrontHomeSectio
         <SectionHeader title={section.title} subtitle={subtitle} />
         <div className="price-deals-scroll hide-scrollbar">
           {section.tiles.map((tile, i) => {
-            const to = tile.categorySlug
-              ? tile.parentCategorySlug
-                ? `/products/${tile.parentCategorySlug}?sub=${tile.categorySlug}`
-                : `/products/${tile.categorySlug}`
-              : '/categories';
+            const hasCustomProducts = Array.isArray(tile.productIds) && tile.productIds.length > 0;
+            const to = hasCustomProducts
+              ? `/deals?title=${encodeURIComponent(tile.subtitle || tile.label)}&price=${tile.price}&color=${tile.color}&emoji=${encodeURIComponent(tile.emoji || '')}&ids=${tile.productIds!.join(',')}`
+              : tile.categorySlug
+                ? tile.parentCategorySlug
+                  ? `/products/${tile.parentCategorySlug}?sub=${tile.categorySlug}`
+                  : `/products/${tile.categorySlug}`
+                : '/categories';
             return (
               <div
                 key={i}

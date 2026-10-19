@@ -43,6 +43,7 @@ export function BottomNav() {
         background: '#ffffff',
         borderTop: '1px solid #e7e5e4',
         boxShadow: '0 -2px 12px 0 rgba(28, 25, 23, 0.08)',
+        paddingBottom: 'calc(8px + env(safe-area-inset-bottom, 0px))',
       }}
     >
       <div
@@ -51,8 +52,7 @@ export function BottomNav() {
           margin: '0 auto',
           display: 'flex',
           alignItems: 'stretch',
-          // Fixed height so --store-bottom-nav (styles.css) matches it exactly.
-          height: BOTTOM_NAV_HEIGHT,
+          height: 58,
         }}
       >
         {TABS.map((tab) => (
@@ -67,7 +67,7 @@ export function BottomNav() {
               alignItems: 'center',
               justifyContent: 'center',
               gap: 2,
-              padding: '8px 4px 6px',
+              padding: '6px 4px 2px',
               textDecoration: 'none',
             }}
           >
@@ -86,7 +86,7 @@ export function BottomNav() {
                   ) : (
                     iconNode
                   )}
-                  <span style={{ fontSize: 11, fontWeight: isActive ? 700 : 500, color }}>
+                  <span style={{ fontSize: 11, fontWeight: isActive ? 700 : 500, color, lineHeight: 1.2 }}>
                     {tab.label}
                   </span>
                 </>
@@ -100,4 +100,4 @@ export function BottomNav() {
 }
 
 /** Height of the bar above the safe-area inset. Mirrored by --store-bottom-nav in styles.css. */
-export const BOTTOM_NAV_HEIGHT = 60;
+export const BOTTOM_NAV_HEIGHT = 66;

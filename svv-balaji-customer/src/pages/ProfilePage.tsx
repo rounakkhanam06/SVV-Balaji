@@ -262,15 +262,6 @@ export function ProfilePage() {
       title: 'Account & Settings',
       items: [
         {
-          key: 'photo',
-          icon: <CameraOutlined />,
-          iconBg: '#fff7ed',
-          iconColor: '#ea580c',
-          label: 'Profile Photo',
-          subtitle: customerProfile?.profilePhoto ? 'Photo added · Tap to change' : 'Upload personal profile photo',
-          action: () => setPhotoModalOpen(true),
-        },
-        {
           key: 'notifications',
           icon: <BellOutlined />,
           iconBg: '#f0fdf4',
@@ -367,15 +358,6 @@ export function ProfilePage() {
     {
       title: 'Business & Compliance',
       items: [
-        {
-          key: 'photo',
-          icon: <CameraOutlined />,
-          iconBg: '#ecfdf5',
-          iconColor: '#059669',
-          label: 'Store Profile Photo',
-          subtitle: retailerProfile?.profilePhoto ? 'Store photo added · Tap to change' : 'Upload storefront or business logo',
-          action: () => setPhotoModalOpen(true),
-        },
         {
           key: 'addresses',
           icon: <ShopOutlined />,

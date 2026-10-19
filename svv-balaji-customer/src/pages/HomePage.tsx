@@ -279,15 +279,6 @@ export function HomePage() {
               <QrcodeOutlined style={{ fontSize: 15 }} />
               <span className="home-trace-text">Trace</span>
             </Link>
-            <Badge count={unreadNotifications} size="small" offset={[-3, 3]} color="#ef4444">
-              <button
-                aria-label="Notifications"
-                className="home-bell-btn"
-                onClick={() => navigate(isLoggedIn ? '/notifications' : '/login')}
-              >
-                <BellOutlined style={{ fontSize: 17, color: '#334155' }} />
-              </button>
-            </Badge>
           </div>
         </div>
 
@@ -299,7 +290,6 @@ export function HomePage() {
             size="middle"
             placeholder="Search atta, dal, rice, spices..."
             prefix={<SearchOutlined style={{ color: '#94a3b8', fontSize: 16, marginRight: 6 }} />}
-            suffix={<BarcodeOutlined style={{ color: '#059669', fontSize: 18 }} />}
             className="home-search-input"
             style={{
               borderRadius: 12,

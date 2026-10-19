@@ -31,12 +31,14 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useCustomerAuth, type UserRole } from '../auth/CustomerAuthContext';
 import { useLoyalty } from '../loyalty/useLoyalty';
 import { useAccountStats } from '../hooks/useAccountStats';
+import { useUnreadNotifications } from '../notifications/useUnreadNotifications';
 
 export function ProfilePage() {
   const navigate = useNavigate();
   const { role, customerProfile, retailerProfile, uploadProfilePhoto, removeProfilePhoto, updateProfileData, logout } = useCustomerAuth();
   const loyalty = useLoyalty();
   const stats = useAccountStats();
+  const unreadNotifications = useUnreadNotifications();
 
   const [photoModalOpen, setPhotoModalOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -269,6 +271,16 @@ export function ProfilePage() {
           action: () => setPhotoModalOpen(true),
         },
         {
+          key: 'notifications',
+          icon: <BellOutlined />,
+          iconBg: '#f0fdf4',
+          iconColor: '#059669',
+          label: 'Notifications & Updates',
+          subtitle: unreadNotifications > 0 ? `${unreadNotifications} unread notification${unreadNotifications === 1 ? '' : 's'}` : 'Offers, order updates & alerts',
+          badge: unreadNotifications > 0 ? unreadNotifications : undefined,
+          route: '/notifications',
+        },
+        {
           key: 'addresses',
           icon: <ShopOutlined />,
           iconBg: '#fefce8',
@@ -387,6 +399,16 @@ export function ProfilePage() {
     {
       title: 'Settings & Support',
       items: [
+        {
+          key: 'notifications',
+          icon: <BellOutlined />,
+          iconBg: '#f0fdf4',
+          iconColor: '#059669',
+          label: 'Notifications & Updates',
+          subtitle: unreadNotifications > 0 ? `${unreadNotifications} unread notification${unreadNotifications === 1 ? '' : 's'}` : 'Offers, wholesale schemes & delivery alerts',
+          badge: unreadNotifications > 0 ? unreadNotifications : undefined,
+          route: '/notifications',
+        },
         {
           key: 'help',
           icon: <QuestionCircleOutlined />,
@@ -1298,6 +1320,39 @@ export function ProfilePage() {
                                 </Typography.Text>
                               </div>
                               <RightOutlined style={{ color: '#3b82f6' }} />
+                            </div>
+
+                            <div
+                              onClick={() => navigate('/notifications')}
+                              style={{
+                                border: '1px solid #bbf7d0',
+                                borderRadius: 12,
+                                padding: 16,
+                                cursor: 'pointer',
+                                background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                transition: 'all 0.2s ease',
+                              }}
+                              className="card-hover-shadow"
+                            >
+                              <div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                  <Typography.Text strong style={{ fontSize: 15, display: 'block', color: '#15803d' }}>
+                                    🔔 Notifications & Updates
+                                  </Typography.Text>
+                                  {unreadNotifications > 0 && (
+                                    <Tag color="error" style={{ borderRadius: 8, fontSize: 10, fontWeight: 700 }}>
+                                      {unreadNotifications} New
+                                    </Tag>
+                                  )}
+                                </div>
+                                <Typography.Text style={{ fontSize: 12, color: '#166534' }}>
+                                  Offers, exclusive discounts, delivery alerts & updates
+                                </Typography.Text>
+                              </div>
+                              <RightOutlined style={{ color: '#22c55e' }} />
                             </div>
                           </div>
 

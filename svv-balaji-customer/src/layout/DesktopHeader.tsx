@@ -406,14 +406,6 @@ export function DesktopHeader() {
               </Link>
             )}
 
-            {isLoggedIn ? (
-              <Link to="/notifications" aria-label="Notifications" style={{ display: 'flex', alignItems: 'center', padding: '0 4px' }}>
-                <Badge count={unreadNotifications} size="small" offset={[2, -2]}>
-                  <BellOutlined style={{ fontSize: 20, color: '#334155' }} />
-                </Badge>
-              </Link>
-            ) : null}
-
             {/* Cart Button */}
             <Link to="/cart" style={{ textDecoration: 'none' }}>
               <div

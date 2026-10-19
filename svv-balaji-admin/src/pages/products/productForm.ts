@@ -1,5 +1,6 @@
 import type { LoyaltyEligibility } from '@shared/api/loyalty';
 import type {
+  Category,
   CreateProductInput,
   LivePriceRule,
   PriceTierInput,
@@ -215,14 +216,31 @@ function b2cFrom(rules: LivePriceRule[] | undefined): number | null {
   return single ? single.unitPrice : null;
 }
 
-export function productToFormValues(product: Product): ProductFormValues {
-  const category = product.category;
-  // A leaf category reports its parent; a top-level one is its own "main".
-  const mainCategoryId = category?.parent?.id ?? category?.id;
+export function productToFormValues(product: Product, categoryRows?: Category[]): ProductFormValues {
+  const allCats = categoryRows ?? [];
+  const targetCat = allCats.find((c) => c.id === product.categoryId);
+  let mainCategoryId = product.category?.parent?.id;
+  let categoryId = product.categoryId ?? undefined;
+
+  if (targetCat) {
+    if (targetCat.parentId) {
+      mainCategoryId = targetCat.parentId;
+      categoryId = targetCat.id;
+    } else {
+      mainCategoryId = targetCat.id;
+      categoryId = targetCat.id;
+    }
+  } else {
+    mainCategoryId = mainCategoryId ?? product.category?.id ?? undefined;
+  }
 
   const live = product.pricing;
   const gst =
-    channelWide(live?.B2C)[0]?.gstRatePercent ?? channelWide(live?.B2B)[0]?.gstRatePercent ?? DEFAULT_GST;
+    channelWide(live?.B2C)[0]?.gstRatePercent ??
+    channelWide(live?.B2B)[0]?.gstRatePercent ??
+    (typeof (product as unknown as Record<string, unknown>).gstRatePercent === 'number'
+      ? (product as unknown as Record<string, unknown>).gstRatePercent as number
+      : DEFAULT_GST);
 
   return {
     name: product.name,
@@ -235,27 +253,33 @@ export function productToFormValues(product: Product): ProductFormValues {
     badge: product.badge ?? undefined,
     description: product.description ?? undefined,
     mainCategoryId,
-    categoryId: product.categoryId ?? undefined,
+    categoryId,
     highlights: product.highlights ?? [],
-    showOnStorefront: product.showOnStorefront,
-    isTopPick: product.isTopPick,
-    isDailyStaple: product.isDailyStaple,
+    showOnStorefront: Boolean(product.showOnStorefront),
+    isTopPick: Boolean(product.isTopPick),
+    isDailyStaple: Boolean(product.isDailyStaple),
     loyaltyEligibility: product.loyaltyEligibility ?? 'INHERIT',
 
     mrp: num(product.mrp),
     gstRatePercent: gst,
     hsnCode: product.hsnCode ?? undefined,
-    b2cPrice: b2cFrom(live?.B2C),
-    b2bTiers: tiersFrom(live?.B2B, product.b2bTiersAreTotals),
-    b2bTiersAreTotals: product.b2bTiersAreTotals,
+    b2cPrice: b2cFrom(live?.B2C) ?? (typeof product.b2cPrice === 'number' ? product.b2cPrice : null),
+    b2bTiers: (() => {
+      const tiers = tiersFrom(live?.B2B, product.b2bTiersAreTotals);
+      if (tiers.length === 0 && typeof product.b2bPrice === 'number') {
+        return [{ minQuantity: 1, unitPrice: product.b2bPrice }];
+      }
+      return tiers;
+    })(),
+    b2bTiersAreTotals: Boolean(product.b2bTiersAreTotals),
 
     minOrderQuantity: product.minOrderQuantity,
     maxOrderQuantity: product.maxOrderQuantity,
     moqB2B: product.moqB2B,
     maxOrderQuantityB2B: product.maxOrderQuantityB2B,
     packBoxSize: product.packBoxSize,
-    bulkAvailable: product.bulkAvailable,
-    gstInvoiceAvailable: product.gstInvoiceAvailable,
+    bulkAvailable: Boolean(product.bulkAvailable),
+    gstInvoiceAvailable: product.gstInvoiceAvailable ?? true,
     businessSupportContact: product.businessSupportContact ?? undefined,
     deliveryTerms: product.deliveryTerms ?? undefined,
 
@@ -277,12 +301,12 @@ export function productToFormValues(product: Product): ProductFormValues {
     faqs: (product.faqs ?? []).map((f) => ({ question: f.question, answer: f.answer })),
     offers: (product.offers ?? []).map((o) => ({ title: o.title, description: o.description })),
 
-    reorderPoint: product.reorderPoint,
-    safetyStock: product.safetyStock,
-    allowBackorder: product.allowBackorder,
+    reorderPoint: product.reorderPoint ?? 0,
+    safetyStock: product.safetyStock ?? 0,
+    allowBackorder: Boolean(product.allowBackorder),
 
     variants: (product.variants ?? []).map((v) => {
-      const own = live?.variants.find((lv) => lv.id === v.id);
+      const own = live?.variants?.find((lv) => lv.id === v.id);
       return {
         id: v.id,
         name: v.name,
@@ -290,7 +314,7 @@ export function productToFormValues(product: Product): ProductFormValues {
         unit: v.unit ?? undefined,
         mrp: num(v.mrp),
         images: v.images ?? [],
-        isActive: v.isActive,
+        isActive: v.isActive ?? true,
         b2cPrice: b2cFrom(own?.B2C),
         b2bTiers: tiersFrom(own?.B2B, product.b2bTiersAreTotals),
       };

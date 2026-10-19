@@ -13,7 +13,7 @@ import {
 import { useCategories } from '@shared/hooks/useCategories';
 import { App as AntApp, Alert, Breadcrumb, Button, Card, Form, Space, Spin, Tabs } from 'antd';
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { apiErrorMessage } from '../../api/client';
 import { PageHeader } from '../../components/PageHeader';
 import {
@@ -73,17 +73,32 @@ function ProductEditor({ editId }: { editId?: string }) {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewValues, setPreviewValues] = useState<ProductFormValues>(EMPTY_FORM);
 
+  const location = useLocation();
+  const returnUrl = (location.state as { from?: string } | null)?.from || '/products';
+  const returnLabel = returnUrl === '/products' ? 'Products' : 'Product Catalog';
+
   const product = productQuery.data;
 
-  // Prefill exactly once per product. Depending on `product` directly would
-  // re-run on every background refetch (window focus, invalidation) and wipe
-  // whatever the operator has typed since.
+  // Prefill exactly once per product (and re-sync category once categories load).
   const prefilledFor = useRef<string | null>(null);
   useEffect(() => {
-    if (!product || prefilledFor.current === product.id) return;
-    prefilledFor.current = product.id;
-    form.setFieldsValue(productToFormValues(product));
-  }, [product, form]);
+    if (!product) return;
+    const catRows = categories.data?.data ?? [];
+    if (prefilledFor.current !== product.id) {
+      prefilledFor.current = product.id;
+      form.setFieldsValue(productToFormValues(product, catRows));
+    } else if (catRows.length > 0 && product.categoryId) {
+      // Re-sync category hierarchy if categories loaded after product
+      const found = catRows.find((c) => c.id === product.categoryId);
+      if (found) {
+        if (found.parentId) {
+          form.setFieldsValue({ mainCategoryId: found.parentId, categoryId: found.id });
+        } else {
+          form.setFieldsValue({ mainCategoryId: found.id, categoryId: found.id });
+        }
+      }
+    }
+  }, [product, categories.data, form]);
 
   const tabParam = searchParams.get('tab') as TabKey | null;
   const activeTab: TabKey = tabParam && TAB_KEYS.includes(tabParam) ? tabParam : 'basic';
@@ -143,7 +158,7 @@ function ProductEditor({ editId }: { editId?: string }) {
         await createProduct.mutateAsync(payload);
         message.success(`“${payload.name}” created${payload.showOnStorefront ? ' and published' : ' as a draft'}`);
       }
-      navigate('/productlists');
+      navigate(returnUrl);
     } catch (error) {
       message.error(apiErrorMessage(error, `Could not ${isEdit ? 'save' : 'create'} the product`));
     } finally {
@@ -166,7 +181,7 @@ function ProductEditor({ editId }: { editId?: string }) {
         showIcon
         message="Product not found"
         description={apiErrorMessage(productQuery.error, 'It may have been deleted.')}
-        action={<Button onClick={() => navigate('/productlists')}>Back to catalog</Button>}
+        action={<Button onClick={() => navigate(returnUrl)}>Back to products</Button>}
       />
     );
   }
@@ -193,9 +208,9 @@ function ProductEditor({ editId }: { editId?: string }) {
         items={[
           {
             title: (
-              <a onClick={() => navigate('/productlists')}>
+              <a onClick={() => navigate(returnUrl)}>
                 <ArrowLeftOutlined style={{ marginRight: 6 }} />
-                Product Catalog
+                {returnLabel}
               </a>
             ),
           },
@@ -211,7 +226,7 @@ function ProductEditor({ editId }: { editId?: string }) {
             <Button icon={<EyeOutlined />} onClick={openPreview}>
               Storefront preview
             </Button>
-            <Button onClick={() => navigate('/productlists')}>Cancel</Button>
+            <Button onClick={() => navigate(returnUrl)}>Cancel</Button>
             <Button type="primary" size="large" icon={<SaveOutlined />} loading={saving} onClick={handleSubmit}>
               {isEdit ? 'Save changes' : 'Create product'}
             </Button>

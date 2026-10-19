@@ -401,3 +401,89 @@ body {
   box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.35);
 }
 
+/* ---------------------------------------------------------------------------
+   Super Admin Dynamic Responsiveness (Mobile, Tablet & Desktop)
+   --------------------------------------------------------------------------- */
+
+/* Responsive tables with smooth horizontal swipe and compact cells on mobile */
+.ant-table-wrapper {
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+.ant-table {
+  overflow-x: auto !important;
+}
+
+/* Modals adapt cleanly to viewport width */
+.ant-modal {
+  max-width: calc(100vw - 24px) !important;
+}
+
+@media (max-width: 991px) {
+  /* Tablet refinements */
+  .ant-table-thead > tr > th {
+    padding: 10px 12px !important;
+    font-size: 12.5px !important;
+  }
+  .ant-table-tbody > tr > td {
+    padding: 10px 12px !important;
+    font-size: 12.5px !important;
+  }
+  .page-card {
+    border-radius: var(--page-radius-md) !important;
+  }
+}
+
+@media (max-width: 767px) {
+  /* Mobile refinements */
+  .ant-table-wrapper {
+    border-radius: 8px !important;
+    margin-bottom: 12px !important;
+  }
+  .ant-table-thead > tr > th {
+    padding: 8px 10px !important;
+    font-size: 12px !important;
+  }
+  .ant-table-tbody > tr > td {
+    padding: 8px 10px !important;
+    font-size: 12px !important;
+  }
+  .ant-card {
+    border-radius: 12px !important;
+  }
+  .ant-card-body {
+    padding: 14px !important;
+  }
+  .ant-card-head {
+    padding: 0 14px !important;
+    min-height: 44px !important;
+  }
+  .ant-modal {
+    max-width: calc(100vw - 16px) !important;
+    margin: 8px auto !important;
+    top: 12px !important;
+    padding-bottom: 12px !important;
+  }
+  .ant-modal .ant-modal-content {
+    padding: 16px !important;
+    border-radius: 14px !important;
+    max-height: calc(100vh - 24px) !important;
+  }
+  .page-title {
+    font-size: 16px !important;
+  }
+  .page-stat-value {
+    font-size: 18px !important;
+  }
+  .page-card {
+    padding: 14px !important;
+    border-radius: 12px !important;
+  }
+  /* Flex wrap for action toolbars and filter rows */
+  .ant-space {
+    flex-wrap: wrap !important;
+  }
+}
+

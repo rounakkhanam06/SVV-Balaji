@@ -576,6 +576,8 @@ export function AppLayout() {
             overflowX: 'hidden',
             paddingRight: isMobile ? 0 : 4,
             WebkitOverflowScrolling: 'touch',
+            minWidth: 0,
+            maxWidth: '100%',
           }}
         >
           {/* Screens are code-split (see App.tsx). The boundary sits here rather

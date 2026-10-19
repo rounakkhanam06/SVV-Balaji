@@ -405,15 +405,94 @@ body {
    Super Admin Dynamic Responsiveness (Mobile, Tablet & Desktop)
    --------------------------------------------------------------------------- */
 
-/* Responsive tables with smooth horizontal swipe and compact cells on mobile */
-.ant-table-wrapper {
+/* Prevent flex containers from blowing out parent widths when containing wide tables */
+.ant-space {
   max-width: 100% !important;
-  overflow-x: auto !important;
-  -webkit-overflow-scrolling: touch !important;
+}
+
+.ant-space-item {
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+.ant-card {
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+.ant-card-body {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Ant Design Table Horizontal Scrolling */
+.ant-table-wrapper {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  width: 100% !important;
 }
 
 .ant-table {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+.ant-table-container {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+/* The actual scroll containers for Ant Design tables */
+.ant-table-content,
+.ant-table-body {
   overflow-x: auto !important;
+  overflow-y: hidden !important;
+  -webkit-overflow-scrolling: touch !important;
+  touch-action: pan-x pan-y !important;
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+/* Ensure table has a proper minimum width so columns don't get squashed or clipped */
+.ant-table-content > table,
+.ant-table-body > table {
+  min-width: max-content !important;
+}
+
+@media (max-width: 767px) {
+  /* On mobile screens, give tables a solid min-width so every column is readable and scrollable */
+  .ant-table-content > table,
+  .ant-table-body > table {
+    min-width: 680px !important;
+  }
+}
+
+/* Always show a sleek, visible horizontal scrollbar for scrollable tables */
+.ant-table-content::-webkit-scrollbar,
+.ant-table-body::-webkit-scrollbar {
+  height: 6px !important;
+  display: block !important;
+}
+
+.ant-table-content::-webkit-scrollbar-track,
+.ant-table-body::-webkit-scrollbar-track {
+  background: #f1f5f9 !important;
+  border-radius: 999px !important;
+}
+
+.ant-table-content::-webkit-scrollbar-thumb,
+.ant-table-body::-webkit-scrollbar-thumb {
+  background: #16a34a !important;
+  border-radius: 999px !important;
+}
+
+.ant-table-content,
+.ant-table-body {
+  scrollbar-width: thin !important;
+  scrollbar-color: #16a34a #f1f5f9 !important;
 }
 
 /* Modals adapt cleanly to viewport width */

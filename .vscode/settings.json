@@ -1,7 +1,21 @@
 {
   "task.allowAutomaticTasks": "off",
   "typescript.tsserver.experimental.enableProjectDiagnostics": true,
-  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "[typescript]": {
+    "editor.defaultFormatter": "vscode.typescript-language-features"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "vscode.typescript-language-features"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "vscode.typescript-language-features"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "vscode.json-language-features"
+  },
+  "[css]": {
+    "editor.defaultFormatter": "vscode.css-language-features"
+  },
   "typescript.preferences.importModuleSpecifier": "relative",
   "typescript.tsdk": "node_modules/typescript/lib",
   "debug.openDebug": "neverOpen",

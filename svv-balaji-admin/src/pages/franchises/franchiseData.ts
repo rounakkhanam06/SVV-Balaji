@@ -300,7 +300,9 @@ export function saveStoredFranchises(franchises: FranchiseStore[]) {
     if (typeof window !== 'undefined') {
       localStorage.setItem(STORAGE_FRANCHISES_KEY, JSON.stringify(franchises));
     }
-  } catch {}
+  } catch {
+    // ignore storage errors
+  }
 }
 
 export function getStoredFranchiseOrders(): FranchiseSupplyOrder[] {
@@ -318,5 +320,7 @@ export function saveStoredFranchiseOrders(orders: FranchiseSupplyOrder[]) {
     if (typeof window !== 'undefined') {
       localStorage.setItem(STORAGE_ORDERS_KEY, JSON.stringify(orders));
     }
-  } catch {}
+  } catch {
+    // ignore storage errors
+  }
 }

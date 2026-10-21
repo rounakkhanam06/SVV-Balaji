@@ -479,7 +479,7 @@ function PayoutFields({ method }: { method: 'UPI' | 'BANK' }) {
       rules={[
         { required: true, message: 'Please enter your UPI ID' },
         {
-          pattern: /^[\w.\-]{2,256}@[a-zA-Z]{2,64}$/,
+          pattern: /^[\w.-]{2,256}@[a-zA-Z]{2,64}$/,
           message: 'Enter a valid UPI ID (e.g. name@okhdfcbank or 9876543210@paytm)',
         },
       ]}

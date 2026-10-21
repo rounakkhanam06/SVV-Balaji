@@ -1,4 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { LoyaltyService } from './loyalty.service';
 
 /**
@@ -37,7 +38,6 @@ function makeWorld(over: { settings?: Record<string, unknown>; items?: any[]; st
       findUnique: async ({ where }: any) => state.earns.find((e) => e.orderId === where.orderId) ?? null,
       create: async ({ data }: any) => {
         if (state.earns.some((e) => e.orderId === data.orderId)) {
-          const { Prisma } = require('@prisma/client');
           throw new Prisma.PrismaClientKnownRequestError('dup', { code: 'P2002', clientVersion: 'x' });
         }
         const { lines, ...rest } = data;

@@ -745,7 +745,7 @@ describe('StorefrontAuthService', () => {
     it('refresh rotates within the same session; replaying an old refresh token kills the session', async () => {
       const s = await login('9333333331');
       // The mocked signer is deterministic, so make the second token differ.
-      (service as any).jwtService.signAsync.mockImplementation(async (p: any, o: any) => `signed.${JSON.stringify({ ...p, n: Math.random() })}`);
+      (service as any).jwtService.signAsync.mockImplementation(async (p: any, _o: any) => `signed.${JSON.stringify({ ...p, n: Math.random() })}`);
       const rotated: any = await service.refresh(s.refreshToken);
       expect(sessions).toHaveLength(1);
       expect(rotated.refreshToken).not.toBe(s.refreshToken);

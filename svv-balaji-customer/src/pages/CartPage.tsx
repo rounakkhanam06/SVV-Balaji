@@ -129,48 +129,6 @@ export function CartPage() {
     };
   }, [role]);
 
-  if (cart.lines.length === 0) {
-    return (
-      <div style={{ minHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
-        <header
-          className="mobile-only"
-          style={{
-            background: '#fff',
-            padding: '14px 16px',
-            borderBottom: '1px solid #e7e5e4',
-            display: 'flex',
-            alignItems: 'center',
-          }}
-        >
-          <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', cursor: 'pointer', marginRight: 16 }}>
-            <ArrowLeftOutlined style={{ fontSize: 18 }} />
-          </button>
-          <Typography.Text strong style={{ fontSize: 16 }}>My Cart</Typography.Text>
-        </header>
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-          <Empty
-            image={<Lottie animationData={shoppingCartAnimation} loop autoplay style={{ width: 260, height: 260, margin: '0 auto' }} />}
-            imageStyle={{ height: 'auto', marginBottom: 8 }}
-            description={
-              <div>
-                <Typography.Text strong style={{ fontSize: 18, display: 'block', color: '#1c1917' }}>
-                  Your cart is empty
-                </Typography.Text>
-                <Typography.Text type="secondary" style={{ fontSize: 14 }}>
-                  {role === 'RETAILER' ? 'Add products from the wholesale catalogue to place a bulk order.' : 'Looks like you haven’t added anything yet.'}
-                </Typography.Text>
-              </div>
-            }
-          >
-            <Button type="primary" size="large" style={{ background: '#059669', borderColor: '#059669', borderRadius: 8, marginTop: 12 }} onClick={() => navigate('/')}>
-              {role === 'RETAILER' ? 'Explore Wholesale Catalog' : 'Start Shopping'}
-            </Button>
-          </Empty>
-        </div>
-      </div>
-    );
-  }
-
   const schemesQuery = useStorefrontSchemes(isRetailer ? 'B2B' : 'B2C', storefrontApi);
   const activeSchemes = schemesQuery.data ?? [];
 
@@ -242,6 +200,48 @@ export function CartPage() {
       nudge: bestNudge,
     };
   }, [activeSchemes, cart.lines]);
+
+  if (cart.lines.length === 0) {
+    return (
+      <div style={{ minHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
+        <header
+          className="mobile-only"
+          style={{
+            background: '#fff',
+            padding: '14px 16px',
+            borderBottom: '1px solid #e7e5e4',
+            display: 'flex',
+            alignItems: 'center',
+          }}
+        >
+          <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', cursor: 'pointer', marginRight: 16 }}>
+            <ArrowLeftOutlined style={{ fontSize: 18 }} />
+          </button>
+          <Typography.Text strong style={{ fontSize: 16 }}>My Cart</Typography.Text>
+        </header>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <Empty
+            image={<Lottie animationData={shoppingCartAnimation} loop autoplay style={{ width: 260, height: 260, margin: '0 auto' }} />}
+            imageStyle={{ height: 'auto', marginBottom: 8 }}
+            description={
+              <div>
+                <Typography.Text strong style={{ fontSize: 18, display: 'block', color: '#1c1917' }}>
+                  Your cart is empty
+                </Typography.Text>
+                <Typography.Text type="secondary" style={{ fontSize: 14 }}>
+                  {role === 'RETAILER' ? 'Add products from the wholesale catalogue to place a bulk order.' : 'Looks like you haven’t added anything yet.'}
+                </Typography.Text>
+              </div>
+            }
+          >
+            <Button type="primary" size="large" style={{ background: '#059669', borderColor: '#059669', borderRadius: 8, marginTop: 12 }} onClick={() => navigate('/')}>
+              {role === 'RETAILER' ? 'Explore Wholesale Catalog' : 'Start Shopping'}
+            </Button>
+          </Empty>
+        </div>
+      </div>
+    );
+  }
 
   // Calculations: use real server quote when available so Cart and Checkout amounts match 100%
   const totalMrp = cart.lines.reduce((acc, line) => acc + ((line.mrp || line.displayUnitPrice || 0) * line.quantity), 0);

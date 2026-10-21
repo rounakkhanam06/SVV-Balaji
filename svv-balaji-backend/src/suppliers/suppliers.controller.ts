@@ -5,7 +5,6 @@ import { CreateSupplierDto } from './dto/create-supplier.dto';
 import { UpdateSupplierDto } from './dto/update-supplier.dto';
 import { VerifySupplierDto } from './dto/verify-supplier.dto';
 import { QuerySupplierDto } from './dto/query-supplier.dto';
-import { UpdateSupplierStatusDto } from './dto/update-supplier-status.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermission } from '../auth/decorators/require-permission.decorator';

@@ -48,7 +48,7 @@ export function RiderCashPage() {
           rowKey="id" loading={report.isLoading} dataSource={data?.riders ?? []} scroll={{ x: 800 }} pagination={{ pageSize: 20, hideOnSinglePage: true }}
           locale={{ emptyText: <Empty description="No rider is holding cash" /> }}
           columns={[
-            { title: 'Rider', key: 'r', render: (_, r) => <RiderCell rider={r} sub={[r.code, r.warehouse?.name].filter(Boolean).join(' · ')} onOpen={() => navigate(`/riders/${r.id}?tab=cash`)} /> },
+            { title: 'Rider', key: 'r', width: 260, render: (_, r) => <RiderCell rider={r} sub={[r.code, r.warehouse?.name].filter(Boolean).join(' · ')} onOpen={() => navigate(`/riders/${r.id}?tab=cash`)} /> },
             { title: 'Last collected', key: 'c', render: (_, r) => (r.lastCollectedAt ? dayjs(r.lastCollectedAt).fromNow() : '—') },
             { title: 'Last deposit', key: 'd', render: (_, r) => (r.lastDepositAt ? dayjs(r.lastDepositAt).format('D MMM, h:mm A') : 'Never') },
             {

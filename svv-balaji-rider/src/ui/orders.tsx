@@ -70,23 +70,28 @@ function Countdown({ until }: { until: string }) {
  * the "assigned to you" pop-up, which opens the task). Requests go to several
  * riders at once, so "someone else was faster" is a normal outcome, not an error.
  */
-export function useOfferResponse(onDone?: () => void) {
+export function useOfferResponse(onDone?: () => void, onAccepted?: (taskId: string) => void) {
   const qc = useQueryClient();
   const toast = useToast();
   return useMutation({
+    // A double tap queues behind the first call instead of racing it; the server answers a repeat accept idempotently.
+    scope: { id: 'offer-response' },
     mutationFn: ({ offer, accept, reason }: { offer: Offer; accept: boolean; reason?: string }) =>
       accept ? riderApi.accept(offer.offerId) : riderApi.reject(offer.offerId, reason),
     onSuccess: (r, v) => {
       onDone?.();
       void qc.invalidateQueries({ queryKey: ['dashboard'] });
       void qc.invalidateQueries({ queryKey: ['tasks'] });
+      void qc.invalidateQueries({ queryKey: ['offers'] });
       const res = r as { status?: string; taskId?: string } | undefined;
       if (v.accept && res?.status === 'ACCEPTED' && res.taskId) {
-        riderEvents.assigned({ taskId: res.taskId, by: 'ACCEPT' });
+        if (onAccepted) {
+          onAccepted(res.taskId);
+        } else {
+          riderEvents.assigned({ taskId: res.taskId, by: 'ACCEPT' });
+        }
       } else if (v.accept) {
-        // Defensive: older APIs answered a too-late accept with 200 + EXPIRED.
         toast('Time ran out on this request - it has gone to another rider', 'info');
-        void qc.invalidateQueries({ queryKey: ['offers'] });
       } else toast('Order rejected - it goes to another rider', 'info');
     },
     onError: (e) => {
@@ -114,7 +119,7 @@ export function OfferCard({ offer, onOpen, onAccept, onReject, busy }: { offer: 
         <div className="meta"><Clock size={15} /> <span className="ellipsis">{date(offer.offeredAt)}{offer.cod > 0 ? ` · COD ${inr(offer.cod)}` : ''}</span></div>
         {offer.estimatedEarning ? <div className="meta" style={{ color: 'var(--green)', fontWeight: 600 }}>You earn {inr(offer.estimatedEarning)}</div> : null}
         <div className="actions" onClick={(e) => e.stopPropagation()}>
-          <button className="btn success small" onClick={onAccept} disabled={busy}>Accept</button>
+          <button className="btn success small" onClick={onAccept} disabled={busy}>{busy ? 'Accepting…' : 'Accept'}</button>
           <button className="btn danger small" onClick={onReject} disabled={busy}>Reject</button>
         </div>
       </div>
@@ -152,87 +157,60 @@ export function TaskCard({ t }: { t: TaskSummary }) {
   );
 }
 
-/** The "order details" pop-up from the design, for a request that has not been accepted yet. */
+/** The compact "order details" pop-up for a delivery request that has not been accepted yet. */
 export function OfferModal({ offer, onClose, onAccept, onReject, busy, heading }: { offer: Offer | null; onClose: () => void; onAccept: () => void; onReject: () => void; busy: boolean; heading?: string }) {
   if (!offer) return null;
   const isReturn = offer.kind === 'RETURN_PICKUP';
   return (
     <Modal open onClose={onClose}>
-      {heading ? <div className="between" style={{ marginBottom: 10 }}><b style={{ fontSize: 17, color: 'var(--orange-dark)' }}>{heading}</b><button className="icon-btn" aria-label="Close" onClick={onClose}>×</button></div> : null}
-      {isReturn ? (
-        <div style={{ background: 'var(--orange-soft)', borderRadius: 12, padding: '10px 12px', marginBottom: 10 }}>
-          <b style={{ color: 'var(--orange-dark)' }}>↩ Return pickup</b>
-          <div style={{ fontSize: 13, color: 'var(--ink)', marginTop: 2 }}>
-            Collect {offer.returnRequest?.type === 'EXCHANGE' ? 'an exchange item' : 'a returned item'} from the customer and bring it to the store. Ask the customer for their 4-digit pickup code.
-          </div>
-        </div>
-      ) : null}
-      <div className="block row" style={{ alignItems: 'flex-start' }}>
-        <ItemThumb items={offer.items} size={72} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="between">
-            <div className="ellipsis" style={{ fontWeight: 600, color: 'var(--ink)', fontSize: 16 }}>{itemsTitle(offer.items, offer.itemCount)}</div>
+      <div className="offer-pop">
+        <div className="between" style={{ marginBottom: 8 }}>
+          <b style={{ fontSize: 15, color: 'var(--orange-dark)' }}>{isReturn ? '↩ Return pickup' : heading ?? 'New delivery request'}</b>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <Countdown until={offer.expiresAt} />
+            <button className="icon-btn" aria-label="Close" onClick={onClose} style={{ width: 26, height: 26, fontSize: 17 }}>×</button>
           </div>
-          <div className="between muted" style={{ fontSize: 13, marginTop: 4 }}>
-            <span>{isReturn ? 'No cash to collect' : offer.cod > 0 ? <>COD: <b style={{ color: 'var(--ink)' }}>{inr(offer.cod)}</b></> : 'Prepaid'}</span>
-            <span>Qty: <b style={{ color: 'var(--ink)' }}>{offer.itemCount}</b></span>
+        </div>
+
+        {/* Earning, payment and items in one row */}
+        <div className="between" style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: 12, padding: '8px 12px', marginBottom: 8 }}>
+          <div>
+            <div style={{ fontSize: 10.5, color: '#047857', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>You earn</div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: '#065f46', lineHeight: 1.1 }}>{offer.estimatedEarning ? inr(offer.estimatedEarning) : '—'}</div>
           </div>
-          <div className="between muted" style={{ fontSize: 13, marginTop: 2 }}>
-            <span className="ellipsis">
-              {offer.kind === 'REPLACEMENT_DELIVERY' ? <span className="chip orange" style={{ marginRight: 6 }}>Exchange</span> : null}
-              #{offer.returnRequest?.requestNumber ?? offer.orderNumber ?? offer.taskNumber}
+          <div style={{ textAlign: 'right' }}>
+            <span className={`chip ${offer.cod > 0 ? 'orange' : 'grey'}`} style={{ fontWeight: 600, fontSize: 11.5 }}>
+              {isReturn ? 'Return' : offer.cod > 0 ? `COD ${inr(offer.cod)}` : 'Prepaid'}
             </span>
-            <span style={{ whiteSpace: 'nowrap' }}>{date(offer.offeredAt)}</span>
-          </div>
-          <div className="muted" style={{ fontSize: 13, marginTop: 2 }}>
-            {offer.speed === 'QUICK' ? 'Quick' : 'Local'} · {offer.distanceKm !== null ? `${offer.distanceKm.toFixed(1)} km trip` : 'distance not pinned'}
-          </div>
-        </div>
-      </div>
-      {offer.estimatedEarning ? (
-        <div className="between" style={{ background: 'var(--green-soft)', borderRadius: 12, padding: '10px 12px', margin: '10px 0' }}>
-          <span style={{ fontSize: 13, color: 'var(--ink)' }}>Your earning{isReturn ? ' for this pickup' : ''}</span>
-          <b style={{ fontSize: 18, color: '#168a55' }}>{inr(offer.estimatedEarning)}</b>
-        </div>
-      ) : null}
-      <div className="block">
-        {isReturn ? (
-          <>
-            <div className="kv-title">Collect from (customer)</div>
-            <div className="meta"><Pin size={16} /> {offer.dropArea}</div>
-            <div className="kv-title">Bring to (store)</div>
-            <div className="meta"><Box size={16} /> {offer.pickup.name}{offer.pickup.location ? `, ${offer.pickup.location}` : ''}</div>
-            {offer.returnRequest?.reason ? (
-              <>
-                <div className="kv-title">Return reason</div>
-                <div style={{ fontSize: 14, color: 'var(--ink)' }}>{offer.returnRequest.reason}</div>
-              </>
-            ) : null}
-            <div className="kv-title">Contact Us</div>
-            <div className="muted" style={{ fontSize: 13 }}>Customer name and phone are shared once you accept.</div>
-          </>
-        ) : (
-          <>
-            <div className="kv-title">Location</div>
-            <div className="meta"><Pin size={16} /> {offer.dropArea}</div>
-            <div className="kv-title">Pickup</div>
-            <div className="meta"><Box size={16} /> {offer.pickup.name}{offer.pickup.location ? `, ${offer.pickup.location}` : ''}</div>
-            <div className="kv-title">Contact Us</div>
-            <div className="muted" style={{ fontSize: 13 }}>Customer name and phone are shared once you accept.</div>
-            <div className="kv-title">Payment</div>
-            <div style={{ fontSize: 14, color: 'var(--ink)' }}>{offer.cod > 0 ? <>Cash On Delivery · <b>{inr(offer.cod)}</b></> : 'Prepaid - nothing to collect'}</div>
-            <div className="kv-title">Date & Time</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-              <div><div className="muted" style={{ fontSize: 12 }}>Order Pickup Time</div><div className="meta" style={{ color: 'var(--ink)', fontSize: 14 }}><Clock size={16} /> Ready now</div></div>
-              <div><div className="muted" style={{ fontSize: 12 }}>Delivery Time</div><div className="meta" style={{ color: 'var(--ink)', fontSize: 14 }}><Clock size={16} /> {offer.promisedBy ? time(offer.promisedBy) : 'Today'}</div></div>
+            <div className="muted" style={{ fontSize: 11, marginTop: 2 }}>
+              {offer.itemCount} item{offer.itemCount === 1 ? '' : 's'}{offer.distanceKm !== null ? ` · ${offer.distanceKm.toFixed(1)} km` : ''}
             </div>
-          </>
-        )}
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 14 }}>
-        <button className="btn success medium" onClick={onAccept} disabled={busy}>{isReturn ? 'Accept pickup' : 'Confirm'}</button>
-        <button className="btn danger medium" onClick={onReject} disabled={busy}>Cancel</button>
+          </div>
+        </div>
+
+        {/* Order + route */}
+        <div className="block" style={{ padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: 5 }}>
+          <div className="row" style={{ gap: 8, alignItems: 'center' }}>
+            <ItemThumb items={offer.items} size={36} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="ellipsis" style={{ fontWeight: 600, color: 'var(--ink)', fontSize: 13.5 }}>{itemsTitle(offer.items, offer.itemCount)}</div>
+              <div className="muted" style={{ fontSize: 11.5 }}>#{offer.returnRequest?.requestNumber ?? offer.orderNumber ?? offer.taskNumber}</div>
+            </div>
+          </div>
+          <div className="ellipsis" style={{ fontSize: 12.5, color: 'var(--ink)' }}>
+            <span style={{ color: 'var(--orange)', verticalAlign: 'middle' }}><Box size={14} /></span> {offer.pickup.name}
+          </div>
+          <div className="ellipsis" style={{ fontSize: 12.5, color: 'var(--ink)' }}>
+            <span style={{ color: 'var(--green, #16a34a)', verticalAlign: 'middle' }}><Pin size={14} /></span> {isReturn ? `Collect from ${offer.dropArea}` : offer.dropArea}
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: 8, marginTop: 10 }}>
+          <button className="btn danger medium" onClick={onReject} disabled={busy} style={{ fontWeight: 600, fontSize: 15 }}>Reject</button>
+          <button className="btn success medium" onClick={onAccept} disabled={busy} style={{ fontWeight: 600, fontSize: 15 }}>
+            {busy ? 'Accepting…' : isReturn ? 'Accept pickup' : 'Accept'}
+          </button>
+        </div>
       </div>
     </Modal>
   );
@@ -249,14 +227,14 @@ export function RejectModal({ offer, onClose, onSubmit, busy }: { offer: Offer |
       <div style={{ textAlign: 'center', padding: '10px 4px 4px' }}>
         <h3 style={{ margin: 0, fontSize: 18, fontWeight: 500, color: 'var(--ink)' }}>Write a Specific Reason to</h3>
         <div style={{ fontSize: 18, fontWeight: 500, color: 'var(--red)' }}>Reject Order</div>
-        <div style={{ margin: '10px 0 6px' }}><ScooterArt /></div>
+        <p className="muted" style={{ fontSize: 12.5, margin: '6px 0 10px' }}>Tap a reason to reject, or type your own</p>
         <form className="reason-input" onSubmit={(e) => { e.preventDefault(); if (ok) onSubmit(reason.trim()); }}>
           <input autoFocus value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Type something here" maxLength={300} aria-label="Reason" />
           <button type="submit" className="icon-btn" disabled={!ok || busy} aria-label="Reject with this reason"><Send size={20} /></button>
         </form>
         <div className="reason-chips">
           {['Too far', 'Vehicle problem', 'Already on a delivery', 'Ending my shift'].map((r) => (
-            <button key={r} type="button" className="chip grey" onClick={() => setReason(r)}>{r}</button>
+            <button key={r} type="button" className="chip grey" disabled={busy} onClick={() => onSubmit(r)}>{r}</button>
           ))}
         </div>
       </div>

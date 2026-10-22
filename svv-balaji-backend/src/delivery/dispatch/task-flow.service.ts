@@ -12,6 +12,7 @@ import type { Outcome } from '../earnings/earning.logic';
 import { distanceKm } from '../zones/zone.logic';
 import { DispatchService } from './dispatch.service';
 import { LONG_TX } from '../../common/tx-options';
+import { CustomerOrdersGateway } from '../../realtime/customer-orders.gateway';
 
 export class LocationDto {
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() @Min(-90) @Max(90) latitude?: number;
@@ -60,6 +61,7 @@ export class TaskFlowService {
     private readonly sales: SalesService,
     @Inject(forwardRef(() => FulfillmentService)) private readonly fulfillment: FulfillmentService,
     private readonly earnings: EarningsService,
+    private readonly customerLive: CustomerOrdersGateway,
   ) {}
 
   private async mine(riderId: string, taskId: string, allowed: DeliveryTaskStatus[], anyKind = false) {
@@ -188,6 +190,14 @@ export class TaskFlowService {
     await this.dispatch.log(taskId, 'COD_COLLECTED', { riderId, note: `${dto.method} ₹${due.toFixed(2)}`, lat: dto.latitude ?? null, lng: dto.longitude ?? null });
     this.dispatch.changed(task);
     return coll;
+  }
+
+  /** The rider is on the OTP screen: show the code on the customer's open app straight away. */
+  async requestOtp(riderId: string, taskId: string) {
+    const { task } = await this.mine(riderId, taskId, ['OUT_FOR_DELIVERY', 'AT_DROP']);
+    if (!task.orderId) throw new BadRequestException('This task has no order');
+    this.customerLive.otpRequested(task.orderId);
+    return { requested: true };
   }
 
   /** Close the delivery with the customer's OTP (the existing doorstep-OTP rule completes the order). */

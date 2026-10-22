@@ -15,7 +15,7 @@ import { app, VAPID_KEY } from './firebase';
  */
 const BASE = import.meta.env.BASE_URL;
 const SCOPE = `${BASE}firebase-cloud-messaging-push-scope`;
-const LOGO = `${BASE}svv-balaji.png`;
+const LOGO = `${BASE}desi-tokri-emblem.png`;
 const TOKEN_KEY = 'svv.push.token';
 
 export type PushState = 'granted' | 'denied' | 'default' | 'unsupported';
@@ -112,7 +112,7 @@ async function listenForeground(onPush: (p: PushPayload) => void): Promise<() =>
       data: { link: d.link ?? '' },
     };
     if (d.imageUrl) options.image = d.imageUrl;
-    await reg?.showNotification(d.title ?? 'SVV Balaji', options);
+    await reg?.showNotification(d.title ?? 'Desi Tokri Rider', options);
   });
 }
 

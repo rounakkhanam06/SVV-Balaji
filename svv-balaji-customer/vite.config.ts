@@ -95,6 +95,12 @@ export default defineConfig(({ mode }) => {
           target: env.VITE_API_PROXY_TARGET || 'http://127.0.0.1:3000',
           changeOrigin: true,
         },
+        // Live order status / OTP requests (namespace /customer).
+        '/socket.io': {
+          target: env.VITE_API_PROXY_TARGET || 'http://127.0.0.1:3000',
+          changeOrigin: true,
+          ws: true,
+        },
         '/admin': {
           target: env.VITE_ADMIN_PROXY_TARGET || 'http://127.0.0.1:5173',
           changeOrigin: true,

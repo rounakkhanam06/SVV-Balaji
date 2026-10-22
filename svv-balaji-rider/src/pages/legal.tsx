@@ -117,7 +117,7 @@ export function PrivacyPolicyPage() {
         ) : (
           <div className="card" style={{ padding: '20px 16px' }}>
             <h1 style={{ fontSize: 20, fontWeight: 700, margin: '0 0 4px', color: 'var(--ink)' }}>
-              {data?.title || 'SVV Balaji Delivery Partner Privacy Policy'}
+              {data?.title || 'Desi Tokri Delivery Partner Privacy Policy'}
             </h1>
             {data?.version ? (
               <div className="muted" style={{ fontSize: 12, marginBottom: 16 }}>
@@ -164,7 +164,7 @@ export function TermsPage() {
         ) : (
           <div className="card" style={{ padding: '20px 16px' }}>
             <h1 style={{ fontSize: 20, fontWeight: 700, margin: '0 0 4px', color: 'var(--ink)' }}>
-              {data?.title || 'SVV Balaji Delivery Partner Terms & Conditions'}
+              {data?.title || 'Desi Tokri Delivery Partner Terms & Conditions'}
             </h1>
             {data?.version ? (
               <div className="muted" style={{ fontSize: 12, marginBottom: 16 }}>

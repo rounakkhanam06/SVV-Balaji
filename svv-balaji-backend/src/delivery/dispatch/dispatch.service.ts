@@ -385,15 +385,25 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
 
   async respond(riderId: string, offerId: string, accept: boolean, reason?: string) {
     const result = await this.prisma.$transaction(async (tx) => {
-      const offer = await tx.deliveryOffer.findUnique({ where: { id: offerId } });
-      if (!offer || offer.riderId !== riderId) throw new NotFoundException('Offer not found');
-      await this.lockOrderOf(tx, offer.taskId);
-      await tx.$queryRaw`SELECT id FROM delivery_tasks WHERE id = ${offer.taskId} FOR UPDATE`;
-      await tx.$queryRaw`SELECT id FROM riders WHERE id = ${riderId} FOR UPDATE`;
+      // Lock the task this offer is for in the same round trip that finds it: competing accepts
+      // for one task queue here. The offer is re-read after the lock is held, never before.
+      const locked = await tx.$queryRaw<{ id: string }[]>`
+        SELECT t.id FROM delivery_tasks t JOIN delivery_offers o ON o."taskId" = t.id
+        WHERE o.id = ${offerId} AND o."riderId" = ${riderId} FOR UPDATE OF t`;
+      if (!locked.length) throw new NotFoundException('Offer not found');
       const fresh = await tx.deliveryOffer.findUnique({ where: { id: offerId } });
-      if (fresh!.status === 'TAKEN') throw new ConflictException({ code: 'OFFER_TAKEN', message: 'Another rider accepted this order first' });
-      if (fresh!.status === 'EXPIRED') throw new ConflictException({ code: 'OFFER_EXPIRED', message: 'Time ran out on this request - it has gone to another rider' });
-      if (fresh!.status !== 'PENDING') throw new ConflictException({ code: 'OFFER_CLOSED', message: `This request was already ${fresh!.status.toLowerCase()}` });
+      if (!fresh) throw new NotFoundException('Offer not found');
+      const offer = fresh;
+
+      // Idempotency: if this rider already accepted this offer, return success immediately
+      if (fresh.status === 'ACCEPTED' && fresh.riderId === riderId) {
+        const task = await tx.deliveryTask.findUniqueOrThrow({ where: { id: offer.taskId } });
+        return { kind: 'ALREADY_ACCEPTED' as const, task, rider: null, losers: [] };
+      }
+
+      if (fresh.status === 'TAKEN') throw new ConflictException({ code: 'OFFER_TAKEN', message: 'Another rider accepted this order first' });
+      if (fresh.status === 'EXPIRED') throw new ConflictException({ code: 'OFFER_EXPIRED', message: 'Time ran out on this request - it has gone to another rider' });
+      if (fresh.status !== 'PENDING') throw new ConflictException({ code: 'OFFER_CLOSED', message: `This request was already ${fresh.status.toLowerCase()}` });
 
       /** Close this offer; when it was the round's last open one, the task waits for the next round. */
       const close = async (status: 'EXPIRED' | 'REJECTED', rejectReason?: string) => {
@@ -402,7 +412,7 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
         if (others === 0) await tx.deliveryTask.updateMany({ where: { id: offer.taskId, status: 'OFFERED' }, data: { status: 'READY_FOR_PICKUP' } });
       };
 
-      if (fresh!.expiresAt <= openSince()) {
+      if (fresh.expiresAt <= openSince()) {
         await close('EXPIRED');
         return { kind: 'EXPIRED' as const, taskId: offer.taskId };
       }
@@ -412,27 +422,33 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
         return { kind: 'REJECTED' as const, taskId: offer.taskId };
       }
 
-      const rider = await tx.rider.findUnique({ where: { id: riderId } });
+      const rider = await tx.rider.findUnique({ where: { id: riderId }, include: { _count: { select: { tasks: { where: { status: { in: HELD_STATUSES } } } } } } });
       if (!rider || rider.status !== 'ACTIVE') throw new BadRequestException('Your account is not active');
       if (!isVerifiedNow(rider)) throw new BadRequestException({ code: 'NOT_VERIFIED', message: 'Finish your verification (documents, PCC, deposit) before taking orders' });
-      const held = await tx.deliveryTask.count({ where: { riderId, status: { in: HELD_STATUSES } } });
-      if (held >= rider.maxActiveTasks) {
+      if (rider._count.tasks >= rider.maxActiveTasks) {
         await close('REJECTED', 'At order limit');
         return { kind: 'FULL' as const, taskId: offer.taskId };
       }
 
-      const claimed = await tx.deliveryTask.updateMany({
+      // Conditional on no rider yet: even a path that skipped the lock could not double-assign.
+      const task = await tx.deliveryTask.update({
         where: { id: offer.taskId, riderId: null, status: { in: ['READY_FOR_PICKUP', 'OFFERED'] } },
         data: { status: 'ASSIGNED', riderId, assignedAt: new Date(), needsManualAssignment: false, autoDispatchPaused: false },
+      }).catch((e: unknown) => {
+        if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2025') return null;
+        throw e;
       });
-      if (claimed.count !== 1) {
+      if (!task) {
         await tx.deliveryOffer.update({ where: { id: offerId }, data: { status: 'TAKEN', respondedAt: new Date() } });
         return { kind: 'GONE' as const, taskId: offer.taskId };
       }
-      await tx.deliveryOffer.update({ where: { id: offerId }, data: { status: 'ACCEPTED', respondedAt: new Date() } });
-      const losers = await tx.deliveryOffer.findMany({ where: { taskId: offer.taskId, status: 'PENDING' }, select: { id: true, riderId: true } });
-      await tx.deliveryOffer.updateMany({ where: { taskId: offer.taskId, status: 'PENDING' }, data: { status: 'TAKEN', respondedAt: new Date() } });
-      const task = await tx.deliveryTask.findUniqueOrThrow({ where: { id: offer.taskId } });
+      // This offer -> ACCEPTED and every other open one of the task -> TAKEN, in one statement.
+      const closed = await tx.$queryRaw<{ id: string; riderId: string }[]>`
+        UPDATE delivery_offers
+        SET status = (CASE WHEN id = ${offerId} THEN 'ACCEPTED' ELSE 'TAKEN' END)::"DeliveryOfferStatus", "respondedAt" = NOW()
+        WHERE "taskId" = ${offer.taskId} AND status = 'PENDING'
+        RETURNING id, "riderId"`;
+      const losers = closed.filter((o) => o.id !== offerId);
       await this.log(task.id, 'ASSIGNED', { riderId, note: `Accepted by ${rider.fullName}${losers.length ? ` (first of ${losers.length + 1})` : ''}` }, tx);
       if (task.orderId) await tx.order.update({ where: { id: task.orderId }, data: { riderName: rider.fullName, riderPhone: rider.phone } });
       return { kind: 'ACCEPTED' as const, task, rider, losers };
@@ -440,9 +456,14 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
 
     if (result.kind === 'ACCEPTED') {
       for (const l of result.losers) this.events.publish({ kind: 'offer:closed', riderId: l.riderId, offerId: l.id, taskId: result.task.id, status: 'TAKEN' });
-      if (result.task.orderId) await this.sales.record(result.task.orderId, 'RIDER_ASSIGNED', undefined, `${result.rider.fullName} (${result.rider.phone})`);
+      if (result.task.orderId && result.rider) {
+        this.sales.record(result.task.orderId, 'RIDER_ASSIGNED', undefined, `${result.rider.fullName} (${result.rider.phone})`).catch((e) => this.logger.warn(`sales.record: ${e}`));
+      }
       this.events.publish({ kind: 'task:assigned', riderId, taskId: result.task.id, by: 'ACCEPT' });
       this.changed(result.task);
+      return { status: 'ACCEPTED', taskId: result.task.id };
+    }
+    if (result.kind === 'ALREADY_ACCEPTED') {
       return { status: 'ACCEPTED', taskId: result.task.id };
     }
     if (result.kind === 'GONE') throw new ConflictException({ code: 'OFFER_TAKEN', message: 'This order was already given to another rider' });
@@ -453,9 +474,11 @@ export class DispatchService implements OnModuleInit, OnModuleDestroy {
       if (accept) throw new ConflictException({ code: 'OFFER_EXPIRED', message: 'Time ran out on this request - it has gone to another rider' });
       return { status: 'EXPIRED', taskId: result.taskId };
     }
-    await this.dispatch(result.taskId); // no-op while other riders of the round can still answer
+    if ('taskId' in result && result.taskId) {
+      await this.dispatch(result.taskId); // no-op while other riders of the round can still answer
+    }
     if (result.kind === 'FULL') throw new ConflictException({ code: 'AT_CAPACITY', message: 'You already hold as many orders as you are allowed - finish one first' });
-    return { status: result.kind, taskId: result.taskId };
+    return { status: result.kind, taskId: 'taskId' in result ? result.taskId : '' };
   }
 
   /**

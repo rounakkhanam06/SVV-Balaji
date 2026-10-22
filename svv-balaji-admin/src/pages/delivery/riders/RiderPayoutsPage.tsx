@@ -69,12 +69,23 @@ export function RiderPayoutsPage() {
 function DueTab({ onOpenPayout }: { onOpenPayout: (id: string) => void }) {
   const navigate = useNavigate();
   const canPay = useCan('RIDER_PAYOUTS_RECORD');
-  const [upTo, setUpTo] = useState<Dayjs>(dayjs().subtract(1, 'day'));
+  // Default to today, so pay earned today is not hidden. `?rider=<id>` (from Rider Earnings) opens that rider's payment.
+  const [params, setParams] = useSearchParams();
+  const payRider = params.get('rider');
+  const [upTo, setUpTo] = useState<Dayjs>(dayjs());
   const [outlet, setOutlet] = useState<string | undefined>();
   const [paying, setPaying] = useState<PayoutDueRow | null>(null);
   const day = upTo.format('YYYY-MM-DD');
   const q = useQuery({ queryKey: [...KEY, 'due', day, outlet], queryFn: () => riderPayoutsApi.due({ upTo: day, warehouseId: outlet }), placeholderData: keepPreviousData });
   const d = q.data;
+  useEffect(() => {
+    if (!payRider || !d || !canPay) return;
+    const row = d.rows.find((r) => r.rider.id === payRider);
+    if (row && row.owed > 0) setPaying(row);
+    const next = new URLSearchParams(params);
+    next.delete('rider');
+    setParams(next, { replace: true });
+  }, [payRider, d, canPay, params, setParams]);
 
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
@@ -99,7 +110,7 @@ function DueTab({ onOpenPayout }: { onOpenPayout: (id: string) => void }) {
           scroll={{ x: 900 }}
           locale={{ emptyText: <Empty description="Nobody is owed anything up to this date" /> }}
           columns={[
-            { title: 'Rider', key: 'r', render: (_, r) => <RiderCell rider={r.rider} sub={[r.rider.code, r.rider.warehouse?.name].filter(Boolean).join(' · ')} onOpen={() => navigate(`/riders/${r.rider.id}?tab=earnings`)} /> },
+            { title: 'Rider', key: 'r', width: 260, render: (_, r) => <RiderCell rider={r.rider} sub={[r.rider.code, r.rider.warehouse?.name].filter(Boolean).join(' · ')} onOpen={() => navigate(`/riders/${r.rider.id}?tab=earnings`)} /> },
             { title: 'Unpaid lines', dataIndex: 'lines', align: 'right' },
             { title: 'Unpaid since', dataIndex: 'oldestUnpaid', render: (v: string | null) => (v ? dayjs(v).format('D MMM YYYY') : '—') },
             { title: 'Last paid', dataIndex: 'lastPaidAt', render: (v: string | null) => (v ? dayjs(v).format('D MMM YYYY') : 'Never') },

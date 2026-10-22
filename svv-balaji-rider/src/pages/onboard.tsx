@@ -98,7 +98,7 @@ export function PendingScreen() {
       <h2 className="auth-title">{rejected ? 'Application not approved' : 'Application under review'}</h2>
       <p className="auth-sub" style={{ lineHeight: 1.6 }}>
         {rejected
-          ? rider.rejectionReason ?? 'Contact your nearest SVV Balaji store for details.'
+          ? rider.rejectionReason ?? 'Contact your nearest Desi Tokri store for details.'
           : 'Thanks, ' + rider.fullName.split(' ')[0] + '! Upload your documents and Police Clearance Certificate' + (v.data?.deposit.required ? ', pay the security deposit' : '') + ' - once our team has verified everything, they will assign you a store and you can start taking orders.'}
       </p>
 

@@ -23,7 +23,7 @@ import {
   RiderVerifyDto,
   type RiderJwtPayload,
 } from './riders/rider-auth';
-import { AvailabilityDto, CreateCashSettlementOrderDto, RidersService, VerifyCashSettlementDto } from './riders/riders.service';
+import { AvailabilityDto, RidersService, VerifyCashSettlementDto } from './riders/riders.service';
 import { CreateDepositOrderDto, RiderVerificationService, SubmitRiderDocumentDto, VerifyDepositPaymentDto } from './verification/verification.service';
 
 class RejectOfferDto {
@@ -331,6 +331,15 @@ export class RiderAppController {
     return this.flow.collectCod(r.sub, id, dto);
   }
 
+  @Post('tasks/:id/request-otp')
+  @UseGuards(RiderJwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: "Ask the customer for the delivery OTP - it pops up on their open app" })
+  requestOtp(@CurrentRider() r: RiderJwtPayload, @Param('id') id: string) {
+    return this.flow.requestOtp(r.sub, id);
+  }
+
   @Post('tasks/:id/deliver')
   @UseGuards(RiderJwtAuthGuard)
   @ApiBearerAuth()
@@ -412,9 +421,9 @@ export class RiderAppController {
   @Post('cash/settle-order')
   @UseGuards(RiderJwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Create Razorpay order to self-settle cash in hand' })
-  createCashSettlementOrder(@CurrentRider() r: RiderJwtPayload, @Body() dto: CreateCashSettlementOrderDto) {
-    return this.riders.createCashSettlementOrder(r.sub, dto.amount);
+  @ApiOperation({ summary: 'Create a Razorpay order for the WHOLE cash in hand (any amount sent is ignored)' })
+  createCashSettlementOrder(@CurrentRider() r: RiderJwtPayload) {
+    return this.riders.createCashSettlementOrder(r.sub);
   }
 
   @Post('cash/settle-verify')

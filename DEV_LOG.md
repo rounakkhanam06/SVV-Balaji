@@ -4341,3 +4341,30 @@ OFFER/TASK_ASSIGNED) and foreground pushes. Foreground system notifications are 
 
 **Verified:** customer, field, rider, backend `tsc` clean. Admin `tsc` shows 3 errors from someone else's uncommitted edits
 (AppLayout `can('supportTickets.*')`, SupportTicketsPage missing `notification` import), not this change. Not tested by ear.
+
+---
+
+## 2026-10-22 — Raunak (agent) — Live order status + OTP request for Desi Tokri
+
+- **New socket namespace `/customer`** (`realtime/customer-orders.gateway.ts`): storefront access token, joins `customer:<customerId>`. Emits `order:updated` `{orderNumber,status}` on every order/delivery-task change and `order:otp-requested` when the rider asks for the code. Nudges only — clients refetch over REST.
+- **New route `POST /api/v1/rider/tasks/:id/request-otp`** (ORDER_DELIVERY, OUT_FOR_DELIVERY/AT_DROP). Rider app calls it on opening the OTP screen.
+- Customer app: `OrderLiveBridge` (socket.io-client added) refetches orders instantly and, on OTP request, opens the order screen with the OTP + sound. Vite proxies `/socket.io`. Existing polling kept as fallback.
+- Rider app: OTP auto-submits when the last digit is entered; server verifies it and marks delivered in one step (wrong code → error, input cleared).
+- Deploy note: `/socket.io` must reach the API from the customer domain (same as admin/rider).
+
+## 2026-10-22 — Raunak (agent) — Faster rider accept, compact request pop-up
+
+- `DispatchService.respond` (accept path): same guarantees (task row locked `FOR UPDATE`, offer re-read under lock, conditional claim on `riderId IS NULL`, repeat accept → idempotent `ACCEPTED`), but ~13 → ~8 DB round trips: lock+ownership check in one join, rider + held-count in one query, claim via conditional `update` (P2025 → GONE), ACCEPTED/TAKEN for all of the task's open offers in one `UPDATE … RETURNING`. Raw SQL uses `delivery_offers."taskId"/"riderId"/"respondedAt"` and enum `"DeliveryOfferStatus"`. No API shape change. **Needs a run against a real DB** (no automated test covers accept).
+- Rider app: request pop-up is compact (no scroll), buttons are now **Reject / Accept**, tapping a quick reason rejects in one tap, offer-response mutations are serialised (`scope`) so a double tap can't race.
+
+## 2026-10-22 — Raunak (agent) — Rider Earnings shows paid / due
+
+- `GET /riders/earnings-report`: each row adds `paid`, `unpaid` (of the period's earnings), `balanceDue` (all unpaid lines, all time), `lastPaidAt`; totals add `paid`, `unpaid`, `balanceDue`. Additive, no breaking change.
+- Admin `/riders/earnings`: three new stat cards (paid / not paid this period, balance due all time), table columns Paid · Status (Settled / Part paid / Unpaid) · Balance due · Last paid, and a Pay button → `/riders/payouts`.
+
+## 2026-10-22 — Raunak (agent) — Rider cash settlement: full balance only
+
+- **Migration `20261022120000_rider_cash_settlement_orders`** (new table, additive) — run `npx prisma migrate deploy`.
+- `POST /rider/cash/settle-order` takes no amount any more: the order is always for the whole cash-in-hand, stored server-side.
+- `POST /rider/cash/settle-verify` credits the stored order amount (body `amount` ignored, now optional) and is idempotent per order/payment — previously it trusted the app's amount and a replay deducted twice.
+- Rider app: amount field removed; shows the fixed full amount and "Pay ₹X".

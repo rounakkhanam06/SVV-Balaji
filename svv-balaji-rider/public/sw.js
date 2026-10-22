@@ -3,12 +3,12 @@
  * survives a patchy connection. API responses are never cached - a rider must
  * never act on a stale offer or task.
  */
-const VERSION = 'svv-rider-v1';
+const VERSION = 'desi-tokri-rider-v2';
 const SHELL = `${VERSION}-shell`;
 const BASE = new URL(self.registration.scope).pathname;
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(SHELL).then((c) => c.addAll([BASE, `${BASE}manifest.webmanifest`, `${BASE}svv-balaji.png`])).catch(() => undefined).then(() => self.skipWaiting()));
+  event.waitUntil(caches.open(SHELL).then((c) => c.addAll([BASE, `${BASE}manifest.webmanifest`, `${BASE}desi-tokri-emblem.png`])).catch(() => undefined).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (event) => {

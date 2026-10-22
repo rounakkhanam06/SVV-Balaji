@@ -267,7 +267,7 @@ export function SignUp() {
     }
 
     if (!agree) {
-      const msg = 'Please accept the SVV Balaji delivery partner terms to sign up';
+      const msg = 'Please accept the Desi Tokri delivery partner terms to sign up';
       setError(msg);
       toast(msg, 'error');
       return;
@@ -377,7 +377,7 @@ export function SignUp() {
         <label className="check">
           <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
           <span>
-            I've read and understood the SVV Balaji{' '}
+            I've read and understood the Desi Tokri{' '}
             <Link to="/terms-and-conditions" onClick={(e) => e.stopPropagation()} style={{ color: 'var(--orange)', textDecoration: 'underline' }}>
               delivery partner terms
             </Link>

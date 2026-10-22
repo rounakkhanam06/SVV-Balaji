@@ -1,4 +1,4 @@
-# SVV Balaji Rider app
+# Desi Tokri Rider app
 
 Phone-first, installable delivery-partner app for Quick / local delivery (WS3.4).
 Backend: `svv-balaji-backend/src/delivery` (routes under `/api/v1/rider/*`, socket namespace `/rider`).

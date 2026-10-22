@@ -236,11 +236,20 @@ export class EarningsService {
   async report(range: { from?: string; to?: string } = {}, warehouseId?: string) {
     const { from, to } = this.range(range);
     const riderWhere = warehouseId ? { warehouseId } : {};
-    const [earned, delivered, failed] = await Promise.all([
+    const [earned, delivered, failed, paidInPeriod, dueAll, lastPaid] = await Promise.all([
       this.prisma.riderEarning.groupBy({ by: ['riderId', 'type'], where: { earnedAt: { gte: from, lt: to }, rider: riderWhere }, _sum: { amount: true } }),
       this.prisma.deliveryTask.groupBy({ by: ['riderId'], where: { status: 'DELIVERED', deliveredAt: { gte: from, lt: to }, riderId: { not: null }, rider: riderWhere }, _count: { _all: true } }),
       this.prisma.deliveryTask.groupBy({ by: ['riderId'], where: { failedAt: { gte: from, lt: to }, riderId: { not: null }, rider: riderWhere }, _count: { _all: true } }),
+      // Of the period's pay, what a payout has already settled.
+      this.prisma.riderEarning.groupBy({ by: ['riderId'], where: { earnedAt: { gte: from, lt: to }, payoutId: { not: null }, rider: riderWhere }, _sum: { amount: true } }),
+      // Everything still owed, whenever it was earned - the rider's pay balance.
+      this.prisma.riderEarning.groupBy({ by: ['riderId'], where: { payoutId: null, rider: riderWhere }, _sum: { amount: true } }),
+      this.prisma.riderPayout.groupBy({ by: ['riderId'], where: { status: 'PAID', rider: riderWhere }, _max: { paidAt: true } }),
     ]);
+    const sumBy = (g: Array<{ riderId: string; _sum: { amount: Prisma.Decimal | null } }>) => new Map(g.map((x) => [x.riderId, Number(x._sum.amount ?? 0)]));
+    const paidBy = sumBy(paidInPeriod);
+    const dueBy = sumBy(dueAll);
+    const lastPaidBy = new Map(lastPaid.map((x) => [x.riderId, x._max.paidAt]));
     const ids = new Set<string>([...earned.map((e) => e.riderId), ...delivered.flatMap((d) => (d.riderId ? [d.riderId] : []))]);
     const riders = await this.prisma.rider.findMany({
       where: { ...riderWhere, OR: [{ status: 'ACTIVE' }, { id: { in: [...ids] } }] },
@@ -259,7 +268,11 @@ export class EarningsService {
         byType[e.type] = round((byType[e.type] ?? 0) + amt);
       }
       const total = round(Object.values(types).reduce((a, b) => a + b, 0));
-      return { rider: r, deliveries: deliveredBy.get(r.id) ?? 0, failed: failedBy.get(r.id) ?? 0, total, byType: types };
+      const paid = round(paidBy.get(r.id) ?? 0);
+      return {
+        rider: r, deliveries: deliveredBy.get(r.id) ?? 0, failed: failedBy.get(r.id) ?? 0, total, byType: types,
+        paid, unpaid: round(total - paid), balanceDue: round(dueBy.get(r.id) ?? 0), lastPaidAt: lastPaidBy.get(r.id) ?? null,
+      };
     });
     rows.sort((a, b) => b.total - a.total || b.deliveries - a.deliveries || a.rider.fullName.localeCompare(b.rider.fullName));
     return {
@@ -270,6 +283,9 @@ export class EarningsService {
         deliveries: rows.reduce((a, r) => a + r.deliveries, 0),
         failed: rows.reduce((a, r) => a + r.failed, 0),
         riders: rows.filter((r) => r.total !== 0 || r.deliveries > 0).length,
+        paid: round(rows.reduce((a, r) => a + r.paid, 0)),
+        unpaid: round(rows.reduce((a, r) => a + r.unpaid, 0)),
+        balanceDue: round(rows.reduce((a, r) => a + r.balanceDue, 0)),
       },
       byType,
       rows,

@@ -7,6 +7,7 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { apiErrorMessage } from './api/client';
 import { CustomerAuthProvider } from './auth/CustomerAuthContext';
+import { OrderLiveBridge } from './notifications/OrderLiveBridge';
 import { PushBridge } from './notifications/PushBridge';
 import { installNotificationSoundUnlock } from './notifications/notificationSound';
 import { App } from './App';
@@ -85,6 +86,7 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
             <CartProvider>
               <CustomerAuthProvider>
                 <PushBridge />
+                <OrderLiveBridge />
                 <LoyaltyProvider>
                   <App />
                 </LoyaltyProvider>

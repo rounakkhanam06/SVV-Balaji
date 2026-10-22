@@ -40,15 +40,17 @@ export function RiderCell({
   sub?: string;
 }) {
   return (
-    <Space style={{ whiteSpace: 'nowrap' }}>
-      <Badge dot color={rider.availability === 'ONLINE' ? 'green' : '#d9d9d9'} offset={[-4, 30]}>
-        <Avatar src={rider.photoUrl ?? undefined} style={{ background: '#ff8a00' }}>{rider.fullName.charAt(0)}</Avatar>
-      </Badge>
-      <div>
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 12, minWidth: 200, whiteSpace: 'nowrap' }}>
+      <div style={{ flexShrink: 0, display: 'inline-flex' }}>
+        <Badge dot color={rider.availability === 'ONLINE' ? 'green' : '#d9d9d9'} offset={[-2, 28]}>
+          <Avatar src={rider.photoUrl ?? undefined} style={{ background: '#ff8a00' }}>{rider.fullName.charAt(0)}</Avatar>
+        </Badge>
+      </div>
+      <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column' }}>
         {onOpen ? <a onClick={onOpen} style={{ fontWeight: 600 }}>{rider.fullName}</a> : <b>{rider.fullName}</b>}
         <div><Typography.Text type="secondary" style={{ fontSize: 12 }}>{sub ?? `${rider.code ?? 'no code yet'} · ${rider.phone}`}</Typography.Text></div>
       </div>
-    </Space>
+    </div>
   );
 }
 

@@ -334,7 +334,6 @@ export function CashScreen() {
   const toast = useToast();
 
   const [showModal, setShowModal] = useState(false);
-  const [customAmount, setCustomAmount] = useState<string>('');
   const [settling, setSettling] = useState(false);
   const [successData, setSuccessData] = useState<SuccessData | null>(null);
 
@@ -342,19 +341,11 @@ export function CashScreen() {
 
   const handleSettle = async () => {
     if (!c) return;
-    const amountNum = customAmount ? parseFloat(customAmount) : c.balance;
-    if (isNaN(amountNum) || amountNum <= 0) {
-      toast('Enter a valid settlement amount', 'error');
-      return;
-    }
-    if (amountNum > c.balance) {
-      toast(`Amount cannot exceed holding balance ₹${c.balance}`, 'error');
-      return;
-    }
+    if (c.balance <= 0) return;
 
     setSettling(true);
     try {
-      const order = await riderApi.createSettlementOrder(amountNum);
+      const order = await riderApi.createSettlementOrder();
       const cfg = order.clientConfig || {};
 
       if (cfg.provider === 'mock') {
@@ -366,7 +357,6 @@ export function CashScreen() {
           signature: 'mock_signature',
         });
         setShowModal(false);
-        setCustomAmount('');
         setSettling(false);
         setSuccessData({ amount: order.amount, paymentId: mockPayId });
         qc.invalidateQueries({ queryKey: ['cash'] });
@@ -383,7 +373,7 @@ export function CashScreen() {
           key: cfg.keyId || import.meta.env.VITE_RAZORPAY_KEY_ID,
           amount: cfg.amount,
           currency: cfg.currency || 'INR',
-          name: 'SVV Balaji Super Admin',
+          name: 'Desi Tokri Super Admin',
           description: `Rider Cash Settlement (₹${order.amount})`,
           order_id: order.gatewayOrderId,
           prefill: {
@@ -400,8 +390,7 @@ export function CashScreen() {
                 signature: response.razorpay_signature,
               });
               setShowModal(false);
-              setCustomAmount('');
-              setSuccessData({ amount: order.amount, paymentId: response.razorpay_payment_id });
+                    setSuccessData({ amount: order.amount, paymentId: response.razorpay_payment_id });
               qc.invalidateQueries({ queryKey: ['cash'] });
               qc.invalidateQueries({ queryKey: ['dashboard'] });
             } catch (err) {
@@ -440,10 +429,7 @@ export function CashScreen() {
                 <button
                   className="btn primary"
                   style={{ width: '100%', padding: '12px 16px', fontSize: 15, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
-                  onClick={() => {
-                    setCustomAmount(String(c.balance));
-                    setShowModal(true);
-                  }}
+                  onClick={() => setShowModal(true)}
                 >
                   <Wallet size={18} /> Pay Administrator (Razorpay)
                 </button>
@@ -454,18 +440,14 @@ export function CashScreen() {
               <div className="card" style={{ border: '2px solid var(--orange)', background: '#fff', padding: 16, marginBottom: 16 }}>
                 <b style={{ fontSize: 16, color: 'var(--ink)', display: 'block', marginBottom: 8 }}>Settle Cash via Razorpay</b>
                 <p className="muted" style={{ fontSize: 13, marginBottom: 12 }}>
-                  Pay Super Admin directly via UPI/Netbanking/Card to clear your cash-in-hand collection.
+                  Pay your full cash in hand to Super Admin via UPI / Netbanking / Card. Part payments are not allowed.
                 </p>
 
-                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)' }}>Amount to Pay (₹)</label>
-                <input
-                  type="number"
-                  className="input"
-                  placeholder={`Max ₹${c.balance}`}
-                  value={customAmount}
-                  onChange={(e) => setCustomAmount(e.target.value)}
-                  style={{ marginTop: 4, marginBottom: 12, width: '100%', fontSize: 16 }}
-                />
+                {/* The whole balance is settled at once; the server fixes the amount too. */}
+                <div className="between" style={{ background: 'var(--bg)', borderRadius: 12, padding: '10px 12px', marginBottom: 12 }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Amount to pay</span>
+                  <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)' }}>{inr(c.balance)}</span>
+                </div>
 
                 <div className="between" style={{ gap: 8 }}>
                   <button
@@ -482,7 +464,7 @@ export function CashScreen() {
                     disabled={settling}
                     onClick={handleSettle}
                   >
-                    {settling ? 'Opening Gateway...' : 'Pay via Razorpay'}
+                    {settling ? 'Opening Gateway...' : `Pay ${inr(c.balance)}`}
                   </button>
                 </div>
               </div>
@@ -630,7 +612,7 @@ export function Notifications() {
         {q.isLoading ? <Spinner /> : list.length === 0 ? <div className="card empty"><Bell size={40} /><div>Nothing yet.</div></div> : list.map((n) => (
           <Link key={n.id} to={n.link || (n.taskId ? `/task/${n.taskId}` : '#')} className="card" style={{ display: 'flex', gap: 12, opacity: n.readAt ? 0.7 : 1 }}>
             <div className="thumb" style={{ width: 42, height: 42, background: n.readAt ? 'var(--bg)' : 'var(--orange-soft)' }}>
-              {n.type === 'BROADCAST' ? <img src={`${import.meta.env.BASE_URL}svv-balaji.png`} alt="" style={{ width: 30, height: 30 }} /> : <Bell size={20} />}
+              {n.type === 'BROADCAST' ? <img src={`${import.meta.env.BASE_URL}desi-tokri-emblem.png`} alt="" style={{ width: 30, height: 30 }} /> : <Bell size={20} />}
             </div>
             <div style={{ flex: 1 }}>
               <div className="between"><b style={{ color: 'var(--ink)', fontSize: 14 }}>{n.title}</b><span className="muted" style={{ fontSize: 11 }}>{time(n.createdAt)}</span></div>
@@ -798,51 +780,143 @@ export function Profile() {
             </div>
           </>
         ) : (
-          <form onSubmit={handleSaveProfile} className="card" style={{ marginTop: 8, padding: 16 }}>
-            <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 14, color: 'var(--ink)' }}>Edit Personal Details</div>
-
-            <div className="field">
-              <label>Full Name *</label>
-              <input className="inp" value={fullName} onChange={(e) => setFullName(e.target.value)} required placeholder="Enter full name" />
-            </div>
-
-            <div className="field" style={{ marginTop: 12 }}>
-              <label>Email Address</label>
-              <input className="inp" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@example.com" />
-            </div>
-
-            <div className="field" style={{ marginTop: 12 }}>
-              <label>City</label>
-              <input className="inp" value={city} onChange={(e) => setCity(e.target.value)} placeholder="e.g. Indore" />
-            </div>
-
-            <div className="field" style={{ marginTop: 12 }}>
-              <label>Vehicle Type</label>
-              <select className="inp" value={vehicleType} onChange={(e) => setVehicleType(e.target.value as VehicleType)}>
-                <option value="MOTORCYCLE">Motorcycle</option>
-                <option value="SCOOTER">Scooter</option>
-                <option value="EV_SCOOTER">EV Scooter</option>
-                <option value="BICYCLE">Bicycle</option>
-                <option value="OTHER">Other</option>
-              </select>
-            </div>
-
-            <div className="field" style={{ marginTop: 12 }}>
-              <label>Vehicle Number</label>
-              <input className="inp" value={vehicleNumber} onChange={(e) => setVehicleNumber(e.target.value)} placeholder="e.g. MP09AB1234" />
-            </div>
-
-            <div className="field" style={{ marginTop: 12 }}>
-              <label>How much can you carry? (kg)</label>
-              <input className="inp" inputMode="decimal" value={maxCarryKg} onChange={(e) => setMaxCarryKg(e.target.value.replace(/[^\d.]/g, '').slice(0, 5))} placeholder="e.g. 20" />
-              <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>Orders heavier than what you have room for are not offered to you.</div>
-            </div>
-
-            <div style={{ marginTop: 18, display: 'flex', gap: 10 }}>
-              <button type="button" className="btn soft block" style={{ flex: 1 }} onClick={() => setEditing(false)} disabled={saving}>
+          <form onSubmit={handleSaveProfile} className="card" style={{ marginTop: 8, padding: 18, borderRadius: 18 }}>
+            <div className="between" style={{ marginBottom: 16 }}>
+              <div style={{ fontWeight: 600, fontSize: 16, color: 'var(--ink)' }}>Edit Personal Details</div>
+              <button
+                type="button"
+                className="link"
+                style={{ fontSize: 13, color: 'var(--muted)' }}
+                onClick={() => setEditing(false)}
+                disabled={saving}
+              >
                 Cancel
               </button>
-              <button type="submit" className="btn primary block" style={{ flex: 1 }} disabled={saving}>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'var(--ink)', marginBottom: 6 }}>
+                  Full Name <span style={{ color: 'var(--orange)' }}>*</span>
+                </label>
+                <input
+                  className="control"
+                  style={{ width: '100%', height: 48, borderRadius: 12, border: '1.5px solid var(--line)', padding: '0 14px', fontSize: 14, background: '#fafafb', color: 'var(--ink)' }}
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  required
+                  placeholder="Enter full name"
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'var(--ink)', marginBottom: 6 }}>
+                  Email Address
+                </label>
+                <input
+                  className="control"
+                  style={{ width: '100%', height: 48, borderRadius: 12, border: '1.5px solid var(--line)', padding: '0 14px', fontSize: 14, background: '#fafafb', color: 'var(--ink)' }}
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="name@example.com"
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'var(--ink)', marginBottom: 6 }}>
+                  City
+                </label>
+                <input
+                  className="control"
+                  style={{ width: '100%', height: 48, borderRadius: 12, border: '1.5px solid var(--line)', padding: '0 14px', fontSize: 14, background: '#fafafb', color: 'var(--ink)' }}
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  placeholder="e.g. Indore"
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'var(--ink)', marginBottom: 6 }}>
+                  Vehicle Type
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <select
+                    className="control"
+                    style={{
+                      width: '100%',
+                      height: 48,
+                      borderRadius: 12,
+                      border: '1.5px solid var(--line)',
+                      padding: '0 36px 0 14px',
+                      fontSize: 14,
+                      background: '#fafafb',
+                      color: 'var(--ink)',
+                      appearance: 'none',
+                      WebkitAppearance: 'none',
+                    }}
+                    value={vehicleType}
+                    onChange={(e) => setVehicleType(e.target.value as VehicleType)}
+                  >
+                    <option value="MOTORCYCLE">Motorcycle</option>
+                    <option value="SCOOTER">Scooter</option>
+                    <option value="EV_SCOOTER">EV Scooter</option>
+                    <option value="BICYCLE">Bicycle</option>
+                    <option value="OTHER">Other</option>
+                  </select>
+                  <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--muted)' }}>
+                    <Chevron size={18} />
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'var(--ink)', marginBottom: 6 }}>
+                  Vehicle Number
+                </label>
+                <input
+                  className="control"
+                  style={{ width: '100%', height: 48, borderRadius: 12, border: '1.5px solid var(--line)', padding: '0 14px', fontSize: 14, background: '#fafafb', color: 'var(--ink)' }}
+                  value={vehicleNumber}
+                  onChange={(e) => setVehicleNumber(e.target.value.toUpperCase())}
+                  placeholder="e.g. MP09AB1234"
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'var(--ink)', marginBottom: 6 }}>
+                  How much can you carry? (kg)
+                </label>
+                <input
+                  className="control"
+                  style={{ width: '100%', height: 48, borderRadius: 12, border: '1.5px solid var(--line)', padding: '0 14px', fontSize: 14, background: '#fafafb', color: 'var(--ink)' }}
+                  inputMode="decimal"
+                  value={maxCarryKg}
+                  onChange={(e) => setMaxCarryKg(e.target.value.replace(/[^\d.]/g, '').slice(0, 5))}
+                  placeholder="e.g. 20"
+                />
+                <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>
+                  Orders heavier than what you have room for are not offered to you.
+                </div>
+              </div>
+            </div>
+
+            <div style={{ marginTop: 20, display: 'flex', gap: 10 }}>
+              <button
+                type="button"
+                className="btn soft block"
+                style={{ flex: 1, height: 46, borderRadius: 12, fontWeight: 600, fontSize: 14 }}
+                onClick={() => setEditing(false)}
+                disabled={saving}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="btn primary block"
+                style={{ flex: 1, height: 46, borderRadius: 12, fontWeight: 600, fontSize: 14 }}
+                disabled={saving}
+              >
                 {saving ? 'Saving…' : 'Save Changes'}
               </button>
             </div>

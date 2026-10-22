@@ -1,5 +1,5 @@
-import { CheckCircleOutlined, CloseCircleOutlined, RiseOutlined, TeamOutlined } from '@ant-design/icons';
-import { Button, Card, Col, DatePicker, Empty, Row, Space, Table, Tag, Typography } from 'antd';
+import { CheckCircleOutlined, ClockCircleOutlined, CloseCircleOutlined, RiseOutlined, TeamOutlined, WalletOutlined } from '@ant-design/icons';
+import { Button, Card, Col, DatePicker, Empty, Row, Space, Table, Tag, Tooltip, Typography } from 'antd';
 import dayjs, { type Dayjs } from 'dayjs';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -51,11 +51,14 @@ export function RiderEarningsPage() {
         <Col xs={12} lg={6}><StatCard icon={<CheckCircleOutlined />} tone="green" label="Deliveries" value={data?.totals.deliveries ?? 0} /></Col>
         <Col xs={12} lg={6}><StatCard icon={<CloseCircleOutlined />} tone="red" label="Failed attempts" value={data?.totals.failed ?? 0} /></Col>
         <Col xs={12} lg={6}><StatCard icon={<TeamOutlined />} tone="slate" label="Riders who earned" value={data?.totals.riders ?? 0} /></Col>
+        <Col xs={12} lg={8}><StatCard icon={<CheckCircleOutlined />} tone="green" label="Paid (this period)" value={inr(data?.totals.paid ?? 0)} /></Col>
+        <Col xs={12} lg={8}><StatCard icon={<ClockCircleOutlined />} tone="red" label="Not paid yet (this period)" value={inr(data?.totals.unpaid ?? 0)} /></Col>
+        <Col xs={24} lg={8}><StatCard icon={<WalletOutlined />} tone="blue" label="Balance due to riders (all time)" value={inr(data?.totals.balanceDue ?? 0)} /></Col>
       </Row>
       <Card className="page-card" title={<span>Per rider <Typography.Text type="secondary" style={{ fontWeight: 400 }}>{period}</Typography.Text></span>}
         extra={types.length ? <Space size={4} wrap>{types.map((t) => <Tag key={t}>{EARNING_TYPE_LABEL[t] ?? t} {inr(data!.byType[t])}</Tag>)}</Space> : null}>
         <Table<Row>
-          rowKey={(r) => r.rider.id} loading={report.isLoading} dataSource={data?.rows ?? []} scroll={{ x: 900 + types.length * 110 }} pagination={{ pageSize: 25, hideOnSinglePage: true }}
+          rowKey={(r) => r.rider.id} loading={report.isLoading} dataSource={data?.rows ?? []} scroll={{ x: 1350 + types.length * 110 }} pagination={{ pageSize: 25, hideOnSinglePage: true }}
           locale={{ emptyText: <Empty description="No riders or earnings in this period" /> }}
           summary={() => (data?.rows.length ? (
             <Table.Summary.Row style={{ background: '#fafafa' }}>
@@ -64,7 +67,10 @@ export function RiderEarningsPage() {
               <Table.Summary.Cell index={2} align="right"><b>{data.totals.failed}</b></Table.Summary.Cell>
               {types.map((t, i) => <Table.Summary.Cell key={t} index={3 + i} align="right">{inr(data.byType[t])}</Table.Summary.Cell>)}
               <Table.Summary.Cell index={3 + types.length} align="right"><b>{inr(data.totals.earned)}</b></Table.Summary.Cell>
-              <Table.Summary.Cell index={4 + types.length} />
+              <Table.Summary.Cell index={4 + types.length} align="right"><b>{inr(data.totals.paid)}</b></Table.Summary.Cell>
+              <Table.Summary.Cell index={5 + types.length} />
+              <Table.Summary.Cell index={6 + types.length} align="right"><b>{inr(data.totals.balanceDue)}</b></Table.Summary.Cell>
+              <Table.Summary.Cell index={7 + types.length} />
             </Table.Summary.Row>
           ) : null)}
           columns={[
@@ -76,11 +82,27 @@ export function RiderEarningsPage() {
               render: (_: unknown, r: Row) => (r.byType[t] ? inr(r.byType[t]) : <Typography.Text type="secondary">—</Typography.Text>),
             })),
             { title: 'Total', dataIndex: 'total', align: 'right', sorter: (a, b) => a.total - b.total, defaultSortOrder: 'descend', render: (v: number) => <Typography.Text strong>{inr(v)}</Typography.Text> },
+            { title: 'Paid', dataIndex: 'paid', align: 'right', render: (v: number) => (v ? inr(v) : <Typography.Text type="secondary">—</Typography.Text>) },
             {
-              title: '', key: 'a', fixed: 'right', width: 140,
+              title: 'Status', key: 's', align: 'center',
+              render: (_, r) => {
+                if (r.total <= 0) return <Typography.Text type="secondary">—</Typography.Text>;
+                if (r.unpaid <= 0) return <Tag color="green">Settled</Tag>;
+                return r.paid > 0 ? <Tag color="orange">Part paid · {inr(r.unpaid)} due</Tag> : <Tag color="red">Unpaid</Tag>;
+              },
+            },
+            {
+              title: <Tooltip title="Everything still owed to the rider, whenever it was earned">Balance due</Tooltip>, dataIndex: 'balanceDue', align: 'right',
+              sorter: (a, b) => a.balanceDue - b.balanceDue,
+              render: (v: number) => (v > 0 ? <Typography.Text strong type="danger">{inr(v)}</Typography.Text> : <Typography.Text type="success">{inr(0)}</Typography.Text>),
+            },
+            { title: 'Last paid', dataIndex: 'lastPaidAt', render: (v: string | null) => (v ? dayjs(v).format('D MMM YYYY') : <Typography.Text type="secondary">Never</Typography.Text>) },
+            {
+              title: '', key: 'a', fixed: 'right', width: 190,
               render: (_, r) => (
                 <Space>
                   <Button size="small" type="link" onClick={() => navigate(`/riders/${r.rider.id}?tab=earnings`)}>Lines</Button>
+                  {r.balanceDue > 0 ? <Button size="small" type="primary" onClick={() => navigate(`/riders/payouts?rider=${r.rider.id}`)}>Pay</Button> : null}
                   {canAdjust ? <Button size="small" onClick={() => setAdjust(r.rider)}>Adjust</Button> : null}
                 </Space>
               ),

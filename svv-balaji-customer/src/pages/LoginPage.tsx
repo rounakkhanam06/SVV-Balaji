@@ -148,7 +148,13 @@ export function LoginPage() {
 
         <button
           className="login-back-btn"
-          onClick={() => navigate(-1)}
+          onClick={() => {
+            if (step === 'OTP') {
+              setStep('PHONE');
+            } else {
+              navigate(-1);
+            }
+          }}
         >
           <ArrowLeftOutlined style={{ fontSize: 18 }} />
           <Typography.Text strong style={{ fontSize: 15, color: 'inherit' }}>
@@ -160,45 +166,55 @@ export function LoginPage() {
 
           <div className="login-text-container" style={{ marginBottom: '20px' }}>
             <Typography.Title level={2} style={{ margin: '0 0 6px 0', fontWeight: 600, color: '#15803d', fontFamily: 'serif' }}>
-              {loginRole === 'RETAILER' ? 'Partner with Us' : 'Your Cravings Stop Here'}
+              {step === 'OTP'
+                ? 'Verify OTP'
+                : loginRole === 'RETAILER'
+                  ? 'Partner with Us'
+                  : 'Your Cravings Stop Here'}
             </Typography.Title>
             <Typography.Text style={{ color: '#64748b', fontSize: 14 }}>
-              {loginRole === 'RETAILER' ? 'Login to order snacks and spices in bulk for your store' : 'Login to get your favourite snacks, wafers, and spices fast'}
+              {step === 'OTP'
+                ? `Enter the 6-digit verification code sent to +91 ${cleanPhone()}`
+                : loginRole === 'RETAILER'
+                  ? 'Login to order snacks and spices in bulk for your store'
+                  : 'Login to get your favourite snacks, wafers, and spices fast'}
             </Typography.Text>
           </div>
 
-          <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
-            <div
-              onClick={() => navigate('/login', { replace: true })}
-              style={{
-                flex: 1,
-                padding: '10px 12px',
-                borderRadius: '12px',
-                border: loginRole === 'CUSTOMER' ? '2px solid #15803d' : '2px solid #f1f5f9',
-                backgroundColor: loginRole === 'CUSTOMER' ? '#f0fdf4' : '#f8fafc',
-                cursor: 'pointer',
-                textAlign: 'center',
-                transition: 'all 0.2s'
-              }}
-            >
-              <Typography.Text strong style={{ color: loginRole === 'CUSTOMER' ? '#15803d' : '#64748b' }}>Customer</Typography.Text>
+          {step === 'PHONE' && (
+            <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
+              <div
+                onClick={() => navigate('/login', { replace: true })}
+                style={{
+                  flex: 1,
+                  padding: '10px 12px',
+                  borderRadius: '12px',
+                  border: loginRole === 'CUSTOMER' ? '2px solid #15803d' : '2px solid #f1f5f9',
+                  backgroundColor: loginRole === 'CUSTOMER' ? '#f0fdf4' : '#f8fafc',
+                  cursor: 'pointer',
+                  textAlign: 'center',
+                  transition: 'all 0.2s'
+                }}
+              >
+                <Typography.Text strong style={{ color: loginRole === 'CUSTOMER' ? '#15803d' : '#64748b' }}>Customer</Typography.Text>
+              </div>
+              <div
+                onClick={() => navigate('/retailers/login', { replace: true })}
+                style={{
+                  flex: 1,
+                  padding: '10px 12px',
+                  borderRadius: '12px',
+                  border: loginRole === 'RETAILER' ? '2px solid #15803d' : '2px solid #f1f5f9',
+                  backgroundColor: loginRole === 'RETAILER' ? '#f0fdf4' : '#f8fafc',
+                  cursor: 'pointer',
+                  textAlign: 'center',
+                  transition: 'all 0.2s'
+                }}
+              >
+                <Typography.Text strong style={{ color: loginRole === 'RETAILER' ? '#15803d' : '#64748b' }}>Store Partner</Typography.Text>
+              </div>
             </div>
-            <div
-              onClick={() => navigate('/retailers/login', { replace: true })}
-              style={{
-                flex: 1,
-                padding: '10px 12px',
-                borderRadius: '12px',
-                border: loginRole === 'RETAILER' ? '2px solid #15803d' : '2px solid #f1f5f9',
-                backgroundColor: loginRole === 'RETAILER' ? '#f0fdf4' : '#f8fafc',
-                cursor: 'pointer',
-                textAlign: 'center',
-                transition: 'all 0.2s'
-              }}
-            >
-              <Typography.Text strong style={{ color: loginRole === 'RETAILER' ? '#15803d' : '#64748b' }}>Store Partner</Typography.Text>
-            </div>
-          </div>
+          )}
 
 
 
@@ -335,7 +351,7 @@ export function LoginPage() {
             </div>
           )}
 
-          {loginRole === 'RETAILER' && (
+          {step === 'PHONE' && loginRole === 'RETAILER' && (
             <div style={{ display: 'flex', alignItems: 'center', margin: '24px 0', color: '#94a3b8' }}>
               <div style={{ flex: 1, height: 1, backgroundColor: '#e2e8f0' }} />
               <span style={{ padding: '0 16px', fontSize: 12, fontWeight: 500 }}>OR</span>
@@ -343,7 +359,7 @@ export function LoginPage() {
             </div>
           )}
 
-          {loginRole === 'RETAILER' && (
+          {step === 'PHONE' && loginRole === 'RETAILER' && (
             <div style={{ textAlign: 'center' }}>
               <Typography.Text style={{ color: '#64748b', fontSize: 13 }}>
                 Don't have an account?{' '}

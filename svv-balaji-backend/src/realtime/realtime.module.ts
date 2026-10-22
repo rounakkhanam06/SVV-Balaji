@@ -1,6 +1,7 @@
 import { Global, Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { AdminOrdersGateway } from './admin-orders.gateway';
+import { CustomerOrdersGateway } from './customer-orders.gateway';
 import { OrderEventsService } from './order-events.service';
 import { PushService } from './push.service';
 import { RealtimeController } from './realtime.controller';
@@ -11,7 +12,7 @@ import { StaffAlertsService } from './staff-alerts.service';
 @Module({
   imports: [JwtModule.register({})],
   controllers: [RealtimeController],
-  providers: [OrderEventsService, PushService, AdminOrdersGateway, StaffAlertsService],
-  exports: [OrderEventsService, PushService, AdminOrdersGateway, StaffAlertsService],
+  providers: [OrderEventsService, PushService, AdminOrdersGateway, CustomerOrdersGateway, StaffAlertsService],
+  exports: [OrderEventsService, PushService, AdminOrdersGateway, CustomerOrdersGateway, StaffAlertsService],
 })
 export class RealtimeModule {}

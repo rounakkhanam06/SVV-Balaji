@@ -63,10 +63,18 @@ export function IncomingAlerts() {
     [toast],
   );
 
-  const respond = useOfferResponse(() => {
-    if (current) dismiss(current.offerId);
-    setRejecting(null);
-  });
+  const respond = useOfferResponse(
+    () => {
+      if (current) dismiss(current.offerId);
+      setRejecting(null);
+    },
+    (taskId) => {
+      stopRing();
+      if (current) dismiss(current.offerId);
+      setRejecting(null);
+      navigate(`/task/${taskId}`);
+    },
+  );
 
   return (
     <>

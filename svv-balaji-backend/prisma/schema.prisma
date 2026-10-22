@@ -4290,6 +4290,7 @@ model Rider {
   documents      RiderDocument[]
   depositEntries RiderDepositEntry[]
   depositOrders  RiderDepositOrder[]
+  cashSettlementOrders RiderCashSettlementOrder[]
   otps           RiderOtp[]
   tasks          DeliveryTask[]
   offers         DeliveryOffer[]
@@ -4654,6 +4655,22 @@ model RiderDepositOrder {
 
   @@index([riderId])
   @@map("rider_deposit_orders")
+}
+
+/// A Razorpay order a rider opened to pay their whole cash-in-hand to the company.
+/// The amount is fixed by the server when the order is created; verify credits it once.
+model RiderCashSettlementOrder {
+  id             String    @id @default(uuid())
+  riderId        String
+  rider          Rider     @relation(fields: [riderId], references: [id])
+  gatewayOrderId String    @unique
+  amount         Decimal   @db.Decimal(12, 2)
+  paidAt         DateTime?
+  paymentId      String?   @unique
+  createdAt      DateTime  @default(now())
+
+  @@index([riderId])
+  @@map("rider_cash_settlement_orders")
 }
 
 enum RiderCashEntryType {

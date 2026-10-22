@@ -328,7 +328,7 @@ export function DepositScreen() {
         key: cfg.keyId || import.meta.env.VITE_RAZORPAY_KEY_ID,
         amount: cfg.amount,
         currency: cfg.currency || 'INR',
-        name: 'SVV Balaji',
+        name: 'Desi Tokri',
         description: `Rider security deposit (${inr(order.amount)})`,
         order_id: order.gatewayOrderId,
         prefill: { name: rider?.fullName, contact: rider?.phone, email: rider?.email ?? undefined },

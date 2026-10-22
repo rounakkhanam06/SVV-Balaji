@@ -172,9 +172,9 @@ export function Spinner() {
 export function Logo({ size = 44 }: { size?: number }) {
   return (
     <div className="logo-row">
-      <img src="/svv-balaji.png" alt="" style={{ width: size, height: size }} />
+      <img src={`${import.meta.env.BASE_URL}desi-tokri-emblem.png`} alt="Desi Tokri Rider" style={{ width: size, height: size, objectFit: 'contain' }} />
       <b>
-        SVV <span>Rider</span>
+        Desi Tokri <span>Rider</span>
       </b>
     </div>
   );

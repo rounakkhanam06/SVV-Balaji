@@ -36,12 +36,9 @@ export class CashDepositDto {
   @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(300) note?: string;
 }
 
-export class CreateCashSettlementOrderDto {
-  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber({ maxDecimalPlaces: 2 }) @Min(0.01) amount?: number;
-}
-
 export class VerifyCashSettlementDto {
-  @ApiProperty() @Type(() => Number) @IsNumber({ maxDecimalPlaces: 2 }) @Min(0.01) amount!: number;
+  @ApiPropertyOptional({ deprecated: true, description: 'Ignored - the amount is the one fixed when the order was created' })
+  @IsOptional() @Type(() => Number) @IsNumber({ maxDecimalPlaces: 2 }) amount?: number;
   @ApiProperty() @IsString() gatewayOrderId!: string;
   @ApiProperty() @IsString() paymentId!: string;
   @ApiProperty() @IsString() signature!: string;
@@ -240,77 +237,55 @@ export class RidersService {
   }
 
   /** Rider self-settles cash in hand via Razorpay online payment directly to Super Admin. */
-  async createCashSettlementOrder(riderId: string, requestedAmount?: number) {
-    const balMap = await this.cashBalances([riderId]);
-    const balance = balMap.get(riderId) ?? 0;
-    if (balance <= 0) {
-      throw new BadRequestException('You have no cash-in-hand balance to settle');
-    }
-    const amount = requestedAmount ? Math.min(requestedAmount, balance) : balance;
-    if (amount <= 0) {
-      throw new BadRequestException('Settlement amount must be greater than ₹0');
-    }
+  /**
+   * Open a Razorpay order for the rider's WHOLE cash-in-hand. A rider cannot
+   * choose a smaller amount: the server fixes it here and verify credits
+   * exactly this order's amount, never a figure the app sends.
+   */
+  async createCashSettlementOrder(riderId: string) {
+    const balance = (await this.cashBalances([riderId])).get(riderId) ?? 0;
+    const amount = Math.round(balance * 100) / 100;
+    if (amount <= 0) throw new BadRequestException('You have no cash-in-hand balance to settle');
 
     const gateway = createPaymentGateway();
-    const order = await gateway.createOrder({
-      amountRupees: amount,
-      receipt: `RDR-SETTLE-${riderId.slice(0, 8)}-${Date.now()}`,
-    });
-
-    return {
-      gatewayOrderId: order.gatewayOrderId,
-      clientConfig: order.clientConfig,
-      amount,
-      balance,
-    };
+    const order = await gateway.createOrder({ amountRupees: amount, receipt: `RDR-SETTLE-${riderId.slice(0, 8)}-${Date.now()}` });
+    await this.prisma.riderCashSettlementOrder.create({ data: { riderId, gatewayOrderId: order.gatewayOrderId, amount } });
+    return { gatewayOrderId: order.gatewayOrderId, clientConfig: order.clientConfig, amount, balance: amount };
   }
 
-  /** Verify Razorpay payment and record DEPOSITED entry on rider's cash ledger. */
+  /**
+   * Verify the Razorpay payment and record a DEPOSITED entry for the order's
+   * amount. Idempotent: the same payment verified twice credits once.
+   */
   async verifyCashSettlement(riderId: string, dto: VerifyCashSettlementDto) {
     const gateway = createPaymentGateway();
-    const valid = gateway.verifyPayment({
-      gatewayOrderId: dto.gatewayOrderId,
-      paymentId: dto.paymentId,
-      signature: dto.signature,
-    });
-
-    if (!valid) {
+    if (!gateway.verifyPayment({ gatewayOrderId: dto.gatewayOrderId, paymentId: dto.paymentId, signature: dto.signature })) {
       throw new BadRequestException('Payment verification failed (invalid signature)');
     }
 
     return this.prisma.$transaction(async (tx) => {
+      // Rider row first, as every cash-ledger writer does, then the order.
       await tx.$queryRaw`SELECT id FROM riders WHERE id = ${riderId} FOR UPDATE`;
-      const bal = Number(
-        (await tx.riderCashEntry.aggregate({ where: { riderId }, _sum: { amount: true } }))._sum.amount ?? 0,
-      );
+      const order = await tx.riderCashSettlementOrder.findUnique({ where: { gatewayOrderId: dto.gatewayOrderId } });
+      if (!order || order.riderId !== riderId) throw new NotFoundException('Payment not found');
+      const balanceNow = async () => Number((await tx.riderCashEntry.aggregate({ where: { riderId }, _sum: { amount: true } }))._sum.amount ?? 0);
 
-      const settleAmount = Math.min(dto.amount, bal);
-      if (settleAmount <= 0) {
-        throw new BadRequestException('No remaining cash balance to settle');
+      if (order.paidAt) {
+        if (order.paymentId !== dto.paymentId) throw new ConflictException('This payment order was already paid');
+        return { success: true, settledAmount: Number(order.amount), newBalance: await balanceNow(), duplicate: true };
       }
 
+      // The money has moved, so the full order amount is recorded even if the
+      // balance changed meanwhile (e.g. cash also handed in at the store).
+      const settled = Number(order.amount);
       const entry = await tx.riderCashEntry.create({
-        data: {
-          riderId,
-          type: 'DEPOSITED',
-          amount: -settleAmount,
-          reference: dto.paymentId,
-          note: 'Online Razorpay settlement to Super Admin',
-        },
+        data: { riderId, type: 'DEPOSITED', amount: -settled, reference: dto.paymentId, note: 'Online Razorpay settlement to Super Admin' },
       });
-
-      const newBal = Number(
-        (await tx.riderCashEntry.aggregate({ where: { riderId }, _sum: { amount: true } }))._sum.amount ?? 0,
-      );
-
-      return {
-        success: true,
-        settledAmount: settleAmount,
-        newBalance: newBal,
-        entry,
-      };
+      await tx.riderCashSettlementOrder.update({ where: { id: order.id }, data: { paidAt: new Date(), paymentId: dto.paymentId } });
+      return { success: true, settledAmount: settled, newBalance: await balanceNow(), duplicate: false, entry };
     });
   }
+
 
   /**
    * Cash across all riders, for the staff Cash & Deposits screen: who holds how

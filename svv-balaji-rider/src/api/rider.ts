@@ -270,6 +270,7 @@ export const riderApi = {
   task: (id: string) => d<TaskDetail>(api.get(`/rider/tasks/${id}`)),
   step: (id: string, action: 'arrived-pickup' | 'picked-up' | 'start' | 'arrived' | 'returned', loc: Loc) => d(api.post(`/rider/tasks/${id}/${action}`, loc)),
   cod: (id: string, body: { amount: number; method: 'CASH' | 'UPI'; reference?: string } & Loc) => d(api.post(`/rider/tasks/${id}/cod`, body)),
+  requestOtp: (id: string) => d(api.post(`/rider/tasks/${id}/request-otp`, {})),
   deliver: (id: string, otp: string, loc: Loc) => d(api.post(`/rider/tasks/${id}/deliver`, { otp, ...loc })),
   fail: (id: string, body: { reasonCode: string; note?: string; photoUrl?: string } & Loc) => d(api.post(`/rider/tasks/${id}/fail`, body)),
   release: (id: string, reason: string) => d(api.post(`/rider/tasks/${id}/release`, { reason })),
@@ -290,7 +291,7 @@ export const riderApi = {
   payouts: () =>
     d<{ unpaid: number; payouts: Array<{ id: string; payoutNumber: string; paidAt: string; upTo: string; grossAmount: number; cashOffset: number; netPaid: number; method: 'BANK_TRANSFER' | 'UPI' | 'CASH'; reference: string | null; lineCount: number }> }>(api.get('/rider/payouts')),
   cash: () => d<{ balance: number; entries: Array<{ id: string; type: string; amount: number; reference: string | null; note: string | null; createdAt: string }> }>(api.get('/rider/cash')),
-  createSettlementOrder: (amount?: number) => d<{ gatewayOrderId: string; clientConfig: any; amount: number; balance: number }>(api.post('/rider/cash/settle-order', { amount })),
+  createSettlementOrder: () => d<{ gatewayOrderId: string; clientConfig: any; amount: number; balance: number }>(api.post('/rider/cash/settle-order', {})),
   verifyCashSettlement: (input: { amount: number; gatewayOrderId: string; paymentId: string; signature: string }) => d<{ success: boolean; settledAmount: number; newBalance: number }>(api.post('/rider/cash/settle-verify', input)),
   notifications: () => d<Notification[]>(api.get('/rider/notifications')),
   markRead: (ids?: string[]) => d(api.patch('/rider/notifications/read', { ids })),

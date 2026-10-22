@@ -24,10 +24,10 @@ const SCOPE_SUFFIX = 'firebase-cloud-messaging-push-scope';
 const scopePath = new URL(self.registration.scope).pathname;
 /** The app's base path ("/", "/admin/", ...), where the logo and the app itself live. */
 const BASE = scopePath.endsWith(SCOPE_SUFFIX) ? scopePath.slice(0, -SCOPE_SUFFIX.length) : scopePath;
-const LOGO = BASE + 'svv-balaji.png';
+const LOGO = BASE + 'desi-tokri-emblem.png';
 
 function show(data) {
-  const title = data.title || 'SVV Balaji';
+  const title = data.title || 'Desi Tokri Rider';
   const options = {
     body: data.body || '',
     icon: LOGO,

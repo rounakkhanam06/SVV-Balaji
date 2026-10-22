@@ -219,7 +219,8 @@ export interface RiderDetail extends Omit<RiderRow, 'activeTasks'> {
 export interface RiderEarningsReport {
   from: string;
   to: string;
-  totals: { earned: number; deliveries: number; failed: number; riders: number };
+  /** paid/unpaid split the period's earnings; balanceDue is everything still owed, all time. */
+  totals: { earned: number; deliveries: number; failed: number; riders: number; paid: number; unpaid: number; balanceDue: number };
   byType: Record<string, number>;
   rows: Array<{
     rider: { id: string; code: string | null; fullName: string; phone: string; status: RiderStatus; availability: 'ONLINE' | 'OFFLINE'; photoUrl: string | null; warehouse: { id: string; name: string } | null };
@@ -227,6 +228,10 @@ export interface RiderEarningsReport {
     failed: number;
     total: number;
     byType: Record<string, number>;
+    paid: number;
+    unpaid: number;
+    balanceDue: number;
+    lastPaidAt: string | null;
   }>;
 }
 

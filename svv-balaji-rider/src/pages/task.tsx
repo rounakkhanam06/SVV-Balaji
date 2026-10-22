@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { errorCode, errorMessage } from '../api/client';
 import { riderApi, type FailureReason, type TaskDetail, type TaskKind } from '../api/rider';
@@ -319,17 +319,33 @@ export function DeliverOtp() {
     },
   });
   const t = q.data;
-  if (t && t.payment.codAmount > 0 && !t.payment.collected) return <Navigate to={`/task/${id}/cod`} replace />;
+  const otpLength = t?.otpLength ?? 4;
+  const codPending = Boolean(t && t.payment.codAmount > 0 && !t.payment.collected);
+  // Opening this screen is the rider asking for the code: it pops up on the customer's app at once.
+  const asked = useRef(false);
+  useEffect(() => {
+    if (!t || codPending || asked.current || (kind && kind !== 'ORDER_DELIVERY')) return;
+    asked.current = true;
+    riderApi.requestOtp(id).catch(() => undefined);
+  }, [t, codPending, kind, id]);
+  // The code is verified the moment the last digit goes in; a correct one completes the delivery.
+  const submitted = useRef('');
+  useEffect(() => {
+    if (code.length < otpLength || m.isPending || submitted.current === code) return;
+    submitted.current = code;
+    m.mutate();
+  }, [code, otpLength, m]);
+  if (codPending) return <Navigate to={`/task/${id}/cod`} replace />;
   return (
     <div className="app">
       <TopBar title="Delivery OTP" back />
       <div className="page" style={{ paddingTop: 22 }}>
         <h2 className="auth-title" style={{ marginTop: 0 }}>Enter The Code</h2>
         <p className="auth-sub">Ask {t?.drop.name ?? 'the customer'} for the {kind === 'RETURN_PICKUP' ? 'pickup' : 'delivery'} code shown in their app</p>
-        <OtpInput value={code} length={t?.otpLength ?? 4} error={Boolean(error)} onChange={(v) => { setError(null); setCode(v); }} />
+        <OtpInput value={code} length={otpLength} error={Boolean(error)} onChange={(v) => { setError(null); submitted.current = ''; setCode(v); }} />
         {error ? <p style={{ textAlign: 'center', color: 'var(--red)', fontSize: 13, marginTop: 12 }}>{error}</p> : null}
-        <button className="btn primary block" style={{ marginTop: 20 }} disabled={code.length < (t?.otpLength ?? 4) || m.isPending} onClick={() => m.mutate()}>
-          {m.isPending ? 'Checking…' : kind === 'RETURN_PICKUP' ? 'Confirm Collection' : 'Complete Delivery'}
+        <button className="btn primary block" style={{ marginTop: 20 }} disabled={code.length < otpLength || m.isPending} onClick={() => m.mutate()}>
+          {m.isPending ? 'Verifying…' : kind === 'RETURN_PICKUP' ? 'Confirm Collection' : 'Complete Delivery'}
         </button>
       </div>
     </div>

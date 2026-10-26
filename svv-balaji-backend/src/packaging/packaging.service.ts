@@ -10,6 +10,27 @@ import {
 } from './dto/packaging.dto';
 import { listPage, type PageRequest } from '../common/pagination';
 
+/** Mass/volume scale to a base unit. Unknown units are refused, not guessed. */
+const UNIT_SCALE: Record<string, { base: 'MASS' | 'VOLUME'; factor: number }> = {
+  KG: { base: 'MASS', factor: 1 },
+  G: { base: 'MASS', factor: 0.001 },
+  GM: { base: 'MASS', factor: 0.001 },
+  QUINTAL: { base: 'MASS', factor: 100 },
+  L: { base: 'VOLUME', factor: 1 },
+  LITRE: { base: 'VOLUME', factor: 1 },
+  ML: { base: 'VOLUME', factor: 0.001 },
+};
+
+export function toUnit(value: number, from: string, to: string): number {
+  const f = UNIT_SCALE[from.trim().toUpperCase()];
+  const t = UNIT_SCALE[to.trim().toUpperCase()];
+  if (!f || !t) throw new BadRequestException(`Cannot convert ${from} to ${to} - use KG, G, L or ML`);
+  if (f.base !== t.base) {
+    throw new BadRequestException(`Pack weight is in ${from} but the run's output is in ${to} - they are not the same kind of measure`);
+  }
+  return (value * f.factor) / t.factor;
+}
+
 @Injectable()
 export class PackagingService {
   constructor(
@@ -37,11 +58,12 @@ export class PackagingService {
       );
     }
 
-    // Packed weight can't exceed what was actually produced.
-    const packedTotal = dto.netWeight * dto.packCount;
+    // Packed weight can't exceed what was actually produced - compared in the
+    // run's unit, so a 500 G pouch is 0.5 KG of output, not 500.
+    const packedTotal = toUnit(dto.netWeight, dto.weightUnit ?? 'KG', production.unit) * dto.packCount;
     const produced = production.actualQuantity ? Number(production.actualQuantity) : null;
     if (produced !== null && packedTotal > produced + 0.001) {
-      const alreadyPacked = await this.packedWeightSoFar(dto.productionBatchId);
+      const alreadyPacked = await this.packedWeightSoFar(dto.productionBatchId, production.unit);
       throw new BadRequestException(
         `Packing ${packedTotal} exceeds production output of ${produced} ` +
           `(already packed: ${alreadyPacked})`,
@@ -49,13 +71,33 @@ export class PackagingService {
     }
 
     if (produced !== null) {
-      const alreadyPacked = await this.packedWeightSoFar(dto.productionBatchId);
+      const alreadyPacked = await this.packedWeightSoFar(dto.productionBatchId, production.unit);
       if (alreadyPacked + packedTotal > produced + 0.001) {
         throw new BadRequestException(
           `Packing ${packedTotal} would exceed remaining output ` +
             `(${produced} produced, ${alreadyPacked} already packed)`,
         );
       }
+    }
+
+    /**
+     * Which pack size these are. A variant order line draws only on batches
+     * packed as that variant, so a 5 kg line can never be filled with 1 kg
+     * pouches. If the variant has a pack weight, the pack has to weigh it.
+     */
+    let variantId: string | null = null;
+    if (dto.variantId) {
+      const v = await this.prisma.productVariant.findUnique({ where: { id: dto.variantId } });
+      if (!v || v.productId !== production.productId) {
+        throw new BadRequestException('That pack size does not belong to the product this run made');
+      }
+      if (v.packWeightKg !== null) {
+        const packKg = toUnit(dto.netWeight, dto.weightUnit ?? 'KG', 'KG');
+        if (Math.abs(packKg - Number(v.packWeightKg)) > 0.0005) {
+          throw new BadRequestException(`${v.name} packs weigh ${Number(v.packWeightKg)} kg, but this pack is ${packKg} kg`);
+        }
+      }
+      variantId = v.id;
     }
 
     const packagingDate = new Date(dto.packagingDate);
@@ -96,6 +138,7 @@ export class PackagingService {
           fgBatchNumber,
           productionBatchId: production.id,
           productId: production.productId,
+          variantId,
           packagingType: dto.packagingType,
           netWeight: dto.netWeight,
           weightUnit: dto.weightUnit ?? 'KG',
@@ -113,12 +156,12 @@ export class PackagingService {
     });
   }
 
-  private async packedWeightSoFar(productionBatchId: string): Promise<number> {
+  private async packedWeightSoFar(productionBatchId: string, unit: string): Promise<number> {
     const existing = await this.prisma.finishedGoodsBatch.findMany({
       where: { productionBatchId },
-      select: { netWeight: true, packCount: true },
+      select: { netWeight: true, packCount: true, weightUnit: true },
     });
-    return existing.reduce((sum, b) => sum + Number(b.netWeight) * b.packCount, 0);
+    return existing.reduce((sum, b) => sum + toUnit(Number(b.netWeight), b.weightUnit, unit) * b.packCount, 0);
   }
 
   /** FRD 22.2 - everything needed to print the pack label. */

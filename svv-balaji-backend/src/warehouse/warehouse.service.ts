@@ -262,9 +262,13 @@ export class WarehouseService {
         },
       });
 
+      // Booking stock in is not a quality decision: a REJECTED batch stays
+      // rejected (only a PASS re-inspection clears it), and a batch already in
+      // production keeps that status.
+      const current = await tx.rawMaterialBatch.findUnique({ where: { id: dto.batchId }, select: { status: true } });
       await tx.rawMaterialBatch.update({
         where: { id: dto.batchId },
-        data: { status: 'STORED', warehouseId },
+        data: current?.status === 'COLLECTED' ? { status: 'STORED', warehouseId } : { warehouseId },
       });
 
       return stock;
@@ -329,7 +333,7 @@ export class WarehouseService {
     }
 
     return this.prisma.$transaction(async (tx) => {
-      await tx.warehouseStock.update({
+      const left = await tx.warehouseStock.update({
         where: {
           warehouseId_batchId: { warehouseId: dto.fromWarehouseId, batchId: dto.batchId },
         },
@@ -360,10 +364,14 @@ export class WarehouseService {
         },
       });
 
-      await tx.rawMaterialBatch.update({
-        where: { id: dto.batchId },
-        data: { warehouseId: dto.toWarehouseId },
-      });
+      // A partial transfer splits the batch across two warehouses; its "home"
+      // only moves once the source no longer holds any of it.
+      if (Number(left.quantity) <= 0) {
+        await tx.rawMaterialBatch.update({
+          where: { id: dto.batchId },
+          data: { warehouseId: dto.toWarehouseId },
+        });
+      }
 
       return movement;
     });

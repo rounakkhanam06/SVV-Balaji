@@ -19,6 +19,20 @@ import { Prisma, ReservationStatus } from '@prisma/client';
 
 type Client = Prisma.TransactionClient;
 
+/**
+ * Stock key: what one sellable pack is identified by. A variant pack is its
+ * variant id; the product's own pack is the product id. Every helper here takes
+ * keys, so a caller that only knows product ids keeps meaning "the product's
+ * own pack" - which is all that existed before pack sizes were stock units.
+ * Variant and product ids are both UUIDs, so the two never collide.
+ */
+export const stockKey = (x: { productId: string; variantId?: string | null }) => x.variantId ?? x.productId;
+
+/** Batches (or holds) belonging to any of these keys. */
+export function keyWhere(keys: string[]) {
+  return { OR: [{ variantId: { in: keys } }, { productId: { in: keys }, variantId: null }] };
+}
+
 export class OutOfStockException extends BadRequestException {
   constructor(
     public readonly shortages: Array<{ productId: string; requested: number; available: number }>,
@@ -47,7 +61,7 @@ export function activeHoldFilter(now: Date): Prisma.StockReservationWhereInput {
   };
 }
 
-/** Sellable units per product at a node (never negative). `excludeSessionId` skips a checkout's own holds. */
+/** Sellable units per stock key (product's own pack, or a variant) at a node (never negative). `excludeSessionId` skips a checkout's own holds. */
 export async function availableByProduct(
   client: Client,
   warehouseId: string,
@@ -62,24 +76,24 @@ export async function availableByProduct(
     where: {
       warehouseId,
       fgBatch: {
-        productId: { in: productIds },
+        ...keyWhere(productIds),
         qaReleased: true,
         holdStatus: 'ACTIVE',
-        OR: [{ expiryDate: null }, { expiryDate: { gte: startOfToday() } }],
+        AND: [{ OR: [{ expiryDate: null }, { expiryDate: { gte: startOfToday() } }] }],
       },
     },
-    select: { quantity: true, reservedQuantity: true, fgBatch: { select: { productId: true } } },
+    select: { quantity: true, reservedQuantity: true, fgBatch: { select: { productId: true, variantId: true } } },
   });
   for (const row of stock) {
-    const id = row.fgBatch.productId;
+    const id = stockKey(row.fgBatch);
     out.set(id, (out.get(id) ?? 0) + Math.max(0, row.quantity - row.reservedQuantity));
   }
 
   const holds = await client.stockReservation.groupBy({
-    by: ['productId'],
+    by: ['productId', 'variantId'],
     where: {
       warehouseId,
-      productId: { in: productIds },
+      ...keyWhere(productIds),
       // Written out (not `NOT`) so rows with a NULL sessionId/orderId are kept, as SQL's <> would drop them.
       AND: [
         activeHoldFilter(now),
@@ -92,7 +106,8 @@ export async function availableByProduct(
     _sum: { quantity: true },
   });
   for (const h of holds) {
-    out.set(h.productId, Math.max(0, (out.get(h.productId) ?? 0) - (h._sum.quantity ?? 0)));
+    const k = stockKey(h);
+    out.set(k, Math.max(0, (out.get(k) ?? 0) - (h._sum.quantity ?? 0)));
   }
   return out;
 }
@@ -112,7 +127,8 @@ export async function lockStockRows(client: Client, warehouseId: string, product
     FROM "finished_goods_stock" s
     JOIN "finished_goods_batches" b ON b."id" = s."fgBatchId"
     WHERE s."warehouseId" = ${warehouseId}
-      AND b."productId" IN (${Prisma.join(productIds)})
+      AND (b."variantId" IN (${Prisma.join(productIds)})
+           OR (b."variantId" IS NULL AND b."productId" IN (${Prisma.join(productIds)})))
     ORDER BY s."id"
     FOR UPDATE OF s
   `);
@@ -133,7 +149,7 @@ export async function heldByOthers(
   const agg = await client.stockReservation.aggregate({
     where: {
       warehouseId,
-      productId,
+      ...keyWhere([productId]),
       AND: [activeHoldFilter(now), { OR: [{ orderId: null }, { orderId: { not: excludeOrderId } }] }],
     },
     _sum: { quantity: true },

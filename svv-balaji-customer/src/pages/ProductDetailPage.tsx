@@ -58,6 +58,8 @@ interface Pack {
   /** GST-inclusive consumer/retailer entry price for the current channel. */
   price: number | null;
   priceTiers: StorefrontPriceTier[];
+  /** Sellable packs of this size. */
+  available: number;
 }
 
 /** Ladder in the shape the cart prices from - GST-inclusive, as displayed. */
@@ -174,7 +176,6 @@ export function ProductDetailPage() {
   const consumerMin = detail?.orderLimits.minOrderQuantity ?? 1;
   const consumerMax = detail?.orderLimits.maxOrderQuantity ?? 99;
   const allowBackorder = detail?.orderLimits.allowBackorder ?? false;
-  const availableStock = detail?.availableQuantity ?? 0;
 
   // Start a fresh product at its own minimums, not the previous product's quantity.
   useEffect(() => {
@@ -196,6 +197,7 @@ export function ProductDetailPage() {
       mrp: detail.mrp,
       price: detail.price ? detail.price.unitPriceInclGst : null,
       priceTiers: detail.priceTiers,
+      available: detail.availableQuantity ?? 0,
     };
     const extra = detail.variants.map((v: StorefrontVariant): Pack => ({
       id: v.id,
@@ -206,12 +208,15 @@ export function ProductDetailPage() {
       mrp: v.mrp,
       price: v.price ? v.price.unitPriceInclGst : null,
       priceTiers: v.priceTiers,
+      available: v.availableQuantity ?? 0,
     }));
     return [primary, ...extra];
   }, [detail]);
 
   const hasVariants = allPacks.length > 1;
   const activePack: Pack | undefined = allPacks.find((p) => p.id === selectedVariantId) ?? allPacks[0];
+  // Stock of the pack size being viewed, not the product as a whole.
+  const availableStock = activePack?.available ?? 0;
   // Shape the variant selector below already reads.
   const product = { variants: allPacks };
 

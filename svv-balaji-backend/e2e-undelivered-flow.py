@@ -69,6 +69,14 @@ s, login = call("POST", "/auth/login", {"email": EMAIL, "password": PASSWORD})
 assert s in (200, 201), login
 tok = login["accessToken"]
 
+# A fresh database has no seller GST details, so no invoice would be raised at dispatch and the
+# "invoice reversed" half of this flow could not be checked. Complete them if they are missing.
+_s, _gst = call("GET", "/invoices/settings", token=tok)
+if not (isinstance(_gst, dict) and _gst.get("gstin")):
+    _s, _r = call("PATCH", "/invoices/settings", {"legalName": "SVV Balaji Food & Beverages Pvt Ltd", "gstin": "23ABCDE1234F1Z8",
+                                                  "addressLine1": "Industrial Area", "city": "Bhopal", "pincode": "462001"}, token=tok)
+    print(f"  (GST settings completed for this test DB: HTTP {_s})")
+
 # A product with a live B2C price and at least 6 free QA-released packs in one warehouse.
 fx = db(
     "const now=new Date();"
@@ -95,7 +103,7 @@ def stock_of(order_id):
         f"const a=await p.orderAllocation.findMany({{where:{{orderId:'{order_id}'}},select:{{warehouseId:true,fgBatchId:true,quantity:true,releasedAt:true}}}});"
         "const out=[];for(const x of a){const s=await p.finishedGoodsStock.findUnique({where:{warehouseId_fgBatchId:{warehouseId:x.warehouseId,fgBatchId:x.fgBatchId}}});"
         "const b=await p.finishedGoodsBatch.findUnique({where:{id:x.fgBatchId},select:{fgBatchNumber:true}});"
-        "out.push({fg:b.fgBatchNumber,batch:x.fgBatchId,wh:x.warehouseId,q:x.quantity,released:!!x.releasedAt,stock:s?s.quantity:0,reserved:s?s.reservedQuantity:0})}return out"
+        "out.push({fg:b.fgBatchNumber,batch:x.fgBatchId,wh:x.warehouseId,q:x.quantity,released:!!x.releasedAt,stock:s?s.quantity:0,reserved:s?s.reservedQuantity:0,quarantine:s?s.quarantineQuantity:0,damaged:s?s.damagedQuantity:0})}return out"
     )
 
 
@@ -124,11 +132,13 @@ inv = db(f"return await p.invoice.findFirst({{where:{{orderId:'{O1}',status:'ISS
 s, r = call("POST", f"/orders/{O1}/close-undelivered", {"reason": "customer refused twice"}, token=tok)
 check("close -> 200 once the goods are back at the store", s == 200, r)
 after = stock_of(O1)
-check("every allocated pack is back on its batch row", all(a["stock"] == b0["stock"] + b0["q"] for a, b0 in zip(after, before)), (before, after))
+# 22 Oct 2026: returned packs are QUARANTINED on their batch rows, not put back on sale unchecked.
+check("every allocated pack is quarantined on its batch row, none back in sellable stock",
+      all(a["stock"] == b0["stock"] and a["quarantine"] == b0["quarantine"] + b0["q"] for a, b0 in zip(after, before)), (before, after))
 check("allocations released", all(a["released"] for a in after), after)
 check("order CANCELLED with an 'Undelivered' reason", db(f"const o=await p.order.findUnique({{where:{{id:'{O1}'}}}});return o.status+'|'+o.cancelledReason").startswith("CANCELLED|Undelivered"))
-moves = db(f"return await p.stockMovement.count({{where:{{reference:(await p.order.findUnique({{where:{{id:'{O1}'}}}})).orderNumber,movementType:'STOCK_IN'}}}})")
-check("a STOCK_IN ledger row per allocation", moves == len(after), (moves, len(after)))
+moves = db(f"return await p.stockMovement.count({{where:{{reference:(await p.order.findUnique({{where:{{id:'{O1}'}}}})).orderNumber,movementType:'UNDELIVERED_QUARANTINE'}}}})")
+check("an UNDELIVERED_QUARANTINE ledger row per allocation", moves == len(after), (moves, len(after)))
 if inv:
     st = db(f"return (await p.invoice.findUnique({{where:{{id:'{inv['id']}'}}}})).status")
     check("same-month invoice cancelled", st == "CANCELLED" and s == 200 and "cancelled" in (r.get("gst") or ""), (st, r.get("gst") if isinstance(r, dict) else r))
@@ -138,6 +148,24 @@ ev = db(f"return (await p.orderEvent.findMany({{where:{{orderId:'{O1}'}},select:
 check("timeline has CLOSED_UNDELIVERED and GST_REVERSED", "CLOSED_UNDELIVERED" in ev and "GST_REVERSED" in ev, ev)
 s, b = call("POST", f"/orders/{O1}/close-undelivered", {"reason": "again please", "goodsInHand": True}, token=tok)
 check("closing twice -> 400", s == 400, b)
+
+step("2b. QC of the quarantined packs: good back on sale, damaged to the damaged bucket")
+s, pend = call("GET", f"/orders/{O1}/undelivered-qc", token=tok)
+check("QC queue lists every quarantined batch", s == 200 and sum(l["quantity"] for l in pend["lines"]) == sum(a["q"] for a in after), pend)
+first = pend["lines"][0]
+s, bad = call("POST", f"/orders/{O1}/undelivered-qc", {"lines": [{"fgBatchId": first["fgBatchId"], "good": first["quantity"], "damaged": 1}]}, token=tok)
+check("QC of more packs than are waiting -> 400", s == 400, bad)
+pre = {x["batch"]: x for x in stock_of(O1)}
+good, damaged = max(0, first["quantity"] - 1), min(1, first["quantity"])
+s, r = call("POST", f"/orders/{O1}/undelivered-qc", {"lines": [{"fgBatchId": first["fgBatchId"], "good": good, "damaged": damaged}], "notes": "one pouch torn"}, token=tok)
+check("QC recorded", s == 200, r)
+post = {x["batch"]: x for x in stock_of(O1)}
+b = first["fgBatchId"]
+check("good packs back on sale, damaged in the damaged bucket, quarantine emptied",
+      post[b]["stock"] == pre[b]["stock"] + good and post[b]["damaged"] == pre[b]["damaged"] + damaged and post[b]["quarantine"] == pre[b]["quarantine"] - good - damaged,
+      (pre[b], post[b]))
+s, pend2 = call("GET", f"/orders/{O1}/undelivered-qc", token=tok)
+check("that batch is no longer waiting", all(l["fgBatchId"] != b for l in pend2["lines"]), pend2)
 
 step("3. traceability: the returned packs still resolve to the same farmers")
 import re

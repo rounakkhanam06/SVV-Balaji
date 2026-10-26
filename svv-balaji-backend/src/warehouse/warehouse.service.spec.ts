@@ -41,7 +41,10 @@ describe('WarehouseService', () => {
         return data;
       }),
     },
-    rawMaterialBatch: { update: jest.fn(async ({ data }) => data) },
+    rawMaterialBatch: {
+      findUnique: jest.fn(async () => ({ status: 'COLLECTED' })),
+      update: jest.fn(async ({ data }) => data),
+    },
   });
 
   beforeEach(() => {

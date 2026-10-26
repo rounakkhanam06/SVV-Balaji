@@ -246,6 +246,9 @@ check(re["complete"] and re["released"][0]["fgBatchNumber"] == OLD["fgBatchNumbe
 check(all(a["fgBatchNumber"] == NEW["fgBatchNumber"] for a in re["allocations"]), "re-picked from healthy stock", re["allocations"])
 fw = must("GET", f"/recall/forward?code={OLD['fgBatchNumber']}")
 check(fw["totals"]["packsAllocatedNotShipped"] == 0, "frozen batch no longer holds any pending reservation", fw["totals"])
+# Re-picked packs have not been scanned, so the order goes back to the bench.
+check(must("GET", f"/orders/{pending['id']}")["status"] == "ALLOCATED", "re-allocated packed order returns to ALLOCATED for re-packing")
+must("PATCH", f"/orders/{pending['id']}/pack", {})
 must("PATCH", f"/orders/{pending['id']}/dispatch", {})
 check(True, f"{pending['orderNumber']} dispatched from the healthy batch")
 

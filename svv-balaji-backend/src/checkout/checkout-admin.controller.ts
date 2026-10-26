@@ -2,7 +2,8 @@ import {
   Body, Controller, Delete, Get, Headers, HttpCode, Param, Patch, Post, RawBodyRequest, Req, UnauthorizedException, UseGuards, UseInterceptors,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiProperty, ApiTags } from '@nestjs/swagger';
-import { IsBoolean, IsEnum, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import { ArrayMinSize, IsArray, IsBoolean, IsEnum, IsInt, IsOptional, IsString, Matches, Min, MaxLength, MinLength, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
 import { OrderStatus } from '@prisma/client';
 import type { Request } from 'express';
 import { timingSafeEqual } from 'node:crypto';
@@ -81,6 +82,50 @@ export class CouponsAdminController {
 }
 
 /** Staff actions on a placed order. Every one goes through SalesService.advance, which enforces the order of steps. */
+class UndeliveredQcLineDto {
+  @ApiProperty() @IsString() fgBatchId!: string;
+  @ApiProperty({ description: 'Packs fit to sell again' }) @Type(() => Number) @IsInt() @Min(0) good!: number;
+  @ApiProperty({ description: 'Packs damaged / not fit to sell' }) @Type(() => Number) @IsInt() @Min(0) damaged!: number;
+}
+
+class UndeliveredQcDto {
+  @ApiProperty({ type: [UndeliveredQcLineDto] }) @IsArray() @ArrayMinSize(1) @ValidateNested({ each: true }) @Type(() => UndeliveredQcLineDto) lines!: UndeliveredQcLineDto[];
+  @ApiProperty({ required: false }) @IsOptional() @IsString() @MaxLength(300) notes?: string;
+}
+
+/** Server-to-server callbacks. Unauthenticated by JWT; each is authenticated by its own secret. */
+@ApiTags('webhooks')
+@Controller('webhooks')
+export class WebhooksController {
+  constructor(
+    private readonly fulfillment: FulfillmentService,
+    private readonly checkout: CheckoutService,
+    @Inject(PAYMENT_GATEWAY) private readonly gateway: PaymentGateway,
+  ) {}
+
+  @Post('shiprocket')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Shiprocket tracking updates (header x-api-key = SHIPROCKET_WEBHOOK_TOKEN)' })
+  async shiprocket(@Headers('x-api-key') key: string | undefined, @Body() body: Record<string, unknown>) {
+    if (!tokenMatches(key, process.env.SHIPROCKET_WEBHOOK_TOKEN)) throw new UnauthorizedException('Bad webhook token');
+    return this.fulfillment.handleShiprocketWebhook(body);
+  }
+
+  @Post('razorpay')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Razorpay payment.captured (verified by X-Razorpay-Signature over the raw body)' })
+  async razorpay(@Req() req: RawBodyRequest<Request>, @Headers('x-razorpay-signature') signature: string | undefined) {
+    const raw = req.rawBody?.toString('utf8') ?? '';
+    if (!signature || !this.gateway.verifyWebhook(raw, signature)) throw new UnauthorizedException('Bad webhook signature');
+    const event = JSON.parse(raw) as { event?: string; payload?: { payment?: { entity?: { id?: string; order_id?: string } } } };
+    const payment = event.payload?.payment?.entity;
+    if (event.event === 'payment.captured' && payment?.order_id && payment.id) {
+      return this.checkout.confirmFromWebhook(payment.order_id, payment.id);
+    }
+    return { ignored: true };
+  }
+}
+
 @ApiTags('fulfillment')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -140,46 +185,32 @@ export class FulfillmentController {
   @HttpCode(200)
   @RequirePermission('orders.closeUndelivered')
   @ApiOperation({
-    summary: 'Close a dispatched order that could not be delivered, with its goods back in stock',
+    summary: 'Close a dispatched order that could not be delivered; its goods are quarantined for QC',
     description:
-      'Packs go back into the batches they left from (STOCK_IN), a prepaid amount goes to the Refund Wallet, coins / wallet spend / ' +
+      'Packs are quarantined on the batches they left from (UNDELIVERED_QUARANTINE) - not sellable until QC at /undelivered-qc - a prepaid amount goes to the Refund Wallet, coins / wallet spend / ' +
       'coupon / affiliate commission are reversed and the order is CANCELLED. The tax invoice is then cancelled (same month) or ' +
       'credited in full. Refused while a delivery is still in progress or a courier shipment is not back (unless goodsInHand).',
   })
   closeUndelivered(@Param('id') id: string, @Body() dto: CloseUndeliveredDto, @CurrentUser() user: JwtPayload) {
     return this.fulfillment.closeUndelivered(id, dto, user.sub);
   }
-}
 
-/** Server-to-server callbacks. Unauthenticated by JWT; each is authenticated by its own secret. */
-@ApiTags('webhooks')
-@Controller('webhooks')
-export class WebhooksController {
-  constructor(
-    private readonly fulfillment: FulfillmentService,
-    private readonly checkout: CheckoutService,
-    @Inject(PAYMENT_GATEWAY) private readonly gateway: PaymentGateway,
-  ) {}
-
-  @Post('shiprocket')
-  @HttpCode(200)
-  @ApiOperation({ summary: 'Shiprocket tracking updates (header x-api-key = SHIPROCKET_WEBHOOK_TOKEN)' })
-  async shiprocket(@Headers('x-api-key') key: string | undefined, @Body() body: Record<string, unknown>) {
-    if (!tokenMatches(key, process.env.SHIPROCKET_WEBHOOK_TOKEN)) throw new UnauthorizedException('Bad webhook token');
-    return this.fulfillment.handleShiprocketWebhook(body);
+  @Get(':id/undelivered-qc')
+  @RequirePermission('orders.closeUndelivered')
+  @ApiOperation({ summary: 'Packs of an undelivered order still quarantined, per batch, waiting for QC' })
+  undeliveredQcPending(@Param('id') id: string) {
+    return this.fulfillment.undeliveredQcPending(id);
   }
 
-  @Post('razorpay')
+  @Post(':id/undelivered-qc')
   @HttpCode(200)
-  @ApiOperation({ summary: 'Razorpay payment.captured (verified by X-Razorpay-Signature over the raw body)' })
-  async razorpay(@Req() req: RawBodyRequest<Request>, @Headers('x-razorpay-signature') signature: string | undefined) {
-    const raw = req.rawBody?.toString('utf8') ?? '';
-    if (!signature || !this.gateway.verifyWebhook(raw, signature)) throw new UnauthorizedException('Bad webhook signature');
-    const event = JSON.parse(raw) as { event?: string; payload?: { payment?: { entity?: { id?: string; order_id?: string } } } };
-    const payment = event.payload?.payment?.entity;
-    if (event.event === 'payment.captured' && payment?.order_id && payment.id) {
-      return this.checkout.confirmFromWebhook(payment.order_id, payment.id);
-    }
-    return { ignored: true };
+  @RequirePermission('orders.closeUndelivered')
+  @ApiOperation({
+    summary: 'Record QC of quarantined undelivered packs',
+    description: 'Per batch: good packs go back to sellable stock (only if the batch is still active, QA-released and unexpired), damaged ones to the damaged bucket. Undecided packs stay quarantined.',
+  })
+  undeliveredQc(@Param('id') id: string, @Body() dto: UndeliveredQcDto, @CurrentUser() user: JwtPayload) {
+    return this.fulfillment.undeliveredQc(id, dto.lines, user.sub, dto.notes);
   }
 }
+

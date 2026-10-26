@@ -4368,3 +4368,30 @@ OFFER/TASK_ASSIGNED) and foreground pushes. Foreground system notifications are 
 - `POST /rider/cash/settle-order` takes no amount any more: the order is always for the whole cash-in-hand, stored server-side.
 - `POST /rider/cash/settle-verify` credits the stored order amount (body `amount` ignored, now optional) and is idempotent per order/payment — previously it trusted the app's amount and a replay deducted twice.
 - Rider app: amount field removed; shows the fixed full amount and "Pay ₹X".
+
+## 2026-10-22 — Raunak (agent) — Flow-integrity fixes from the code audit (branch `fix/audit-flow-integrity`, uncommitted)
+
+Behaviour changes (no migration, no route/DTO shape change, but several calls that used to succeed now return 400):
+- **Production:** `setStatus` follows a table (PLANNED→CANCELLED; IN_PROGRESS→PAUSED/CANCELLED; PAUSED→IN_PROGRESS/CANCELLED; COMPLETED/CANCELLED final). `/complete` refuses a run never started (was: PLANNED/PAUSED runs completed with no raw material deducted). Delete only for a PLANNED, never-started run, and it now releases the reservation (was: started runs deleted, stock lost, ledger orphaned). By-product no longer counted as loss. One IN_PROGRESS run per machine. `/start` refuses if the recipe is no longer APPROVED.
+- **QA:** a raw-material PASS restores a REJECTED batch (STORED / COLLECTED). Supplier batches need a raw-material inspection before production. Warehouse stock-in no longer resets REJECTED/UNDER_PRODUCTION to STORED.
+- **Warehouse:** partial transfer keeps the batch's home warehouse until the source is empty; cleaning wastage comes off the home warehouse row.
+- **Packaging:** pack weight converted to the run's unit (G/KG/QUINTAL, ML/L) before the output check; mismatched/unknown units refused.
+- **Recipes:** an APPROVED version can only be set INACTIVE via `/status`.
+- **Sales:** dispatch refused while any line is short-allocated (invoice would bill unshipped packs); scan no longer auto-PACKs a short order; packing bench reports real shortfalls. Override to DELIVERED refused for LOCAL orders without a verified OTP (SOW #22). Re-allocation respects `heldByOthers` and sends a PACKED order back to ALLOCATED for re-scan. Undelivered close puts packs of held/recalled/QA-withdrawn/expired batches in `damagedQuantity`, not sellable stock.
+- **Rider assign by phone:** exact 10-digit match; ambiguous match refused.
+
+Tests: 946 unit tests pass (new: `production-flow.spec.ts`, `pack-units.spec.ts`, `quality.reinspection.spec.ts`, short-scan + short-dispatch cases). E2E on a throwaway local DB: supplier-transport, client-decisions, returns, loyalty, recall ALL PASSED (`e2e-recall-flow.py` updated: re-pack after re-allocation). `e2e-order-override-flow.py` 5 failures — all the "counter collection → DELIVERED by override" case, now refused by the OTP rule; **needs a decision** before the script is changed. `e2e-checkout-flow.py` 2 known stale checks; `e2e-undelivered-flow.py` fails identically on the old code (fresh DB has no GST settings). Not click-tested.
+
+Not done yet: product variants end to end (needs migration), short-ship with refund, missing-pack-weight handling, refund-method choice on undelivered orders, maker-checker on recipes — see the decision list in this session's report.
+
+## 2026-10-22 (later) — Raunak (agent) — Product variants end to end, undelivered quarantine + QC, e2e scripts brought up to date
+
+Same branch `fix/audit-flow-integrity`, uncommitted. Full detail, deploy notes, open items and admin-screen work: `SVV_Balaji_Audit_Fixes_Status_22Oct.md`. Client decisions: `SVV_Balaji_Pending_Decisions_22Oct.md`.
+
+- **Migrations (additive):** `20261022150000_product_variant_stock` (variantId on FG batches / order items / stock reservations, variant packWeightKg, order-line unique becomes an expression index - Prisma can't declare it, strip any generated DROP of it), `20261022160000_undelivered_quarantine` (quarantineQuantity + 2 movement types).
+- **Variants:** a cart id may be a variant id; quote/order lines carry `variantId`; stock, holds, allocation and rider weight are per pack size; storefront shows per-pack stock net of holds; a sold variant removed from the product form is retired, not deleted; `POST /finished-goods` takes `variantId`.
+- **Undelivered close now quarantines packs**; new `GET/POST /orders/:id/undelivered-qc` puts QC'd good packs back on sale (only if the batch is still sellable) and the rest in damaged.
+- **Partial-shipment guard kept** pending decision 2.
+- **E2E scripts updated to current rules:** order-override (counter pickup via dispatch + OTP), checkout (OTP shown only when out for delivery; pin-less routing by city; no retailer credit), retailer-routing (COD, no credit), recall (re-pack after re-allocation), undelivered (quarantine + QC; valid GSTIN for its GST setup). New `e2e-variants-flow.py`.
+
+**Results (each script on its own throwaway local DB):** ALL PASSED - variants, order-override, checkout (103 checks), recall, loyalty, undelivered, supplier-transport, client-decisions, returns, retailer-routing, quick-delivery, pos (run with `PYTHONIOENCODING=utf-8`; it crashed printing "₹" on the Windows console otherwise). **Existing failures, identical on the code before this branch:** `e2e-broadcast-dispatch-flow.py` (deadlock 40P01 when an outside driver and an app rider take the same task) and `e2e-rider-flow.py` ("an offer cannot be accepted twice" now returns ACCEPTED) - both from today's earlier rider-accept speed-up (`DispatchService.respond`), not from this work. Unit: 957/957.

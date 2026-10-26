@@ -19,7 +19,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { PrismaService } from '../../prisma/prisma.service';
-import { availableByProduct } from '../../checkout/stock-holds';
+import { availableByProduct, stockKey } from '../../checkout/stock-holds';
 import {
   isOpen,
   normalisePincode,
@@ -244,7 +244,7 @@ export class ZonesService {
     client: Prisma.TransactionClient | PrismaService,
     input: {
       address: { latitude: number | null; longitude: number | null; pincode: string | null };
-      items: Array<{ productId: string; quantity: number }>;
+      items: Array<{ productId: string; variantId?: string | null; quantity: number }>;
       goodsTotal: number | null;
       excludeNodeIds?: string[];
       now?: Date;
@@ -287,8 +287,9 @@ export class ZonesService {
       }
     }
 
-    const stock = await availableByProduct(client as Prisma.TransactionClient, w.id, ids, { now });
-    const short = input.items.filter((i) => (stock.get(i.productId) ?? 0) < i.quantity);
+    // Scope is the product's category; stock is per pack size.
+    const stock = await availableByProduct(client as Prisma.TransactionClient, w.id, input.items.map(stockKey), { now });
+    const short = input.items.filter((i) => (stock.get(stockKey(i)) ?? 0) < i.quantity);
     if (short.length) {
       const names = await client.product.findMany({ where: { id: { in: short.map((s) => s.productId) } }, select: { name: true } });
       return unavailable(`${names.map((n) => n.name).slice(0, 2).join(', ')}${names.length > 2 ? ' and more' : ''} not in stock at your nearby store`);

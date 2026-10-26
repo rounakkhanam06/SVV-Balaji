@@ -236,7 +236,12 @@ q_far = must("POST", "/storefront/checkout/quote", {"addressId": A_far, "items":
 check(q_far["fulfillment"]["method"] == "SHIPROCKET" and q_far["fulfillment"]["nodeId"] == WH_C, "address in another city -> SHIPROCKET from the central depot", q_far["fulfillment"])
 check("day" in q_far["fulfillment"]["etaLabel"], "courier ETA is a days window", q_far["fulfillment"]["etaLabel"])
 q_nc = must("POST", "/storefront/checkout/quote", {"addressId": A_nocoord, "items": items((P1, 3))}, tok=C1["tok"])
-check(q_nc["fulfillment"]["method"] == "SHIPROCKET" and "pin" in q_nc["fulfillment"]["reason"].lower(), "no coordinates -> never 'local' (asks for a pin)", q_nc["fulfillment"]["reason"])
+# Since the router matches outlets by pincode/city when there is no pin, a pin-less address in the
+# outlet's own city is LOCAL - but never with a claimed distance; elsewhere it goes by courier.
+check(q_nc["fulfillment"]["method"] == "LOCAL" and q_nc["fulfillment"]["distanceKm"] is None, "no coordinates, same city -> LOCAL by city match, no distance claimed", q_nc["fulfillment"])
+A_nocoord_far = add_address(C1, label="Other city", city="Indore")
+q_ncf = must("POST", "/storefront/checkout/quote", {"addressId": A_nocoord_far, "items": items((P1, 3))}, tok=C1["tok"])
+check(q_ncf["fulfillment"]["method"] == "SHIPROCKET", "no coordinates, another city -> courier", q_ncf["fulfillment"])
 
 step("4. The server recalculates everything; the client's numbers are not trusted")
 t = q["totals"]
@@ -312,8 +317,8 @@ check(od["addressSnapshot"]["city"] == "Bhopal" and od["couponCode"] == CODE and
 check("deliveryOtp" not in od, "staff order responses never contain the delivery OTP")
 check(all(i["skuSnapshot"] and i["nameSnapshot"] for i in od["items"]), "line items carry SKU/name snapshots and no batch yet (FIFO happens at packing)")
 cust_view = must("GET", f"/storefront/orders/{placed['orderNumber']}", tok=C1["tok"])
-OTP = cust_view["deliveryOtp"]
-check(OTP and len(OTP) == 4 and cust_view["payment"]["status"] == "PAID", "the customer (only) is shown a 4-digit OTP", cust_view["deliveryOtp"])
+# The OTP is only shown once the order is out for delivery (since ad83f3c).
+check(not cust_view.get("deliveryOtp") and cust_view["payment"]["status"] == "PAID", "no OTP is shown before the order is out for delivery", cust_view.get("deliveryOtp"))
 coup = next(c for c in rows(must("GET", "/coupons")) if c["code"] == CODE)
 check(coup["usedCount"] == 1, "coupon usage recorded in the same transaction")
 bal = must("GET", "/storefront/loyalty", tok=C1["tok"])
@@ -353,6 +358,8 @@ o = must("GET", f"/orders/{ORDER1}")
 check(o["status"] == "DISPATCHED" and o["riderName"] == "Ravi Kumar", "rider assigned -> out for delivery (DISPATCHED)")
 cv = must("GET", f"/storefront/orders/{placed['orderNumber']}", tok=C1["tok"])
 check(cv["rider"]["name"] == "Ravi Kumar" and any(t["type"] == "RIDER_ASSIGNED" for t in cv["timeline"]), "customer tracking shows the rider and timeline")
+OTP = cv.get("deliveryOtp")
+check(OTP and len(OTP) == 4, "out for delivery: the customer (only) is shown a 4-digit OTP", OTP)
 status, bad = call("PATCH", f"/orders/{ORDER1}/deliver", {})
 check(status == 400 and "otp" in msg(bad).lower(), "plain 'deliver' is blocked: the OTP is required", msg(bad))
 wrong = str((int(OTP) + 1) % 10000).zfill(4)
@@ -529,7 +536,9 @@ if pend:
     BT = bs["accessToken"]
     bme = must("GET", "/storefront/auth/me", tok=BT)
     BID = bme["customer"]["id"]
-    must("PATCH", f"/customers/{BID}", {"paymentTerms": "CREDIT_30", "creditLimit": 2000})
+    # 10 Oct 2026 client decision: no retailer credit - retailers pay online or COD like customers.
+    s_, bad_ = call("PATCH", f"/customers/{BID}", {"paymentTerms": "CREDIT_30", "creditLimit": 2000})
+    check(s_ == 400, "credit terms are refused for a retailer", msg(bad_))
     B_addr = add_address({"tok": BT}, *LOCAL_LL)
     status, bad = call("POST", "/storefront/checkout/quote", {"addressId": B_addr, "items": items((P1, 5))}, tok=BT)
     check(status == 400 and "minimum" in msg(bad).lower(), "B2B minimum order quantity (MOQ 10) enforced", msg(bad))
@@ -537,19 +546,15 @@ if pend:
     fb = qb2b["fulfillment"]
     check(fb["method"] == "LOCAL" and fb["nodeId"] == WH_O, "B2B to a local address is routed like B2C: nearby outlet with stock -> LOCAL", fb)
     check(qb2b["totals"]["subtotal"] == 960 and qb2b["totals"]["deliveryFee"] == 150, "B2B tier price (Rs 80 x 12 = 960) and the B2B delivery fee", qb2b["totals"])
-    check("CREDIT" in qb2b["payment"]["allowedModes"], "credit terms are offered while within the limit", qb2b["payment"])
-    sb = must("POST", "/storefront/checkout/sessions", {"addressId": B_addr, "items": items((P1, 12)), "paymentMode": "CREDIT"}, tok=BT)
+    check("CREDIT" not in qb2b["payment"]["allowedModes"] and "COD" in qb2b["payment"]["allowedModes"], "a retailer is offered COD / online, never credit", qb2b["payment"]["allowedModes"])
+    status, bad = call("POST", "/storefront/checkout/sessions", {"addressId": B_addr, "items": items((P1, 12)), "paymentMode": "CREDIT"}, tok=BT)
+    check(status == 400, "choosing credit anyway is refused", msg(bad))
+    sb = must("POST", "/storefront/checkout/sessions", {"addressId": B_addr, "items": items((P1, 12)), "paymentMode": "COD"}, tok=BT)
     ob = must("POST", f"/storefront/checkout/sessions/{sb['sessionId']}/confirm", {}, tok=BT)
     odb = must("GET", f"/orders/{ob['orderId']}")
-    check(odb["channel"] == "B2B" and odb["paymentMode"] == "CREDIT" and odb["paymentStatus"] == "PENDING" and odb["paymentTerms"] == "CREDIT_30", "B2B order on credit: channel B2B, payment pending, CREDIT_30 terms", {k: odb[k] for k in ("channel", "paymentMode", "paymentStatus", "paymentTerms")})
-    qb_big = must("POST", "/storefront/checkout/quote", {"addressId": B_addr, "items": items((P1, 40))}, tok=BT)
-    check("CREDIT" not in qb_big["payment"]["allowedModes"] and qb_big["payment"]["creditUnavailableReason"], "a bulk order beyond the credit limit no longer offers credit (reason given)", qb_big["payment"]["creditUnavailableReason"])
-    status, bad = call("POST", "/storefront/checkout/sessions", {"addressId": B_addr, "items": items((P1, 40)), "paymentMode": "CREDIT"}, tok=BT)
-    check(status == 400, "and choosing credit anyway is refused")
-    status, bad = call("POST", "/storefront/checkout/sessions", {"addressId": B_addr, "items": items((P1, 12)), "paymentMode": "COD"}, tok=BT)
-    check(status == 400, "B2B cannot use cash on delivery")
+    check(odb["channel"] == "B2B" and odb["paymentMode"] == "COD" and odb["paymentStatus"] == "PENDING" and odb["paymentTerms"] == "PREPAID", "B2B order on COD: channel B2B, payment pending until collected, PREPAID terms", {k: odb[k] for k in ("channel", "paymentMode", "paymentStatus", "paymentTerms")})
 else:
-    check(False, "could not create the B2B retailer account for the credit tests", reg)
+    check(False, "could not create the B2B retailer account for the retailer checkout tests", reg)
 
 # ------------------------------------------------------------ reconciliation
 step("14. Socket down / dashboard closed: reconciliation query loses nothing")

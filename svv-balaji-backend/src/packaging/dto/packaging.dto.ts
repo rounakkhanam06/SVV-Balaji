@@ -6,6 +6,11 @@ export class CreateFinishedGoodsBatchDto {
   @IsString()
   productionBatchId: string;
 
+  @ApiPropertyOptional({ description: "Pack size (product variant) these packs are. Omit for the product's own pack." })
+  @IsOptional()
+  @IsString()
+  variantId?: string;
+
   @ApiProperty({ description: 'pouch | box | bottle | jar | sack' })
   @IsString()
   packagingType: string;

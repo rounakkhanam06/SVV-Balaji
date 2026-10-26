@@ -24,6 +24,25 @@ export class QualityService {
         data: { ...dto, inspectedById },
       });
 
+      /**
+       * Re-inspection. A FAIL marks the batch REJECTED, and production refuses
+       * REJECTED outright - so without this a batch that was re-cleaned and
+       * passed on a second look could never be used. A PASS on a rejected
+       * batch restores it to where its stock actually is.
+       */
+      if (dto.result === QualityResult.PASS && dto.stage === InspectionStage.RAW_MATERIAL && dto.rawMaterialBatchId) {
+        const batch = await tx.rawMaterialBatch.findUnique({
+          where: { id: dto.rawMaterialBatchId },
+          select: { status: true, warehouseId: true },
+        });
+        if (batch?.status === 'REJECTED') {
+          await tx.rawMaterialBatch.update({
+            where: { id: dto.rawMaterialBatchId },
+            data: { status: batch.warehouseId ? 'STORED' : 'COLLECTED' },
+          });
+        }
+      }
+
       if (dto.result === QualityResult.FAIL) {
         if (dto.stage === InspectionStage.RAW_MATERIAL && dto.rawMaterialBatchId) {
           await tx.rawMaterialBatch.update({

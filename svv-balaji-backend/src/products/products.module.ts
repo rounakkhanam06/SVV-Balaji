@@ -186,6 +186,13 @@ export class ProductVariantDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @ApiPropertyOptional({ description: 'Weight of one pack of this size in kg (rider carry limit, per-kg pay). Empty = use the product pack weight.', nullable: true })
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 3 })
+  @Min(0.001)
+  @Max(2000)
+  packWeightKg?: number | null;
 }
 
 export class ProductSpecificationDto {
@@ -522,6 +529,7 @@ function toVariantRow(variant: ProductVariantDto, index: number) {
     mrp: variant.mrp ?? null,
     images: (variant.images ?? []).filter(Boolean),
     isActive: variant.isActive ?? true,
+    packWeightKg: variant.packWeightKg ?? null,
     displayOrder: index,
   };
 }
@@ -875,8 +883,18 @@ export class ProductsService {
         const variantsForPricing: Array<{ id: string; pricing?: ChannelPricingDto }> = [];
         if (variants) {
           const keptIds = variants.map((v) => v.id).filter(Boolean) as string[];
+          const removedWhere = { productId: id, ...(keptIds.length ? { id: { notIn: keptIds } } : {}) };
+          // A pack size that was sold or packed is history (order lines and FG
+          // batches point at it): it is retired, not deleted.
+          const used = await tx.productVariant.findMany({
+            where: { ...removedWhere, OR: [{ orderItems: { some: {} } }, { finishedGoodsBatch: { some: {} } }] },
+            select: { id: true },
+          });
+          if (used.length) {
+            await tx.productVariant.updateMany({ where: { id: { in: used.map((u) => u.id) } }, data: { isActive: false } });
+          }
           await tx.productVariant.deleteMany({
-            where: { productId: id, ...(keptIds.length ? { id: { notIn: keptIds } } : {}) },
+            where: { ...removedWhere, id: { notIn: [...keptIds, ...used.map((u) => u.id)] } },
           });
 
           for (const [index, variant] of variants.entries()) {

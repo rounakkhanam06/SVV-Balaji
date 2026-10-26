@@ -35,6 +35,17 @@ const BLEND_TOLERANCE_POINTS = 0.5;
  */
 const normaliseCrop = (crop: string) => crop.trim().toLowerCase();
 
+/**
+ * Status moves `setStatus` accepts. PLANNED -> IN_PROGRESS goes through /start
+ * (it consumes stock) and -> COMPLETED through /complete (it records output),
+ * so neither appears here. COMPLETED and CANCELLED are final.
+ */
+export const PRODUCTION_TRANSITIONS: Partial<Record<ProductionStatus, ProductionStatus[]>> = {
+  [ProductionStatus.PLANNED]: [ProductionStatus.CANCELLED],
+  [ProductionStatus.IN_PROGRESS]: [ProductionStatus.PAUSED, ProductionStatus.CANCELLED],
+  [ProductionStatus.PAUSED]: [ProductionStatus.IN_PROGRESS, ProductionStatus.CANCELLED],
+};
+
 @Injectable()
 export class ProductionService {
   constructor(
@@ -54,6 +65,23 @@ export class ProductionService {
     if (!m.isActive) throw new BadRequestException(`${m.code} (${m.name}) is inactive - pick another machine`);
     if (m.branchId !== branchId) throw new BadRequestException(`${m.code} (${m.name}) belongs to another branch`);
     return { machineId: m.id, machineName: m.name, machineNumber: m.machineNumber ?? m.code, productionLine: m.productionLine ?? undefined };
+  }
+
+  /**
+   * One machine, one running batch. Without this two runs could be IN_PROGRESS
+   * on the same mill at once and utilisation would read over 100%.
+   */
+  private async assertMachineFree(machineId: string | null | undefined, exceptRunId?: string) {
+    if (!machineId) return;
+    const busy = await this.prisma.productionBatch.findFirst({
+      where: { machineId, status: ProductionStatus.IN_PROGRESS, ...(exceptRunId ? { id: { not: exceptRunId } } : {}) },
+      select: { productionBatchNumber: true },
+    });
+    if (busy) {
+      throw new BadRequestException(
+        `This machine is already running ${busy.productionBatchNumber}. Pause or complete that run first, or pick another machine.`,
+      );
+    }
   }
 
   // --- Cleaning & Grading (FRD Section 18) ---------------------------------
@@ -78,7 +106,8 @@ export class ProductionService {
      * change in the system.
      */
     if (wastage > 0) {
-      const stockRow = batch.stock[0];
+      // A transferred batch can sit in two warehouses; cleaning happens where it lives.
+      const stockRow = batch.stock.find((s) => s.warehouseId === batch.warehouseId) ?? batch.stock[0];
       if (!stockRow) {
         throw new BadRequestException(
           `Batch ${batch.batchNumber} has no stock row, so ${wastage} of wastage cannot be ` +
@@ -274,6 +303,14 @@ export class ProductionService {
         orderBy: { createdAt: 'desc' },
         select: { result: true },
       });
+      // Supplier material has no harvest inspection behind it, so its raw-material
+      // QA check is the only quality gate it ever passes - it is mandatory.
+      if (!latestQa && batch.supplierId) {
+        throw new BadRequestException(
+          `Batch ${batch.batchNumber} came from a supplier and has no raw-material quality ` +
+            'inspection. Record a PASS inspection before using it in production.',
+        );
+      }
       if (latestQa && latestQa.result !== 'PASS') {
         throw new BadRequestException(
           `The most recent quality inspection on batch ${batch.batchNumber} was ` +
@@ -299,6 +336,7 @@ export class ProductionService {
 
     const productionDate = new Date(dto.productionDate);
     const machine = await this.machineFields(dto.machineId, dto.branchId);
+    if (dto.status !== ProductionStatus.PLANNED) await this.assertMachineFree(dto.machineId);
 
     return this.prisma.$transaction(async (tx) => {
       const productionBatchNumber = await this.sequence.next(tx, 'PB', productionDate);
@@ -479,6 +517,15 @@ export class ProductionService {
     if (production.status === ProductionStatus.CANCELLED) {
       throw new BadRequestException('A cancelled production batch cannot be completed');
     }
+    // Only a run whose raw material has actually been consumed can yield output.
+    // A PLANNED run still holds a reservation; completing it would mint finished
+    // goods from stock that never left the shelf.
+    if (!production.startedAt) {
+      throw new BadRequestException(
+        `This run is ${production.status} and has not been started, so no raw material has been ` +
+          'consumed. Start it first (/start), then complete it.',
+      );
+    }
 
     /**
      * FRD 20.5 - production loss is input minus output.
@@ -498,11 +545,13 @@ export class ProductionService {
       _sum: { quantityUsed: true },
     });
     const totalInput = Number(consumed._sum.quantityUsed ?? 0);
-    const productionLoss = Number((totalInput - dto.actualQuantity).toFixed(2));
+    // A by-product (bran, oil cake) came out of the input too - it is not loss.
+    const byProduct = Number(dto.byProductQuantity ?? 0);
+    const productionLoss = Number((totalInput - dto.actualQuantity - byProduct).toFixed(2));
 
     if (productionLoss < 0) {
       throw new BadRequestException(
-        `Output (${dto.actualQuantity}) exceeds the ${totalInput} consumed by this run. ` +
+        `Output (${dto.actualQuantity}${byProduct ? ` + ${byProduct} by-product` : ''}) exceeds the ${totalInput} consumed by this run. ` +
           `A run cannot yield more than it was fed - check the actual quantity, or record the ` +
           `missing raw material consumption first.`,
       );
@@ -558,9 +607,17 @@ export class ProductionService {
   async startProduction(id: string, performedById: string) {
     const production = await this.prisma.productionBatch.findUnique({
       where: { id },
-      include: { consumptions: true },
+      include: { consumptions: true, recipe: { select: { status: true, recipeCode: true } } },
     });
     if (!production) throw new NotFoundException('Production batch not found');
+
+    // The recipe may have been retired between planning and starting.
+    if (production.recipe && production.recipe.status !== 'APPROVED') {
+      throw new BadRequestException(
+        `Recipe ${production.recipe.recipeCode} v${production.recipeVersion} is now ${production.recipe.status}. ` +
+          'Cancel this run and plan it against the approved version.',
+      );
+    }
 
     if (production.status !== ProductionStatus.PLANNED) {
       throw new BadRequestException(
@@ -575,6 +632,7 @@ export class ProductionService {
     }
 
     const warehouseId = production.warehouseId;
+    await this.assertMachineFree(production.machineId, production.id);
 
     return this.prisma.$transaction(async (tx) => {
       for (const consumption of production.consumptions) {
@@ -681,10 +739,26 @@ export class ProductionService {
     }
 
     /**
+     * Every other move is checked against an explicit table. Free transitions
+     * let a PLANNED run be paused and resumed (skipping /start, so nothing was
+     * ever deducted), a CANCELLED run be revived, or a started run be sent back
+     * to PLANNED and consumed a second time.
+     */
+    const allowed = PRODUCTION_TRANSITIONS[production.status] ?? [];
+    if (!allowed.includes(status)) {
+      throw new BadRequestException(
+        `A ${production.status} run cannot be moved to ${status}` +
+          (allowed.length ? ` (allowed: ${allowed.join(', ')})` : ' - it is final') + '.',
+      );
+    }
+
+    /**
      * Cancelling a planned run gives its reservation back. Only a PLANNED run
      * holds one - once started, the material is consumed and a cancellation
      * cannot un-grind it.
      */
+    if (status === ProductionStatus.IN_PROGRESS) await this.assertMachineFree(production.machineId, production.id);
+
     const releasing =
       status === ProductionStatus.CANCELLED && production.status === ProductionStatus.PLANNED;
 
@@ -790,18 +864,22 @@ export class ProductionService {
       );
     }
 
-    if (production.status === ProductionStatus.COMPLETED) {
-      throw new BadRequestException('Cannot delete completed production batch');
+    /**
+     * Only a PLANNED run - one that has reserved but never consumed - can be
+     * deleted. A started run has STOCK_OUT ledger rows naming it and material
+     * that is physically gone; deleting it orphaned that ledger and lost the
+     * stock (the consumption was removed but never returned). Cancel it instead.
+     */
+    if (production.status !== ProductionStatus.PLANNED || production.startedAt) {
+      throw new BadRequestException(
+        `Only a planned run that has not started can be deleted (this one is ${production.status}). ` +
+          'Its raw material has been consumed and is in the ledger - cancel the run instead.',
+      );
     }
 
     return this.prisma.$transaction(async (tx) => {
-      // Revert raw material status if needed
-      for (const consumption of production.consumptions) {
-        await tx.rawMaterialBatch.update({
-          where: { id: consumption.rawMaterialBatchId },
-          data: { status: 'STORED' },
-        });
-      }
+      // Give the reservation back; quantity never moved, so it is not touched.
+      await this.releaseReservation(tx, production);
 
       await tx.productionConsumption.deleteMany({
         where: { productionBatchId: id },

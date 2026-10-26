@@ -1,3 +1,4 @@
+import { activeHoldFilter, keyWhere } from '../checkout/stock-holds';
 import { Injectable } from '@nestjs/common';
 import { CustomerType, SalesChannel } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -422,6 +423,7 @@ export class StorefrontCatalogueService {
         unit: variant.unit ?? product.unit,
         mrp: variant.mrp === null || variant.mrp === undefined ? null : Number(variant.mrp),
         images: variant.images ?? [],
+        availableQuantity: (await this.availability(variant.productId, variant.id)).available,
         price: await this.resolvePriceQuietly(variant.productId, params, variant.id),
         // The variant's own ladder: the wholesale matrix prices each pack size
         // by the quantity entered for THAT pack, exactly as an order line will be.
@@ -528,11 +530,13 @@ export class StorefrontCatalogueService {
    * exposes stock per warehouse per batch, which is the right granularity for
    * a warehouse manager and the wrong one for a product page.
    */
-  private async availability(productId: string) {
+  /** `variantId` null = the product's own pack; each pack size is its own stock. */
+  private async availability(productId: string, variantId: string | null = null) {
     const rows = await this.prisma.finishedGoodsStock.findMany({
       where: {
         fgBatch: {
           productId,
+          variantId,
           qaReleased: true,
           holdStatus: 'ACTIVE',
           OR: [{ expiryDate: null }, { expiryDate: { gt: new Date() } }],
@@ -541,7 +545,14 @@ export class StorefrontCatalogueService {
       select: { quantity: true, reservedQuantity: true },
     });
 
-    const available = rows.reduce((sum, r) => sum + (r.quantity - r.reservedQuantity), 0);
+    // Packs promised to a placed order or a customer mid-checkout are not for
+    // sale either - the same rule checkout enforces, so the page never offers
+    // stock that checkout would then refuse.
+    const held = await this.prisma.stockReservation.aggregate({
+      where: { ...keyWhere([variantId ?? productId]), AND: [activeHoldFilter(new Date())] },
+      _sum: { quantity: true },
+    });
+    const available = rows.reduce((sum, r) => sum + (r.quantity - r.reservedQuantity), 0) - (held._sum.quantity ?? 0);
     return { available: Math.max(0, available) };
   }
 }

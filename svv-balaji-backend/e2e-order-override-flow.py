@@ -294,8 +294,14 @@ check(must("GET", f"/orders/{O5}/pick-plan") == [], "batch reservations released
 plan = must("POST", f"/orders/{O5}/start-packing", {})
 check(plan["status"] == "ALLOCATED" and plan["plan"], "start packing works again afterwards", plan)
 
-s, r = override(O5, "DELIVERED", "Customer collected at the counter")
-check(s == 200 and r["order"]["status"] == "DELIVERED", "ALLOCATED -> DELIVERED forward in one go", (s, r))
+# SOW #22 (22 Oct 2026): a local delivery is only DELIVERED with the customer's OTP - an
+# override may run the steps up to dispatch, never skip the doorstep confirmation.
+s, bad = override(O5, "DELIVERED", "Customer collected at the counter")
+check(s == 400 and "otp" in json.dumps(bad).lower(), "override straight to DELIVERED is refused without the customer's OTP", (s, bad))
+s, r = override(O5, "DISPATCHED", "Customer collecting at the counter")
+check(s == 200 and r["order"]["status"] == "DISPATCHED", "ALLOCATED -> DISPATCHED forward in one go (packed + stock out + invoice)", (s, r))
+must("POST", f"/orders/{O5}/verify-otp", {"otp": otp_of(O5, 5)})
+check(order(O5)["status"] == "DELIVERED", "the counter hand-over is closed with the customer's OTP")
 d5 = order(O5)
 check(d5["dispatchedAt"] and d5["deliveredAt"], "dispatch and delivery were stamped (stock out + invoice ran)", {k: d5[k] for k in ("dispatchedAt", "deliveredAt")})
 check(not any(t["status"] not in ("CANCELLED", "DELIVERED") for t in rows(must("GET", f"/delivery/tasks?orderId={O5}"))), "no delivery left running for it")
@@ -348,7 +354,7 @@ def customer_titles(tag):
 
 
 WANT = ["Order accepted", "Out for delivery", "Order delivered"]
-for tag, how in ((2, "staff-assigned app rider"), (6, "broadcast accept + override to dispatched"), (5, "override straight to delivered")):
+for tag, how in ((2, "staff-assigned app rider"), (6, "broadcast accept + override to dispatched"), (5, "override to dispatched + counter OTP")):
     got = wait_for(lambda: (lambda t: t if sorted(t) == sorted(WANT) else None)(customer_titles(tag)), timeout=40)
     check(got is not None, f"order {tag} ({how}): exactly accepted, out for delivery, delivered - once each", customer_titles(tag))
 got7 = customer_titles(7)

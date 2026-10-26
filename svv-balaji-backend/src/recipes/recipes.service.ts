@@ -289,6 +289,13 @@ export class RecipesService {
     if (status === RecipeStatus.APPROVED) {
       throw new BadRequestException('Use the /approve endpoint to approve a recipe');
     }
+    // An approved formula of record can be retired, not quietly reopened for
+    // editing: a revision is a new version that goes through approval again.
+    if (recipe.status === RecipeStatus.APPROVED && status !== RecipeStatus.INACTIVE) {
+      throw new BadRequestException(
+        'An approved recipe can only be made INACTIVE. To change it, create a new version and approve that.',
+      );
+    }
     return this.prisma.recipe.update({ where: { id }, data: { status } });
   }
 }

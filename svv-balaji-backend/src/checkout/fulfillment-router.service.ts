@@ -3,7 +3,7 @@ import { Prisma, WarehouseKind } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { haversineKm, validCoordinates, type Method } from './checkout.calculator';
 import type { EffectiveCheckoutSettings } from './checkout-settings.service';
-import { assertEnough, availableByProduct } from './stock-holds';
+import { assertEnough, availableByProduct, stockKey } from './stock-holds';
 
 export interface RouteNode {
   id: string;
@@ -62,7 +62,7 @@ export class FulfillmentRouterService {
     input: {
       b2b: boolean;
       address: { latitude: number | null; longitude: number | null; pincode?: string | null; city?: string | null };
-      items: Array<{ productId: string; quantity: number }>;
+      items: Array<{ productId: string; variantId?: string | null; quantity: number }>;
       excludeNodeIds?: string[];
       /** The customer's delivery zone says: courier only when Quick is not possible. */
       courierOnly?: boolean;
@@ -70,7 +70,7 @@ export class FulfillmentRouterService {
     settings: EffectiveCheckoutSettings,
   ): Promise<Route> {
     const considered: NodeConsideration[] = [];
-    const ids = input.items.map((i) => i.productId);
+    const ids = input.items.map(stockKey);
     const centralNode = await this.central(client, settings);
 
     const from = validCoordinates(input.address.latitude, input.address.longitude)
@@ -109,7 +109,7 @@ export class FulfillmentRouterService {
           continue;
         }
         const available = await availableByProduct(client as Prisma.TransactionClient, r.o.id, ids);
-        const hasStock = input.items.every((i) => (available.get(i.productId) ?? 0) >= i.quantity);
+        const hasStock = input.items.every((i) => (available.get(stockKey(i)) ?? 0) >= i.quantity);
         considered.push({ nodeId: r.o.id, name: r.o.name, distanceKm: round2, withinRadius: true, hasStock });
         if (hasStock) {
           return {
@@ -125,7 +125,7 @@ export class FulfillmentRouterService {
 
     // Central depot: everything else.
     const available = await availableByProduct(client as Prisma.TransactionClient, centralNode.id, ids);
-    assertEnough(input.items, available); // throws OutOfStockException with what is short
+    assertEnough(input.items.map((i) => ({ productId: stockKey(i), quantity: i.quantity })), available); // throws OutOfStockException with what is short
     const reason = input.courierOnly
         ? 'Shipped from our central warehouse'
         : !from

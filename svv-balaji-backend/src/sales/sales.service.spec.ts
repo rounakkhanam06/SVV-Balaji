@@ -269,7 +269,18 @@ describe('SalesService', () => {
         }),
       },
       orderItem: {
-        findMany: jest.fn(async ({ where }: any) => orderItems.filter((i) => where.id.in.includes(i.id))),
+        findMany: jest.fn(async ({ where }: any) =>
+          where.id?.in
+            ? orderItems.filter((i) => where.id.in.includes(i.id))
+            // shortLines(): lines of one order with their live allocations
+            : orderItems
+                .filter((i) => i.orderId === where.orderId)
+                .map((i) => ({
+                  ...i,
+                  product: { name: i.productId },
+                  allocations: allocations.filter((a) => a.orderItemId === i.id && a.releasedAt == null),
+                })),
+        ),
       },
       orderEvent: { create: jest.fn(async () => ({})) },
       stockReservation: {
@@ -288,7 +299,7 @@ describe('SalesService', () => {
         findMany: jest.fn(async ({ where }) =>
           stock
             .map((s) => s.fgBatch)
-            .filter((b) => where.id.in.includes(b.id) && b.holdStatus !== where.holdStatus.not),
+            .filter((b) => where.id.in.includes(b.id) && (!where.holdStatus || b.holdStatus !== where.holdStatus.not)),
         ),
       },
       finishedGoodsStock: {
@@ -700,6 +711,19 @@ describe('SalesService', () => {
       // Dispatch is the time of supply: the tax invoice is raised here, once.
       expect(invoices.onDispatched).toHaveBeenCalledTimes(1);
       expect(invoices.onDispatched).toHaveBeenCalledWith(order.id, 'user-1');
+    });
+
+    it('refuses to dispatch (and so invoice) a short-allocated order', async () => {
+      const row = fgStock({ quantity: 6 });
+      const order: any = await placeOrder('cust-b2b', 10);
+      await service.confirm(order.id);
+      const result: any = await service.allocate(order.id, 'user-1');
+      expect(result.complete).toBe(false);
+
+      await service.advance(order.id, 'PACKED' as any, 'user-1');
+      await expect(service.advance(order.id, 'DISPATCHED' as any, 'user-1')).rejects.toThrow(/6 of 10 allocated/);
+      expect(row.quantity).toBe(6);
+      expect(invoices.onDispatched).not.toHaveBeenCalled();
     });
 
     it('does not raise an invoice for a dispatch that was refused', async () => {

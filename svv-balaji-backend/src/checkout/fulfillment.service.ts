@@ -81,7 +81,9 @@ export class FulfillmentService {
       return { status: 'ALLOCATED', complete: result.complete, shortfalls: result.shortfalls, plan: await this.plan(orderId) };
     }
     if (o.status === OrderStatus.ALLOCATED) {
-      return { status: 'ALLOCATED', complete: true, shortfalls: [], plan: await this.plan(orderId) };
+      // Reopening the bench must still show what is missing, not report it whole.
+      const shortfalls = await this.sales.shortLines(orderId);
+      return { status: 'ALLOCATED', complete: shortfalls.length === 0, shortfalls, plan: await this.plan(orderId) };
     }
     throw new BadRequestException(`Packing cannot start on an order that is ${o.status}`);
   }
@@ -121,8 +123,11 @@ export class FulfillmentService {
     await this.sales.record(orderId, 'SCANNED', userId, number);
 
     const remaining = await this.prisma.orderAllocation.count({ where: { orderId, releasedAt: null, scannedAt: null } });
-    if (remaining === 0) await this.sales.advance(orderId, OrderStatus.PACKED, userId);
-    return { scanned: number, remaining, packed: remaining === 0, plan: await this.plan(orderId) };
+    // A short order is not packed just because everything it HAS was scanned.
+    const short = remaining === 0 ? await this.sales.shortLines(orderId) : [];
+    const packed = remaining === 0 && short.length === 0;
+    if (packed) await this.sales.advance(orderId, OrderStatus.PACKED, userId);
+    return { scanned: number, remaining, packed, shortfalls: short, plan: await this.plan(orderId) };
   }
 
   /** LOCAL: a rider takes it. Matches registered app rider by phone or falls back to external driver. */
@@ -136,13 +141,16 @@ export class FulfillmentService {
     const rawPhone = rider.phone.replace(/\D/g, '');
     const phoneDigits = rawPhone.length >= 10 ? rawPhone.slice(-10) : rawPhone;
 
-    // Check if there is an active registered app rider matching this phone number
-    const appRider = await this.prisma.rider.findFirst({
-      where: {
-        status: 'ACTIVE',
-        phone: { contains: phoneDigits },
-      },
+    if (phoneDigits.length !== 10) throw new BadRequestException("Enter the rider's full 10-digit mobile number");
+
+    // Exact match on the last 10 digits - a partial number must never pick
+    // some other rider whose phone merely contains it.
+    const candidates = await this.prisma.rider.findMany({
+      where: { status: 'ACTIVE', phone: { contains: phoneDigits } },
     });
+    const exact = candidates.filter((r) => r.phone.replace(/\D/g, '').slice(-10) === phoneDigits);
+    if (exact.length > 1) throw new BadRequestException('More than one active rider has this number - assign from the delivery board');
+    const appRider = exact[0] ?? null;
 
     if (appRider) {
       // Ensure a DeliveryTask exists for this order
@@ -278,6 +286,15 @@ export class FulfillmentService {
   /** Undelivered close - see SalesService.closeUndelivered. The returned delivery task keeps its RETURNED_TO_STORE history. */
   closeUndelivered(orderId: string, dto: { reason: string; goodsInHand?: boolean }, userId: string) {
     return this.sales.closeUndelivered(orderId, dto, userId);
+  }
+
+  /** Quarantined packs of an undelivered order and their QC - see SalesService.undeliveredQc. */
+  undeliveredQcPending(orderId: string) {
+    return this.sales.undeliveredQcPending(orderId);
+  }
+
+  undeliveredQc(orderId: string, lines: Array<{ fgBatchId: string; good: number; damaged: number }>, userId: string, notes?: string) {
+    return this.sales.undeliveredQc(orderId, lines, userId, notes);
   }
 
   async handleShiprocketWebhook(payload: Record<string, unknown>) {

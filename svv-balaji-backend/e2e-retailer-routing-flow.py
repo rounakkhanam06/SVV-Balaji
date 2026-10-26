@@ -159,7 +159,7 @@ must("POST", f"/riders/{RIDER_TOK['rider']['id']}/approve", {"warehouseId": WH_O
 RT = RIDER_TOK["accessToken"]
 must("POST", "/rider/availability", {"online": True, "latitude": OUTLET_LL[0], "longitude": OUTLET_LL[1]}, tok=RT)
 
-step("1. Retailer account on credit terms")
+step("1. Retailer account (no credit since 10 Oct - online or COD)")
 ph = f"8{STAMP[-6:]}321"
 call("POST", "/storefront/auth/otp/request", {"phone": ph}, auth=False)
 s, reg = call("POST", "/storefront/auth/register-retailer", {"phone": ph, "code": "123456", "fullName": "Routing Retailer", "businessName": f"RR Traders {STAMP}",
@@ -173,7 +173,9 @@ call("POST", "/storefront/auth/otp/request", {"phone": ph}, auth=False)
 _, bs = call("POST", "/storefront/auth/otp/verify", {"phone": ph, "code": "123456", "audience": "RETAILER"}, auth=False)
 BT = bs["accessToken"]
 BID = must("GET", "/storefront/auth/me", tok=BT)["customer"]["id"]
-must("PATCH", f"/customers/{BID}", {"paymentTerms": "CREDIT_30", "creditLimit": 100000})
+# 10 Oct 2026 client decision: no retailer credit - retailers pay online or cash on delivery like customers.
+s_, bad_ = call("PATCH", f"/customers/{BID}", {"paymentTerms": "CREDIT_30", "creditLimit": 100000})
+check(s_ == 400, "credit terms are refused for a retailer", bad_)
 
 
 def address(ll, city="Bhopal"):
@@ -201,15 +203,15 @@ s, bad = call("POST", "/storefront/checkout/quote", {"addressId": A_IN, "items":
 check(s == 409 and bad.get("code") == "QUICK_UNAVAILABLE", "Quick refused when the outlet cannot cover it, with the reason", bad)
 qf = must("POST", "/storefront/checkout/quote", {"addressId": A_FAR, "items": items(12)}, tok=BT)
 check(qf["fulfillment"]["method"] == "SHIPROCKET" and qf["fulfillment"]["nodeId"] == WH_C, "far address -> SHIPROCKET from the depot", qf["fulfillment"])
-check("CREDIT" in q["payment"]["allowedModes"], "credit terms still offered on a local retailer order")
+check("CREDIT" not in q["payment"]["allowedModes"] and "COD" in q["payment"]["allowedModes"], "a local retailer order offers COD, never credit", q["payment"]["allowedModes"])
 
-step("3. Place a LOCAL retailer order on credit; stock is held at the OUTLET")
-sess = must("POST", "/storefront/checkout/sessions", {"addressId": A_IN, "items": items(20), "paymentMode": "CREDIT"}, tok=BT)
+step("3. Place a LOCAL retailer order (COD); stock is held at the OUTLET")
+sess = must("POST", "/storefront/checkout/sessions", {"addressId": A_IN, "items": items(20), "paymentMode": "COD"}, tok=BT)
 placed = must("POST", f"/storefront/checkout/sessions/{sess['sessionId']}/confirm", {}, tok=BT)
 OID = placed["orderId"]
 od = must("GET", f"/orders/{OID}")
-check(od["channel"] == "B2B" and od["fulfillmentMethod"] == "LOCAL" and od["warehouseId"] == WH_O and od["paymentMode"] == "CREDIT",
-      "order: B2B, LOCAL, outlet node, on credit", {k: od.get(k) for k in ("channel", "fulfillmentMethod", "warehouseId", "paymentMode")})
+check(od["channel"] == "B2B" and od["fulfillmentMethod"] == "LOCAL" and od["warehouseId"] == WH_O and od["paymentMode"] == "COD",
+      "order: B2B, LOCAL, outlet node, cash on delivery", {k: od.get(k) for k in ("channel", "fulfillmentMethod", "warehouseId", "paymentMode")})
 q2 = must("POST", "/storefront/checkout/quote", {"addressId": A_IN, "items": items(12)}, tok=BT)
 check(q2["fulfillment"]["nodeId"] == WH_C, "the outlet's remaining 10 is not enough for another 12 -> the next order routes to the depot (held stock counts)", q2["fulfillment"])
 
@@ -234,12 +236,13 @@ def offer():
 
 
 of = wait_for(offer)
-check(of is not None and of["cod"] == 0, "a delivery task is offered to the outlet's rider (credit order: nothing to collect)", of)
+check(of is not None and of["cod"] > 0, "a delivery task is offered to the outlet's rider, with the cash to collect", of)
 must("POST", f"/rider/offers/{of['offerId']}/accept", tok=RT)
 for a in ("arrived-pickup", "picked-up", "start", "arrived"):
     must("POST", f"/rider/tasks/{of['taskId']}/{a}", {}, tok=RT)
 otp = must("GET", f"/storefront/orders/{placed['orderNumber']}", tok=BT)["deliveryOtp"]
 check(bool(otp), "the retailer is shown the doorstep OTP while out for delivery")
+must("POST", f"/rider/tasks/{of['taskId']}/cod", {"amount": of["cod"], "method": "CASH"}, tok=RT)
 must("POST", f"/rider/tasks/{of['taskId']}/deliver", {"otp": otp}, tok=RT)
 od = must("GET", f"/orders/{OID}")
 check(od["status"] == "DELIVERED", "retailer order delivered by the local rider")

@@ -3,7 +3,7 @@ import { FulfillmentService } from './fulfillment.service';
 
 /** The two pieces of fulfilment that guard against fraud and mistakes: batch scanning and the doorstep OTP. */
 function make(order: any, allocations: any[] = []) {
-  const state = { order: { ...order }, allocations: allocations.map((a) => ({ ...a })), events: [] as string[], advanced: [] as string[] };
+  const state = { order: { ...order }, allocations: allocations.map((a) => ({ ...a })), events: [] as string[], advanced: [] as string[], short: [] as unknown[] };
   const prisma: any = {
     order: {
       findUnique: async () => ({ ...state.order, shipment: null }),
@@ -25,6 +25,8 @@ function make(order: any, allocations: any[] = []) {
   const sales: any = {
     record: async (_id: string, type: string) => void state.events.push(type),
     advance: async (_id: string, to: string) => void state.advanced.push(to),
+    // Fully allocated unless a test says otherwise.
+    shortLines: async () => state.short,
   };
   return { svc: new FulfillmentService(prisma, sales, {} as any, {} as any, { route: async () => false } as any), state };
 }
@@ -39,6 +41,15 @@ const alloc = (id: string, batch: string) => ({
 
 describe('FulfillmentService.scan', () => {
   const base = { id: 'o1', status: 'ALLOCATED' };
+
+  it('does not mark a SHORT order packed even when everything it has is scanned', async () => {
+    const { svc, state } = make(base, [alloc('a1', 'FG-20260901-001')]);
+    state.short = [{ orderItemId: 'i1', name: 'Atta', ordered: 10, allocated: 1 }];
+    const res = await svc.scan('o1', 'FG-20260901-001', 'u1');
+    expect(res.packed).toBe(false);
+    expect(res.shortfalls).toHaveLength(1);
+    expect(state.advanced).toEqual([]);
+  });
 
   it('accepts only a batch FIFO allocated to the order, and reads the number out of a QR URL', async () => {
     const { svc, state } = make(base, [alloc('a1', 'FG-20260901-001')]);

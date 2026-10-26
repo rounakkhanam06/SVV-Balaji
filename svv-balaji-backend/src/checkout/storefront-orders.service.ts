@@ -276,7 +276,7 @@ export class StorefrontOrdersService {
 }
 
 /** Staff-side steps a shopper never sees (STATUS_OVERRIDE carries the staff member's reason). */
-const INTERNAL_EVENTS = ['SCANNED', 'OTP_FAILED', 'STATUS_OVERRIDE', 'READY_FOR_PICKUP', 'GST_REVERSED'];
+const INTERNAL_EVENTS = ['SCANNED', 'OTP_FAILED', 'STATUS_OVERRIDE', 'READY_FOR_PICKUP', 'GST_REVERSED', 'UNDELIVERED_QC'];
 /** The same step with the same detail again within this window is a repeat click / retry, not news. */
 const REPEAT_WINDOW_MS = 30 * 60_000;
 

@@ -68,7 +68,7 @@ function CloseUndelivered({ order, courier }: { order: OrderLite; courier: boole
               title: 'Order closed as undelivered',
               content: (
                 <Space direction="vertical" size={4}>
-                  <Text>{r.packsReturned} pack(s) are back in stock in their original batches.</Text>
+                  <Text>{r.packsReturned} pack(s) are quarantined on their original batches - they cannot be sold again until QC is recorded for them.</Text>
                   {r.refundedToWallet > 0 ? <Text>₹{r.refundedToWallet.toFixed(2)} went to the customer&apos;s Refund Wallet.</Text> : null}
                   {r.gst ? <Text>{r.gst}.</Text> : null}
                 </Space>

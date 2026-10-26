@@ -69,7 +69,7 @@ export interface StoredQuote {
     quick: { available: boolean; reason: string; etaLabel: string | null; fee: number | null; zoneName: string | null } | null;
   };
   lines: Array<{
-    productId: string; name: string; sku: string; image: string | null;
+    productId: string; variantId: string | null; name: string; sku: string; image: string | null;
     quantity: number; unitPrice: number; gstRatePercent: number; priceListId: string | null;
     gross: number; discount: number; taxable: number; tax: number; total: number;
   }>;
@@ -161,16 +161,27 @@ export class CheckoutService {
       throw new BadRequestException('A business registration (GSTIN, Udyam, or PAN) is required before placing bulk orders');
     }
 
-    // 1. Items: merge duplicates, enforce shape.
+    // 1. Items: merge duplicates, enforce shape. A cart id is a stock key - the
+    // product id for its own pack, or a variant id for another pack size.
     const merged = new Map<string, number>();
     for (const i of dto.items) merged.set(i.productId, (merged.get(i.productId) ?? 0) + i.quantity);
     if (merged.size === 0) throw new BadRequestException('Your cart is empty');
     if (merged.size > MAX_LINES) throw new BadRequestException(`A single order can have up to ${MAX_LINES} different products`);
-    const items = [...merged].map(([productId, quantity]) => ({ productId, quantity }));
+    const cartKeys = [...merged.keys()];
+
+    const variantRows = await this.prisma.productVariant.findMany({
+      where: { id: { in: cartKeys } },
+      select: { id: true, productId: true, name: true, sku: true, images: true, isActive: true },
+    });
+    const variantById = new Map(variantRows.map((v) => [v.id, v]));
+    const items = [...merged].map(([key, quantity]) => {
+      const v = variantById.get(key);
+      return { key, productId: v ? v.productId : key, variantId: v ? v.id : null, quantity };
+    });
 
     // 2. Products must be live on the storefront, within the order limits.
     const products = await this.prisma.product.findMany({
-      where: { id: { in: items.map((i) => i.productId) } },
+      where: { id: { in: [...new Set(items.map((i) => i.productId))] } },
       select: {
         id: true, name: true, sku: true, isActive: true, showOnStorefront: true, images: true,
         minOrderQuantity: true, maxOrderQuantity: true, moqB2B: true, maxOrderQuantityB2B: true,
@@ -180,6 +191,7 @@ export class CheckoutService {
     for (const i of items) {
       const p = byId.get(i.productId);
       if (!p || !p.isActive || !p.showOnStorefront) throw new BadRequestException('An item in your cart is no longer available');
+      if (i.variantId && !variantById.get(i.variantId)!.isActive) throw new BadRequestException('A pack size in your cart is no longer available');
       const min = b2b ? (p.moqB2B ?? 1) : (p.minOrderQuantity ?? 1);
       const max = b2b ? p.maxOrderQuantityB2B : p.maxOrderQuantity;
       if (min && i.quantity < min) throw new BadRequestException(`${p.name}: minimum order is ${min} for business orders`);
@@ -215,7 +227,7 @@ export class CheckoutService {
     // 4. Prices from the price lists, in this customer's channel.
     const priced = await Promise.all(
       items.map(async (i) => {
-        const price = await this.pricing.resolve({ productId: i.productId, channel, customerType: customer.type as CustomerType, quantity: i.quantity });
+        const price = await this.pricing.resolve({ productId: i.productId, variantId: i.variantId, channel, customerType: customer.type as CustomerType, quantity: i.quantity });
         return { ...i, unitPrice: price.unitPrice, gstRatePercent: price.gstRatePercent, priceListId: price.priceListId };
       }),
     );
@@ -337,7 +349,7 @@ export class CheckoutService {
     const walletDiscount = round2(loyaltyDiscount + referralDiscount);
 
     // 7. Fee depends on the goods total AFTER discounts; then final figures.
-    const lineInputs = priced.map((l) => ({ key: l.productId, quantity: l.quantity, unitPrice: l.unitPrice, gstRatePercent: l.gstRatePercent }));
+    const lineInputs = priced.map((l) => ({ key: l.key, quantity: l.quantity, unitPrice: l.unitPrice, gstRatePercent: l.gstRatePercent }));
     const totalOrderDiscount = round2(schemeDiscount + couponDiscount + walletDiscount);
     const goods = priceCart(lineInputs, totalOrderDiscount, 0);
     const standardFee = deliveryFeeFor(standardRoute.method, b2b, goods.goodsTotal, settings.fees);
@@ -392,10 +404,13 @@ export class CheckoutService {
           : null,
       },
       lines: cart.lines.map((l) => {
-        const p = meta.get(l.key)!;
-        const src = priced.find((x) => x.productId === l.key)!;
+        const src = priced.find((x) => x.key === l.key)!;
+        const p = meta.get(src.productId)!;
+        const v = src.variantId ? variantById.get(src.variantId)! : null;
         return {
-          productId: l.key, name: p.name, sku: p.sku, image: p.images?.[0] ?? null,
+          productId: src.productId, variantId: src.variantId,
+          name: v ? `${p.name} - ${v.name}` : p.name, sku: v ? v.sku : p.sku,
+          image: (v?.images?.[0] ?? p.images?.[0]) ?? null,
           quantity: l.quantity, unitPrice: l.unitPrice, gstRatePercent: l.gstRatePercent, priceListId: src.priceListId,
           gross: l.gross, discount: l.discount, taxable: l.taxable, tax: l.tax, total: l.total,
         };
@@ -510,7 +525,7 @@ export class CheckoutService {
             });
             await this.reservations.hold(tx, {
               warehouseId: quote.fulfillment.nodeId,
-              items: quote.lines.map((l) => ({ productId: l.productId, quantity: l.quantity })),
+              items: quote.lines.map((l) => ({ productId: l.productId, variantId: l.variantId ?? null, quantity: l.quantity })),
               sessionId: created.id,
               ttlMinutes: settings.reservationTtlMinutes,
             });
@@ -781,6 +796,7 @@ export class CheckoutService {
           create: quote.lines.map((l) => ({
             returnWindowDays: returnWindows.get(l.productId) ?? null,
             productId: l.productId,
+            variantId: l.variantId ?? null,
             quantity: l.quantity,
             unitPrice: l.unitPrice,
             priceListId: l.priceListId,

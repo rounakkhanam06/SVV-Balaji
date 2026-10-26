@@ -1,12 +1,14 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { CheckoutSessionStatus, Prisma, ReservationStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { assertEnough, availableByProduct, lockStockRows, OutOfStockException } from './stock-holds';
+import { assertEnough, availableByProduct, lockStockRows, OutOfStockException, stockKey } from './stock-holds';
 
 type Client = Prisma.TransactionClient;
 
 export interface HoldItem {
   productId: string;
+  /** Pack size; null/undefined = the product's own pack. */
+  variantId?: string | null;
   quantity: number;
 }
 
@@ -41,18 +43,19 @@ export class StockReservationService implements OnModuleInit, OnModuleDestroy {
     input: { warehouseId: string; items: HoldItem[]; sessionId: string; ttlMinutes: number; now?: Date },
   ): Promise<void> {
     const now = input.now ?? new Date();
-    const ids = input.items.map((i) => i.productId);
+    const ids = input.items.map(stockKey);
     await lockStockRows(tx, input.warehouseId, ids);
 
     // Anything this session already holds is its own - do not count it against itself.
     const available = await availableByProduct(tx, input.warehouseId, ids, { now, excludeSessionId: input.sessionId });
-    assertEnough(input.items, available);
+    assertEnough(input.items.map((i) => ({ productId: stockKey(i), quantity: i.quantity })), available);
 
     const expiresAt = new Date(now.getTime() + input.ttlMinutes * 60_000);
     await tx.stockReservation.createMany({
       data: input.items.map((i) => ({
         warehouseId: input.warehouseId,
         productId: i.productId,
+        variantId: i.variantId ?? null,
         quantity: i.quantity,
         status: ReservationStatus.HELD,
         expiresAt,
@@ -71,20 +74,20 @@ export class StockReservationService implements OnModuleInit, OnModuleDestroy {
   async commit(tx: Client, input: { sessionId: string; orderId: string; warehouseId: string; now?: Date }): Promise<void> {
     const now = input.now ?? new Date();
     const rows = await tx.stockReservation.findMany({ where: { sessionId: input.sessionId } });
-    const ids = rows.map((r) => r.productId);
+    const ids = rows.map(stockKey);
     await lockStockRows(tx, input.warehouseId, ids);
 
     const stale = rows.filter(
       (r) => r.status !== ReservationStatus.HELD || !r.expiresAt || r.expiresAt <= now,
     );
     if (stale.length > 0) {
-      const available = await availableByProduct(tx, input.warehouseId, stale.map((r) => r.productId), {
+      const available = await availableByProduct(tx, input.warehouseId, stale.map(stockKey), {
         now,
         excludeSessionId: input.sessionId,
       });
       const shortages = stale
-        .filter((r) => (available.get(r.productId) ?? 0) < r.quantity)
-        .map((r) => ({ productId: r.productId, requested: r.quantity, available: available.get(r.productId) ?? 0 }));
+        .filter((r) => (available.get(stockKey(r)) ?? 0) < r.quantity)
+        .map((r) => ({ productId: stockKey(r), requested: r.quantity, available: available.get(stockKey(r)) ?? 0 }));
       if (shortages.length > 0) throw new OutOfStockException(shortages);
     }
 

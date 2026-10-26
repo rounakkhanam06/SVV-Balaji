@@ -264,15 +264,18 @@ export function ProductionBatchesPage() {
             onEdit={() => openForm(batch)}
             onDelete={() => remove.mutateAsync(batch.id)}
             deleteBlockedReason={
-              (batch._count?.qualityInspections ?? 0) > 0 || (batch._count?.finishedGoodsBatches ?? 0) > 0
-                ? 'Cannot delete because this batch has quality inspections or finished goods'
-                : undefined
+              batch.status !== 'PLANNED'
+                ? 'Only a planned run that has not started can be deleted - its raw material is in the ledger. Cancel it instead.'
+                : (batch._count?.qualityInspections ?? 0) > 0 || (batch._count?.finishedGoodsBatches ?? 0) > 0
+                  ? 'Cannot delete because this batch has quality inspections or finished goods'
+                  : undefined
             }
           />
           <Button size="small" onClick={() => setDetailId(batch.id)}>
             View
           </Button>
-          {batch.status !== 'COMPLETED' && batch.status !== 'CANCELLED' ? (
+          {/* Only a started run has consumed its raw material and can record output. */}
+          {batch.status === 'IN_PROGRESS' || batch.status === 'PAUSED' ? (
             <Can do="PRODUCTION_BATCH_CREATE">
               <Button
                 size="small"

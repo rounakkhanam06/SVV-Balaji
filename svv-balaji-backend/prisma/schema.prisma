@@ -124,6 +124,11 @@ enum StockMovementType {
   /// A returned pack that failed QC (or arrived damaged) - into the damaged
   /// bucket (`FinishedGoodsStock.damagedQuantity`), never into sellable stock.
   RETURN_DAMAGED
+  /// Packs back from an undelivered order, held unsellable until QC
+  /// (`FinishedGoodsStock.quarantineQuantity`).
+  UNDELIVERED_QUARANTINE
+  /// Quarantined packs that passed QC, back into sellable stock.
+  QUARANTINE_RELEASE
 }
 
 // --- Phase 3: Processing, QA & Packaging ---------------------------------
@@ -1536,6 +1541,10 @@ model FinishedGoodsBatch {
   productId String
   product   Product @relation(fields: [productId], references: [id])
 
+  /// The pack size this batch was packed as; null = the product's own pack.
+  variantId String?
+  variant   ProductVariant? @relation(fields: [variantId], references: [id])
+
   // FRD 22.2 label information
   packagingType     String // pouch | box | bottle | jar | sack
   netWeight         Decimal   @db.Decimal(12, 3)
@@ -1590,6 +1599,7 @@ model FinishedGoodsBatch {
   @@index([productionBatchId])
   @@index([qaReleased])
   @@index([holdStatus])
+  @@index([productId, variantId])
   @@map("finished_goods_batches")
 }
 
@@ -1629,11 +1639,14 @@ model FinishedGoodsStock {
   fgBatchId String
   fgBatch   FinishedGoodsBatch @relation(fields: [fgBatchId], references: [id])
 
-  quantity         Int
-  reservedQuantity Int @default(0)
+  quantity           Int
+  reservedQuantity   Int @default(0)
   /// Returned packs that failed QC / arrived damaged. Never sellable and never
   /// part of `quantity`, so no availability calculation has to know about it.
-  damagedQuantity  Int @default(0)
+  damagedQuantity    Int @default(0)
+  /// Back from an undelivered order and not yet QC'd. Like damaged: never
+  /// sellable, never part of `quantity`, until QC releases or rejects it.
+  quarantineQuantity Int @default(0)
 
   storageLocation String?
 
@@ -1868,7 +1881,12 @@ model ProductVariant {
   displayOrder Int     @default(0)
   isActive     Boolean @default(true)
 
-  priceLists PriceList[]
+  /// Weight of one pack of this size; null = the product's packWeightKg.
+  packWeightKg Decimal? @db.Decimal(10, 3)
+
+  priceLists         PriceList[]
+  finishedGoodsBatch FinishedGoodsBatch[]
+  orderItems         OrderItem[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -2069,10 +2087,10 @@ model Customer {
   channel SalesChannel
   type    CustomerType
 
-  name        String
-  contactName String?
-  phone       String
-  email       String?
+  name         String
+  contactName  String?
+  phone        String
+  email        String?
   profilePhoto String?
 
   /// Required for B2B (needed on the tax invoice), never required for B2C.
@@ -2614,6 +2632,10 @@ model OrderItem {
   productId String
   product   Product @relation(fields: [productId], references: [id])
 
+  /// The pack size ordered; null = the product's own pack.
+  variantId String?
+  variant   ProductVariant? @relation(fields: [variantId], references: [id])
+
   /// Packs ordered.
   quantity Int
 
@@ -2651,7 +2673,7 @@ model OrderItem {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([orderId, productId])
+  // One line per (product, pack size): unique index on (orderId, productId, COALESCE(variantId, '')) - see migration 20261022150000.
   @@index([orderId])
   @@map("order_items")
 }
@@ -3137,7 +3159,7 @@ model CustomerAccount {
   phone String  @unique
   email String?
 
-  fullName String
+  fullName     String
   profilePhoto String?
 
   /// Which storefront they signed up through. B2C self-serves; B2B is the
@@ -3699,6 +3721,8 @@ model StockReservation {
   warehouseId String
   warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
   productId   String
+  /// Pack size held; null = the product's own pack.
+  variantId   String?
 
   quantity  Int
   status    ReservationStatus @default(HELD)
@@ -3714,6 +3738,7 @@ model StockReservation {
   updatedAt DateTime @updatedAt
 
   @@index([warehouseId, productId, status])
+  @@index([warehouseId, variantId])
   @@index([sessionId])
   @@index([orderId])
   @@map("stock_reservations")
@@ -4286,20 +4311,20 @@ model Rider {
   verifiedUntil         DateTime?
   verificationCheckedAt DateTime?
 
-  sessions       RiderSession[]
-  documents      RiderDocument[]
-  depositEntries RiderDepositEntry[]
-  depositOrders  RiderDepositOrder[]
+  sessions             RiderSession[]
+  documents            RiderDocument[]
+  depositEntries       RiderDepositEntry[]
+  depositOrders        RiderDepositOrder[]
   cashSettlementOrders RiderCashSettlementOrder[]
-  otps           RiderOtp[]
-  tasks          DeliveryTask[]
-  offers         DeliveryOffer[]
-  codCollections CodCollection[]
-  cashEntries    RiderCashEntry[]
-  earnings       RiderEarning[]
-  payouts        RiderPayout[]
-  notifications  RiderNotification[]
-  pushDevices    PushDevice[]
+  otps                 RiderOtp[]
+  tasks                DeliveryTask[]
+  offers               DeliveryOffer[]
+  codCollections       CodCollection[]
+  cashEntries          RiderCashEntry[]
+  earnings             RiderEarning[]
+  payouts              RiderPayout[]
+  notifications        RiderNotification[]
+  pushDevices          PushDevice[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

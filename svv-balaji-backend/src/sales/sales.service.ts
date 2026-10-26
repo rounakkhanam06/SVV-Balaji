@@ -20,7 +20,7 @@ import { LoyaltyService } from '../loyalty/loyalty.service';
 import { WalletService } from '../wallet/wallet.service';
 import { RefundWalletService } from '../wallet/refund-wallet.service';
 import { refundCouponForOrder } from '../checkout/coupons.service';
-import { heldByOthers, lockStockRows } from '../checkout/stock-holds';
+import { heldByOthers, lockStockRows, stockKey } from '../checkout/stock-holds';
 import { OrderEventsService } from '../realtime/order-events.service';
 import type { RecordReturnDto } from '../loyalty/dto/loyalty.dto';
 import {
@@ -614,7 +614,8 @@ export class SalesService {
     }
 
     const today = startOfDay(new Date());
-    const productIds = order.items.map((i) => i.productId);
+    // Stock keys: a line for a pack size draws only on batches packed as that size.
+    const productIds = order.items.map(stockKey);
 
     return this.prisma.$transaction(async (tx) => {
       /**
@@ -654,7 +655,7 @@ export class SalesService {
         const stock = await tx.finishedGoodsStock.findMany({
           where: {
             warehouseId: order.warehouseId,
-            fgBatch: { productId: item.productId, qaReleased: true, holdStatus: 'ACTIVE' },
+            fgBatch: { productId: item.productId, variantId: item.variantId ?? null, qaReleased: true, holdStatus: 'ACTIVE' },
           },
           include: {
             fgBatch: {
@@ -670,7 +671,7 @@ export class SalesService {
 
         // Stock another paid order (or a customer mid-payment) has already been
         // promised is not ours to pick - see checkout/stock-holds.ts.
-        const promisedToOthers = await heldByOthers(tx, order.warehouseId, item.productId, order.id);
+        const promisedToOthers = await heldByOthers(tx, order.warehouseId, stockKey(item), order.id);
         const availableTotal = Math.max(
           0,
           eligible.reduce((sum, s) => sum + (s.quantity - s.reservedQuantity), 0) - promisedToOthers,
@@ -797,6 +798,22 @@ export class SalesService {
    * shortcut through the plain status endpoints would defeat the very controls
    * (scan, rider, AWB, doorstep OTP) the fulfilment pipeline exists to enforce.
    */
+  /** Order lines whose live allocations cover less than the ordered quantity. */
+  async shortLines(orderId: string) {
+    const items = await this.prisma.orderItem.findMany({
+      where: { orderId },
+      select: { id: true, quantity: true, nameSnapshot: true, product: { select: { name: true } }, allocations: { where: { releasedAt: null }, select: { quantity: true } } },
+    });
+    return items
+      .map((i) => ({
+        orderItemId: i.id,
+        name: i.nameSnapshot ?? i.product.name,
+        ordered: i.quantity,
+        allocated: i.allocations.reduce((n, a) => n + a.quantity, 0),
+      }))
+      .filter((l) => l.allocated < l.ordered);
+  }
+
   private async assertLifecycleGuards(id: string, to: OrderStatus) {
     const o = await this.prisma.order.findUnique({
       where: { id },
@@ -856,6 +873,22 @@ export class SalesService {
       }
 
       return updated;
+    }
+
+    /**
+     * Short allocation must not ship as if it were whole. The tax invoice is
+     * raised at dispatch from the order lines, so dispatching 90 of 100 packs
+     * would bill the customer for 10 they never get. Until short-ship with a
+     * refund is agreed, a short order waits for stock, is re-allocated, or is
+     * cancelled.
+     */
+    const short = await this.shortLines(id);
+    if (short.length > 0) {
+      throw new BadRequestException(
+        `Cannot dispatch ${order.orderNumber}: ` +
+          short.map((s) => `${s.name} ${s.allocated} of ${s.ordered} allocated`).join('; ') +
+          '. The invoice would bill packs that are not shipped - allocate the rest or cancel the order.',
+      );
     }
 
     // A batch frozen or recalled AFTER allocation must not leave the building.
@@ -1012,7 +1045,7 @@ export class SalesService {
       const items = await tx.orderItem.findMany({ where: { id: { in: [...perLine.keys()] } } });
 
       // Same race the fresh allocation guards against - see allocateCore.
-      await lockStockRows(tx, order.warehouseId, items.map((i) => i.productId));
+      await lockStockRows(tx, order.warehouseId, items.map(stockKey));
 
       const created: Array<{ orderItemId: string; fgBatchNumber: string; quantity: number }> = [];
       const shortfalls: Array<{ orderItemId: string; productId: string; short: number }> = [];
@@ -1022,7 +1055,7 @@ export class SalesService {
         const stock = await tx.finishedGoodsStock.findMany({
           where: {
             warehouseId: order.warehouseId,
-            fgBatch: { productId: item.productId, qaReleased: true, holdStatus: 'ACTIVE' },
+            fgBatch: { productId: item.productId, variantId: item.variantId ?? null, qaReleased: true, holdStatus: 'ACTIVE' },
           },
           include: { fgBatch: { select: { id: true, fgBatchNumber: true, expiryDate: true } } },
         });
@@ -1031,7 +1064,12 @@ export class SalesService {
           .filter((r) => !r.fgBatch.expiryDate || r.fgBatch.expiryDate >= today)
           .sort(byFirstExpiryFirstOut);
 
-        let outstanding = needed;
+        // Same rule as allocateCore: packs promised to another paid order or a
+        // customer mid-checkout are not ours to pick.
+        const promisedToOthers = await heldByOthers(tx, order.warehouseId, stockKey(item), order.id);
+        const free = Math.max(0, eligible.reduce((n, r) => n + (r.quantity - r.reservedQuantity), 0) - promisedToOthers);
+        let outstanding = Math.min(needed, free);
+        const unfillable = needed - outstanding;
         for (const row of eligible) {
           if (outstanding === 0) break;
           const take = Math.min(outstanding, row.quantity - row.reservedQuantity);
@@ -1050,7 +1088,13 @@ export class SalesService {
           created.push({ orderItemId: item.id, fgBatchNumber: row.fgBatch.fgBatchNumber, quantity: take });
           outstanding -= take;
         }
-        if (outstanding > 0) shortfalls.push({ orderItemId: item.id, productId: item.productId, short: outstanding });
+        if (outstanding + unfillable > 0) shortfalls.push({ orderItemId: item.id, productId: item.productId, short: outstanding + unfillable });
+      }
+
+      // New batches have not been scanned: a packed order goes back to the
+      // packing bench rather than leaving with unchecked packs.
+      if (order.status === OrderStatus.PACKED && created.length > 0) {
+        await tx.order.update({ where: { id }, data: { status: OrderStatus.ALLOCATED } });
       }
 
       return { orderNumber: order.orderNumber, released, allocations: created, shortfalls, complete: shortfalls.length === 0 };
@@ -1263,20 +1307,27 @@ export class SalesService {
       const fresh = await tx.order.findUniqueOrThrow({ where: { id }, select: { status: true } });
       if (fresh.status !== OrderStatus.DISPATCHED) throw new BadRequestException(`${order.orderNumber} is already ${fresh.status}`);
 
+      /**
+       * Packs coming back are QUARANTINED, never put straight back on sale:
+       * nobody has looked at them yet (crushed in the van, opened, left in the
+       * sun, or a batch recalled while they were out). They sit in
+       * `quarantineQuantity` - outside `quantity`, so no availability check
+       * can sell them - until QC releases or rejects them (`undeliveredQc`).
+       */
       for (const a of order.allocations) {
         await tx.finishedGoodsStock.upsert({
           where: { warehouseId_fgBatchId: { warehouseId: a.warehouseId, fgBatchId: a.fgBatchId } },
-          update: { quantity: { increment: a.quantity } },
-          create: { warehouseId: a.warehouseId, fgBatchId: a.fgBatchId, quantity: a.quantity },
+          update: { quarantineQuantity: { increment: a.quantity } },
+          create: { warehouseId: a.warehouseId, fgBatchId: a.fgBatchId, quantity: 0, quarantineQuantity: a.quantity },
         });
         await tx.stockMovement.create({
           data: {
             fgBatchId: a.fgBatchId,
             toWarehouseId: a.warehouseId,
-            movementType: 'STOCK_IN',
+            movementType: 'UNDELIVERED_QUARANTINE',
             quantity: a.quantity,
             unit: 'PACK',
-            reason: `Undelivered - back from order ${order.orderNumber}: ${reason}`.slice(0, 500),
+            reason: `Undelivered - back from order ${order.orderNumber}, awaiting QC: ${reason}`.slice(0, 500),
             reference: order.orderNumber,
             performedById: userId,
           },
@@ -1310,7 +1361,7 @@ export class SalesService {
     }, LONG_TX);
 
     await this.record(id, 'CLOSED_UNDELIVERED', userId,
-      `${reason}${prepaid > 0 ? ` · ₹${prepaid.toFixed(2)} to Refund Wallet` : ''} · ${order.allocations.reduce((n, a) => n + a.quantity, 0)} pack(s) back in stock`);
+      `${reason}${prepaid > 0 ? ` · ₹${prepaid.toFixed(2)} to Refund Wallet` : ''} · ${order.allocations.reduce((n, a) => n + a.quantity, 0)} pack(s) quarantined for QC`);
 
     // GST: the supply did not happen. Outside the transaction - the IRP may be slow - and never silently.
     let gst: string | null = null;
@@ -1326,6 +1377,91 @@ export class SalesService {
       await this.record(id, 'GST_REVERSED', userId, gst);
     }
     return { order: closed, refundedToWallet: prepaid, packsReturned: order.allocations.reduce((n, a) => n + a.quantity, 0), gst };
+  }
+
+  /**
+   * Packs of an undelivered order still in quarantine, per batch and node:
+   * quarantined minus what QC already released or rejected. The ledger is the
+   * record - movements carry the order number as their reference.
+   */
+  async undeliveredQcPending(id: string) {
+    const order = await this.prisma.order.findUnique({ where: { id }, select: { orderNumber: true } });
+    if (!order) throw new NotFoundException('Order not found');
+    const moves = await this.prisma.stockMovement.findMany({
+      where: { reference: order.orderNumber, movementType: { in: ['UNDELIVERED_QUARANTINE', 'QUARANTINE_RELEASE', 'RETURN_DAMAGED'] } },
+      select: { fgBatchId: true, toWarehouseId: true, movementType: true, quantity: true, fgBatch: { select: { fgBatchNumber: true } } },
+    });
+    const pending = new Map<string, { fgBatchId: string; fgBatchNumber: string; warehouseId: string; quantity: number }>();
+    for (const m of moves) {
+      if (!m.fgBatchId || !m.toWarehouseId) continue;
+      const k = `${m.toWarehouseId}|${m.fgBatchId}`;
+      const row = pending.get(k) ?? { fgBatchId: m.fgBatchId, fgBatchNumber: m.fgBatch?.fgBatchNumber ?? '', warehouseId: m.toWarehouseId, quantity: 0 };
+      row.quantity += (m.movementType === 'UNDELIVERED_QUARANTINE' ? 1 : -1) * Number(m.quantity);
+      pending.set(k, row);
+    }
+    return { orderNumber: order.orderNumber, lines: [...pending.values()].filter((l) => l.quantity > 0) };
+  }
+
+  /**
+   * QC of quarantined undelivered packs. Per batch: `good` go back on sale -
+   * only if the batch itself is still sellable (active, QA-released, not
+   * expired) - and `damaged` go to the damaged bucket. Anything not decided
+   * stays quarantined.
+   */
+  async undeliveredQc(id: string, lines: Array<{ fgBatchId: string; good: number; damaged: number }>, userId: string, notes?: string) {
+    if (!lines.length) throw new BadRequestException('Record QC for at least one batch');
+    const { orderNumber, lines: pending } = await this.undeliveredQcPending(id);
+    const today = startOfDay(new Date());
+    const batches = await this.prisma.finishedGoodsBatch.findMany({
+      where: { id: { in: lines.map((l) => l.fgBatchId) } },
+      select: { id: true, fgBatchNumber: true, holdStatus: true, qaReleased: true, expiryDate: true },
+    });
+    for (const l of lines) {
+      if (!Number.isInteger(l.good) || !Number.isInteger(l.damaged) || l.good < 0 || l.damaged < 0 || l.good + l.damaged === 0) {
+        throw new BadRequestException('Good and damaged must be whole numbers, at least one above zero');
+      }
+      const p = pending.find((x) => x.fgBatchId === l.fgBatchId);
+      if (!p) throw new BadRequestException('That batch has no packs from this order waiting for QC');
+      if (l.good + l.damaged > p.quantity) {
+        throw new BadRequestException(`${p.fgBatchNumber}: only ${p.quantity} pack(s) are waiting for QC`);
+      }
+      const b = batches.find((x) => x.id === l.fgBatchId)!;
+      const sellable = b.holdStatus === 'ACTIVE' && b.qaReleased && (!b.expiryDate || b.expiryDate >= today);
+      if (l.good > 0 && !sellable) {
+        throw new BadRequestException(
+          `${b.fgBatchNumber} is ${b.holdStatus !== 'ACTIVE' ? b.holdStatus.toLowerCase() : !b.qaReleased ? 'not QA-released' : 'expired'} - its packs cannot go back on sale. Record them as damaged.`,
+        );
+      }
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      for (const l of lines) {
+        const p = pending.find((x) => x.fgBatchId === l.fgBatchId)!;
+        await tx.finishedGoodsStock.update({
+          where: { warehouseId_fgBatchId: { warehouseId: p.warehouseId, fgBatchId: l.fgBatchId } },
+          data: {
+            quarantineQuantity: { decrement: l.good + l.damaged },
+            ...(l.good ? { quantity: { increment: l.good } } : {}),
+            ...(l.damaged ? { damagedQuantity: { increment: l.damaged } } : {}),
+          },
+        });
+        const why = notes?.trim() ? `: ${notes.trim()}` : '';
+        if (l.good) {
+          await tx.stockMovement.create({ data: {
+            fgBatchId: l.fgBatchId, toWarehouseId: p.warehouseId, movementType: 'QUARANTINE_RELEASE', quantity: l.good, unit: 'PACK',
+            reason: `Undelivered order ${orderNumber}: passed QC, back on sale${why}`.slice(0, 500), reference: orderNumber, performedById: userId,
+          } });
+        }
+        if (l.damaged) {
+          await tx.stockMovement.create({ data: {
+            fgBatchId: l.fgBatchId, toWarehouseId: p.warehouseId, movementType: 'RETURN_DAMAGED', quantity: l.damaged, unit: 'PACK',
+            reason: `Undelivered order ${orderNumber}: failed QC${why}`.slice(0, 500), reference: orderNumber, performedById: userId,
+          } });
+        }
+      }
+    });
+    await this.record(id, 'UNDELIVERED_QC', userId, lines.map((l) => `${l.good} good / ${l.damaged} damaged`).join('; '));
+    return this.undeliveredQcPending(id);
   }
 
   /**
@@ -1368,6 +1504,18 @@ export class SalesService {
     const ti = OVERRIDE_FLOW.indexOf(to);
     let shortfalls: unknown[] = [];
     const passed: OrderStatus[] = [];
+
+    /**
+     * SOW #22: the delivery OTP is mandatory. An override may skip scan and
+     * rider, but cannot declare a local delivery done that the customer never
+     * confirmed - the rider/staff enters the OTP through verifyOtp instead.
+     */
+    if (to === OrderStatus.DELIVERED) {
+      const o = await this.prisma.order.findUniqueOrThrow({ where: { id }, select: { fulfillmentMethod: true, deliveryOtpVerifiedAt: true } });
+      if (o.fulfillmentMethod === 'LOCAL' && !o.deliveryOtpVerifiedAt) {
+        throw new BadRequestException("A local delivery can only be completed with the customer's OTP - enter it on the order instead of overriding");
+      }
+    }
 
     if (ti > fi) {
       for (const step of OVERRIDE_FLOW.slice(fi + 1, ti + 1)) {

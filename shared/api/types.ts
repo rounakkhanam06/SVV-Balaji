@@ -1792,6 +1792,8 @@ export interface StorefrontVariant {
   price: StorefrontPrice | null;
   /** This pack size's own quantity-break ladder for the requested channel. */
   priceTiers: StorefrontPriceTier[];
+  /** Sellable packs of THIS size - each pack size is its own stock. */
+  availableQuantity?: number;
 }
 
 /** GET /storefront/catalogue/products/:idOrSlug - every product-page section. */

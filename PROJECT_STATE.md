@@ -320,6 +320,9 @@ are now answered** — only cloud storage (Decision 3) is still outstanding.
 | — | Machine utilisation (FRD34 gaps §2) | **Machine list + runs** | 10 Oct 2026 | ✅ Built 10 Oct |
 | — | Quick-delivery assignment | **By weight: rider states kg they can carry; Super Admin sets pay per kg** | 10 Oct 2026 | ✅ Built 10 Oct |
 | — | Refunds & affiliate payouts | **Customer picks wallet / UPI / bank; Super Admin pays from own account, marks paid; customer sees it** | 10 Oct 2026 | ✅ Built 10 Oct (wallet = instant) |
+| — | Recipe quantity tolerance (raw used vs recipe) | *Raised 28 Oct — `SVV_Balaji_Recipe_Production_Decisions_28Oct.md` §1* | — | 🟡 Not built; today no amount check (blend ratio only) |
+| — | Planned runs when a new recipe version is approved | *Raised 28 Oct — same note §2* | — | 🟡 Today: blocked at /start, must re-plan |
+| — | Oil (litre) loss measurement | *Raised 28 Oct — same note §3* | — | 🟡 Loss recorded as null for non-mass output until answered |
 | — | Farmer training channel | **No farmer app — executive visits the farm, trains, logs manually in the portal** | 11 Aug 2026 | ✅ Scope confirmed, no change needed |
 
 ### Decision 1 — B2B + B2C with per-channel pricing

@@ -31,6 +31,12 @@ export function toUnit(value: number, from: string, to: string): number {
   return (value * f.factor) / t.factor;
 }
 
+/** A quantity in kg, or null when the unit is not a mass (LITRE, PCS, unknown). Never throws. */
+export function kgOf(value: number, unit: string | null | undefined): number | null {
+  const s = UNIT_SCALE[(unit ?? 'KG').trim().toUpperCase()];
+  return s && s.base === 'MASS' ? value * s.factor : null;
+}
+
 @Injectable()
 export class PackagingService {
   constructor(

@@ -11,6 +11,7 @@ import {
   CreateProductionBatchDto,
 } from './dto/production.dto';
 import { listPage, type PageRequest } from '../common/pagination';
+import { kgOf, toUnit } from '../packaging/packaging.service';
 
 /**
  * How far a blend may drift from its recipe before production is refused,
@@ -540,21 +541,38 @@ export class ProductionService {
      * derivable by anyone who wants it - planned and actual are both stored -
      * but it is a different number and does not belong in this field.
      */
-    const consumed = await this.prisma.productionConsumption.aggregate({
+    /**
+     * Input and output are compared in kg. Raw material is weighed; output is in
+     * the recipe's unit, which for oil is LITRE. Subtracting litres from kg gave
+     * a meaningless loss that flowed into cost and yield reports. Where the
+     * output is not a mass there is no agreed conversion (density), so the loss
+     * is recorded as unknown (null) rather than as a wrong number.
+     */
+    const consumptions = await this.prisma.productionConsumption.findMany({
       where: { productionBatchId: id },
-      _sum: { quantityUsed: true },
+      select: { quantityUsed: true, unit: true },
     });
-    const totalInput = Number(consumed._sum.quantityUsed ?? 0);
+    const inputsKg = consumptions.map((c) => kgOf(Number(c.quantityUsed), c.unit));
     // A by-product (bran, oil cake) came out of the input too - it is not loss.
+    // It has no unit of its own and is entered in the run's unit.
     const byProduct = Number(dto.byProductQuantity ?? 0);
-    const productionLoss = Number((totalInput - dto.actualQuantity - byProduct).toFixed(2));
+    const outputKg = kgOf(dto.actualQuantity, production.unit);
+    const byProductKg = kgOf(byProduct, production.unit);
 
-    if (productionLoss < 0) {
-      throw new BadRequestException(
-        `Output (${dto.actualQuantity}${byProduct ? ` + ${byProduct} by-product` : ''}) exceeds the ${totalInput} consumed by this run. ` +
-          `A run cannot yield more than it was fed - check the actual quantity, or record the ` +
-          `missing raw material consumption first.`,
-      );
+    let productionLoss: number | null = null;
+    if (outputKg !== null && byProductKg !== null && inputsKg.every((q) => q !== null)) {
+      const totalInputKg = (inputsKg as number[]).reduce((s, q) => s + q, 0);
+      const lossKg = totalInputKg - outputKg - byProductKg;
+      if (lossKg < -0.005) {
+        const totalInput = toUnit(totalInputKg, 'KG', production.unit);
+        throw new BadRequestException(
+          `Output (${dto.actualQuantity}${byProduct ? ` + ${byProduct} by-product` : ''} ${production.unit}) exceeds the ${Number(totalInput.toFixed(2))} ${production.unit} consumed by this run. ` +
+            `A run cannot yield more than it was fed - check the actual quantity, or record the ` +
+            `missing raw material consumption first.`,
+        );
+      }
+      // Stored in the run's unit, like actualQuantity beside it.
+      productionLoss = Math.max(0, Number(toUnit(lossKg, 'KG', production.unit).toFixed(2)));
     }
 
     /**

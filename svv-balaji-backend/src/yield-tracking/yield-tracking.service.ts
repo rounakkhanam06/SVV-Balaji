@@ -287,7 +287,8 @@ export class YieldTrackingService {
           (s, c) => s + Number(c.quantityUsed),
           0,
         );
-        if (runTotalInput <= 0) continue;
+        // Null loss = not measurable (non-mass output); it is not 0%.
+        if (runTotalInput <= 0 || pc.productionBatch.productionLoss === null) continue;
         const runLossPct = this.percent(Number(pc.productionBatch.productionLoss ?? 0), runTotalInput);
         if (runLossPct !== null) {
           row.lossPercentSum += runLossPct;
@@ -342,6 +343,7 @@ export class YieldTrackingService {
     >();
 
     for (const run of runs) {
+      if (run.productionLoss === null) continue;
       const input = run.consumptions.reduce((s, c) => s + Number(c.quantityUsed), 0);
       const lossPercent = this.percent(Number(run.productionLoss ?? 0), input);
       if (lossPercent === null) continue;

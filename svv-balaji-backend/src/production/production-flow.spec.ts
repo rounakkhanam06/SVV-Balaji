@@ -15,6 +15,7 @@ describe('ProductionService - run lifecycle', () => {
   let stockUpdates: any[];
   let deleted: string[];
   let prisma: any;
+  let consumed: any[];
   let service: ProductionService;
   const cost: any = { refreshAfterCompletion: jest.fn(async () => undefined) };
 
@@ -27,11 +28,13 @@ describe('ProductionService - run lifecycle', () => {
       warehouseId: 'w1',
       machineId: 'm1',
       recipeVersion: 1,
+      unit: 'KG',
       recipe: { status: 'APPROVED', recipeCode: 'ATTA' },
       consumptions: [{ rawMaterialBatchId: 'rm1', quantityUsed: 100 }],
       finishedGoodsBatches: [],
     };
     otherRunOnMachine = null;
+    consumed = [{ quantityUsed: 100, unit: 'KG' }];
     stockUpdates = [];
     deleted = [];
 
@@ -56,7 +59,7 @@ describe('ProductionService - run lifecycle', () => {
         findUnique: jest.fn(async () => run),
         findFirst: jest.fn(async () => otherRunOnMachine),
       },
-      productionConsumption: { aggregate: jest.fn(async () => ({ _sum: { quantityUsed: 100 } })) },
+      productionConsumption: { findMany: jest.fn(async () => consumed) },
       qualityInspection: { findFirst: jest.fn(async () => null) },
       $transaction: jest.fn(async (cb: any) => cb(tx)),
     };
@@ -81,7 +84,20 @@ describe('ProductionService - run lifecycle', () => {
       Object.assign(run, { status: ProductionStatus.IN_PROGRESS, startedAt: new Date() });
       await expect(
         service.completeProduction('pb1', { actualQuantity: 90, byProductQuantity: 20 } as any),
-      ).rejects.toThrow(/exceeds the 100 consumed/);
+      ).rejects.toThrow(/exceeds the 100 KG consumed/);
+    });
+
+    it('compares input and output in kg when the run is in grams', async () => {
+      Object.assign(run, { status: ProductionStatus.IN_PROGRESS, startedAt: new Date(), unit: 'G' });
+      await service.completeProduction('pb1', { actualQuantity: 95000 } as any);
+      expect(run.productionLoss).toBe(5000);
+    });
+
+    it('records loss as unknown, not a kg-minus-litre figure, when output is in litres', async () => {
+      Object.assign(run, { status: ProductionStatus.IN_PROGRESS, startedAt: new Date(), unit: 'LITRE' });
+      await service.completeProduction('pb1', { actualQuantity: 35, byProductQuantity: 60 } as any);
+      expect(run.productionLoss).toBeNull();
+      expect(run.status).toBe(ProductionStatus.COMPLETED);
     });
   });
 

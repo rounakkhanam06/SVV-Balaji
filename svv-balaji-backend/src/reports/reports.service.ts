@@ -460,7 +460,7 @@ export class ReportsService {
       }),
       // Prepaid orders closed as undelivered: the money went back to the customer's Refund Wallet.
       this.prisma.refundWalletTransaction.findMany({
-        where: { reason: 'UNDELIVERED_REFUND', createdAt: inRange, ...(branchId ? { order: { branchId } } : {}) },
+        where: { reason: { in: ['UNDELIVERED_REFUND', 'ORDER_CANCELLED_REFUND'] }, createdAt: inRange, ...(branchId ? { order: { branchId } } : {}) },
         select: { amount: true, order: { select: { channel: true } } },
       }),
     ]);

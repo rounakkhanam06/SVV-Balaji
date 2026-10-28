@@ -1186,7 +1186,29 @@ export class SalesService {
       );
     }
 
+    // Money the customer paid through the gateway. Wallet spend, coins and coupon
+    // are given back by their own helpers below; this was the one part a
+    // cancellation never returned. Same rule as closing an order undelivered.
+    const prepaid =
+      order.paymentMode === 'ONLINE' && order.paymentStatus === PaymentStatus.PAID && order.customerId
+        ? Math.max(0, Math.round((Number(order.total) - Number(order.refundWalletPaidInr)) * 100) / 100)
+        : 0;
+
     return this.prisma.$transaction(async (tx) => {
+      if (prepaid > 0) {
+        // Conditional flip first: two cancels racing can only refund once.
+        const flipped = await tx.order.updateMany({
+          where: { id, paymentStatus: PaymentStatus.PAID },
+          data: { paymentStatus: PaymentStatus.REFUNDED },
+        });
+        if (flipped.count === 1) {
+          await this.refundWallet.credit(tx, {
+            customerId: order.customerId!, amount: prepaid, reason: RefundWalletReason.ORDER_CANCELLED_REFUND, orderId: id,
+            note: `Order ${order.orderNumber} cancelled${dto.reason ? `: ${dto.reason}` : ''}`.slice(0, 300),
+          });
+        }
+      }
+
       for (const allocation of order.allocations) {
         const row = await tx.finishedGoodsStock.findUnique({
           where: {

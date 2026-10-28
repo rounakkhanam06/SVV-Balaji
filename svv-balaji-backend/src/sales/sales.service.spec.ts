@@ -27,6 +27,7 @@ describe('SalesService', () => {
   let stock: any[];
   let allocations: any[];
   let orders: any[];
+  let walletCredits: any[];
   let orderItems: any[];
   let orderReturns: any[];
   let loyalty: { creditForDeliveredOrder: jest.Mock; reverseForReturn: jest.Mock; refundRedemptionForOrder: jest.Mock };
@@ -232,6 +233,11 @@ describe('SalesService', () => {
           Object.assign(row, data);
           return row;
         }),
+        updateMany: jest.fn(async ({ where, data }: any) => {
+          const hit = orders.filter((o) => o.id === where.id && (!where.paymentStatus || o.paymentStatus === where.paymentStatus));
+          hit.forEach((o) => Object.assign(o, data));
+          return { count: hit.length };
+        }),
         count: jest.fn(async ({ where }: any) =>
           orders.filter((o) => {
             if (where.customerId && o.customerId !== where.customerId) return false;
@@ -365,6 +371,7 @@ describe('SalesService', () => {
       })),
     };
 
+    walletCredits = [];
     service = new SalesService(
       prisma as unknown as PrismaService,
       new SequenceService(),
@@ -374,7 +381,10 @@ describe('SalesService', () => {
       wallet as unknown as WalletService,
       events as unknown as OrderEventsService,
       invoices as unknown as InvoicesService,
-      { reverseOrderSpend: jest.fn(async () => 0) } as unknown as RefundWalletService,
+      {
+        reverseOrderSpend: jest.fn(async () => 0),
+        credit: jest.fn(async (_tx: any, move: any) => void walletCredits.push(move)),
+      } as unknown as RefundWalletService,
       { reverseInvoice: jest.fn() } as unknown as CreditNotesService,
     );
   });
@@ -750,6 +760,31 @@ describe('SalesService', () => {
 
       expect(row.reservedQuantity).toBe(0);
       expect(row.quantity).toBe(40);
+    });
+
+    it('refunds an online-paid order to the Refund Wallet when it is cancelled, once', async () => {
+      fgStock({ quantity: 40 });
+      const order: any = await placeOrder('cust-b2b', 5);
+      const row = orders.find((o) => o.id === order.id);
+      Object.assign(row, { paymentMode: 'ONLINE', paymentStatus: 'PAID', total: 500, refundWalletPaidInr: 100 });
+
+      await service.cancel(order.id, { reason: 'Customer withdrew' });
+
+      expect(walletCredits).toEqual([
+        expect.objectContaining({ customerId: 'cust-b2b', amount: 400, reason: 'ORDER_CANCELLED_REFUND', orderId: order.id }),
+      ]);
+      expect(row.paymentStatus).toBe('REFUNDED');
+      expect(row.status).toBe('CANCELLED');
+    });
+
+    it('refunds nothing when a COD or unpaid order is cancelled', async () => {
+      fgStock({ quantity: 40 });
+      const order: any = await placeOrder('cust-b2b', 5);
+      Object.assign(orders.find((o) => o.id === order.id), { paymentMode: 'COD', paymentStatus: 'PENDING', total: 500 });
+
+      await service.cancel(order.id, { reason: 'Customer withdrew' });
+
+      expect(walletCredits).toEqual([]);
     });
 
     it('will not cancel an order that has already been dispatched', async () => {

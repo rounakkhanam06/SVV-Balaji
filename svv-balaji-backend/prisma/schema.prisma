@@ -6045,6 +6045,8 @@ model ReturnReplacementAllocation {
 enum RefundWalletReason {
   /// + A prepaid order that could not be delivered and was closed with its goods back in stock.
   UNDELIVERED_REFUND
+  /// + A prepaid (online) order cancelled before dispatch - the gateway amount back.
+  ORDER_CANCELLED_REFUND
   /// + Refund for a completed return.
   RETURN_REFUND
   /// + An exchange's replacement was cheaper.

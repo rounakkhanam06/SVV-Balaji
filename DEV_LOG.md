@@ -4407,3 +4407,14 @@ Uncommitted on `main`. No migration, no route or DTO change.
 - **Client decisions raised:** `SVV_Balaji_Recipe_Production_Decisions_28Oct.md`. (1) recipe quantity tolerance: calculation + options A–D, recommend warn/block bands. (2) planned runs when a new recipe version is approved: today they are blocked and must be re-planned. (3) oil loss measurement (density per product). Nothing implemented for these.
 
 Tests: production / yield-tracking / packaging suites 51/51 (new: grams and litres cases in `production-flow.spec.ts`); `tsc --noEmit` clean. Full suite and e2e not run.
+
+## 2026-10-28 (later) — Raunak (agent) — Cancelling an online-paid order now refunds it
+
+Gap: `PATCH /orders/:id/cancel` gave back stock, coins, wallet spend and the coupon, but not the money paid through the gateway. The order became CANCELLED and stayed PAID, with no refund anywhere.
+
+- `SalesService.cancelCore`: for an order with `paymentMode ONLINE` + `paymentStatus PAID`, credits `total − refundWalletPaidInr` to the customer's **Refund Wallet** and sets `paymentStatus REFUNDED`, in the cancel transaction. This is the same rule as closing an order undelivered. A conditional flip (`updateMany where paymentStatus = PAID`) makes the refund happen once even if two cancels race. COD/unpaid orders: no change.
+- **Migration (additive):** `20261028120000_order_cancelled_refund` adds `RefundWalletReason.ORDER_CANCELLED_REFUND`. Run `prisma migrate deploy` before deploying the API.
+- Finance report: the refunds column now counts `ORDER_CANCELLED_REFUND` as well as `UNDELIVERED_REFUND`.
+- Not changed: customers still can't cancel from the app (staff only). Refund goes to the wallet only; offering UPI/bank on cancellation, as returns do, would be a client decision. Past cancelled online orders are not refunded retroactively. Check the DB for `status CANCELLED AND paymentMode ONLINE AND paymentStatus PAID`.
+
+Tests: sales/reports/wallet suites 57/57 (2 new cancel cases). Not run: full suite, e2e.

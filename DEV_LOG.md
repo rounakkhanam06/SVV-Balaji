@@ -4432,3 +4432,7 @@ Tests: sales/reports/wallet suites 57/57 (2 new cancel cases). Not run: full sui
 
 ## 2026-11-12 — Raunak (agent) — Prisma directUrl
 - `schema.prisma` datasource now has `directUrl = env("DIRECT_URL")` so migrations bypass the Neon pooler. **Every env (local, Render) must set DIRECT_URL** = Neon URL without `-pooler`, or Prisma fails to load.
+
+## 2026-11-12 — Raunak (agent) — Rider face photo
+- Rider app sign-up now requires a face photo (front camera); uploaded via existing `POST /rider/me/document?kind=photo` right after OTP verify. No API change.
+- Admin pending-rider card + Approve dialog show `rider.photoUrl` (face photo) instead of licence.

@@ -1,5 +1,5 @@
-import { CheckOutlined, CloseOutlined, IdcardOutlined } from '@ant-design/icons';
-import { Avatar, Button, Card, Col, Empty, Image, Input, Row, Space, Spin, Tag, Typography } from 'antd';
+import { CheckOutlined, CloseOutlined } from '@ant-design/icons';
+import { Avatar, Button, Card, Col, Empty, Input, Row, Space, Spin, Tag, Typography } from 'antd';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { useState } from 'react';
@@ -8,7 +8,7 @@ import type { RiderRow } from '@shared/api/delivery';
 import { useCan } from '@shared/auth/useCan';
 import { PageHeader } from '@shared/components/PageHeader';
 import { useRiders } from '@shared/hooks/useDelivery';
-import { ApproveModal, inr, useRiderActions, vehicleText } from './riderParts';
+import { ApproveModal, RiderPhoto, inr, useRiderActions, vehicleText } from './riderParts';
 import { VerificationTag } from './verificationParts';
 
 dayjs.extend(relativeTime);
@@ -74,14 +74,8 @@ export function PendingRidersPage() {
                 </div>
 
                 <div style={{ background: '#fafafa', borderRadius: 10, padding: 10, display: 'flex', alignItems: 'center', gap: 12, minHeight: 92 }}>
-                  {r.documentUrl ? (
-                    <Image src={r.documentUrl} width={110} height={72} style={{ objectFit: 'cover', borderRadius: 8 }} />
-                  ) : (
-                    <div style={{ width: 110, height: 72, borderRadius: 8, border: '1px dashed #d9d9d9', display: 'grid', placeItems: 'center', color: '#bfbfbf' }}><IdcardOutlined style={{ fontSize: 26 }} /></div>
-                  )}
-                  <Typography.Text type={r.documentUrl ? 'secondary' : 'warning'} style={{ fontSize: 12 }}>
-                    {r.documentUrl ? 'Photo sent at sign-up. Click to enlarge.' : 'No photo at sign-up - documents are reviewed under Review documents.'}
-                  </Typography.Text>
+                  <RiderPhoto url={r.photoUrl} width={72} />
+                  {r.photoUrl ? <Typography.Text type="secondary" style={{ fontSize: 12 }}>Rider photo. Click to enlarge.</Typography.Text> : null}
                 </div>
 
                 {canManage ? (

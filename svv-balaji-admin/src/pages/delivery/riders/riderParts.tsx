@@ -102,7 +102,7 @@ export function useRiderActions() {
 }
 
 /** Approve a sign-up: pick the home outlet and how many deliveries the rider may hold at once. */
-export function ApproveModal({ rider, onClose }: { rider: { id: string; fullName: string; documentUrl: string | null } | null; onClose: () => void }) {
+export function ApproveModal({ rider, onClose }: { rider: { id: string; fullName: string; photoUrl: string | null } | null; onClose: () => void }) {
   const [form] = Form.useForm<{ warehouseId: string; maxActiveTasks: number }>();
   const warehouses = useWarehouses();
   const { message } = AntApp.useApp();
@@ -119,7 +119,7 @@ export function ApproveModal({ rider, onClose }: { rider: { id: string; fullName
           message.error(apiErrorMessage(e));
         }
       }}>
-      {rider?.documentUrl ? <Image src={rider.documentUrl} width={180} style={{ borderRadius: 8, marginBottom: 12 }} /> : <Typography.Paragraph type="warning">No licence photo uploaded.</Typography.Paragraph>}
+      {rider ? <div style={{ marginBottom: 12 }}><RiderPhoto url={rider.photoUrl} width={140} /></div> : null}
       <Form form={form} layout="vertical" initialValues={{ maxActiveTasks: 1 }} preserve={false}>
         <Form.Item name="warehouseId" label="Home outlet" rules={[{ required: true, message: 'Pick the outlet this rider picks up from' }]} extra="The rider is offered deliveries picked up from here.">
           <OutletSelect homeOutlet />
@@ -149,3 +149,9 @@ export function OutletSelect({ homeOutlet, ...props }: { homeOutlet?: boolean; v
 
 /** Label for a cash-ledger line. */
 export const cashEntryLabel = (t: string) => (t === 'COD_COLLECTED' ? 'COD collected' : t === 'DEPOSITED' ? 'Deposited at outlet' : t.replace(/_/g, ' ').toLowerCase());
+
+/** The rider's own face photo, taken at sign-up (or later from the rider app's Account page). */
+export function RiderPhoto({ url, width, height }: { url?: string | null; width: number; height?: number }) {
+  if (!url) return <Typography.Text type="warning" style={{ fontSize: 12 }}>No rider photo yet - the rider can add it from Account in the app.</Typography.Text>;
+  return <Image src={url} width={width} height={height ?? width} style={{ objectFit: 'cover', borderRadius: 8 }} />;
+}

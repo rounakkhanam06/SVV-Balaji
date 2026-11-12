@@ -1,4 +1,5 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { Camera } from '../ui/icons';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { errorCode, errorMessage } from '../api/client';
 import { riderApi, type VehicleType } from '../api/rider';
@@ -156,6 +157,15 @@ export function SignUp() {
   const toast = useToast();
   const [f, setF] = useState({ fullName: '', phone: '', email: '', city: '', vehicleType: 'MOTORCYCLE' as VehicleType, vehicleNumber: '', maxCarryKg: '', password: '' });
   const [agree, setAgree] = useState(false);
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const photoInput = useRef<HTMLInputElement>(null);
+  const pickPhoto = (file: File | undefined) => {
+    if (!file) return;
+    if (!/^image\//.test(file.type)) return toast('Choose a photo (JPEG, PNG or WebP)', 'error');
+    setPhoto(file);
+    setPhotoPreview(URL.createObjectURL(file));
+  };
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -266,6 +276,13 @@ export function SignUp() {
       return;
     }
 
+    if (!photo) {
+      const msg = 'Add a clear photo of your face';
+      setError(msg);
+      toast(msg, 'error');
+      return;
+    }
+
     if (!agree) {
       const msg = 'Please accept the Desi Tokri delivery partner terms to sign up';
       setError(msg);
@@ -286,7 +303,7 @@ export function SignUp() {
         maxCarryKg: carryKg,
       });
       toast('Verification code sent to your mobile number', 'success');
-      navigate('/verify', { state: { phone: cleanPhone, purpose: 'signup', devCode: r.devCode } });
+      navigate('/verify', { state: { phone: cleanPhone, purpose: 'signup', devCode: r.devCode, photo } });
     } catch (err) {
       const msg = errorMessage(err);
       setError(msg);
@@ -303,6 +320,16 @@ export function SignUp() {
         <h2 className="auth-title">Create An Account</h2>
         <p className="auth-sub">Sign up as a delivery partner</p>
 
+        <Field label="Your Photo" required hint="A clear, front-facing photo of your face - shown to the store and to customers">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 4 }}>
+            <button type="button" onClick={() => photoInput.current?.click()}
+              style={{ width: 76, height: 76, borderRadius: '50%', border: '2px dashed var(--orange)', background: 'var(--orange-soft, #fff4e6)', overflow: 'hidden', padding: 0, display: 'grid', placeItems: 'center', cursor: 'pointer' }}>
+              {photoPreview ? <img src={photoPreview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ color: "var(--orange)" }}><Camera size={26} /></span>}
+            </button>
+            <button type="button" className="btn soft small" onClick={() => photoInput.current?.click()}>{photo ? 'Change photo' : 'Take / choose photo'}</button>
+            <input ref={photoInput} type="file" accept="image/*" capture="user" hidden onChange={(e) => pickPhoto(e.target.files?.[0])} />
+          </div>
+        </Field>
         <Field label="Full Name" required>
           <TextInput
             value={f.fullName}
@@ -401,6 +428,8 @@ interface VerifyState {
   phone: string;
   purpose: 'signup' | 'reset';
   devCode?: string;
+  /** Sign-up face photo - uploaded right after the OTP signs the rider in. */
+  photo?: File | null;
 }
 
 const RESEND_SECONDS = 120;
@@ -431,8 +460,15 @@ export function Verify() {
     setBusy(true);
     riderApi
       .verify(state.phone, code)
-      .then((s) => {
+      .then(async (s) => {
         signIn(s);
+        if (state.photo) {
+          try {
+            await riderApi.uploadDocument(state.photo, 'photo');
+          } catch {
+            toast('Could not upload your photo - add it from Account', 'error');
+          }
+        }
         navigate('/location', { replace: true });
       })
       .catch((e) => {

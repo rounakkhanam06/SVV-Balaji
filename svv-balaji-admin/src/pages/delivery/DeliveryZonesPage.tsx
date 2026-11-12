@@ -493,7 +493,9 @@ function ZoneDrawer({
 
   const submit = async () => {
     try {
-      const v = await form.validateFields();
+      // validateFields() only returns fields on tabs that have been opened (antd renders tabs
+      // lazily), so merge in the whole store — otherwise unvisited tabs send `undefined`.
+      const v = { ...form.getFieldsValue(true), ...(await form.validateFields()) };
       const pincodes = v.pincodesText
         .split(/[\s,]+/)
         .map((p) => p.trim())

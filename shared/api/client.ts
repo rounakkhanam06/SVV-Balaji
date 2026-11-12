@@ -110,7 +110,8 @@ api.interceptors.response.use(
 export function apiErrorMessage(error: unknown, fallback = 'Something went wrong'): string {
   if (axios.isAxiosError(error)) {
     const data = error.response?.data as { message?: string | string[] } | undefined;
-    if (Array.isArray(data?.message)) return data.message.join('. ');
+    // Validation errors come as an array — show only the first so toasts stay short.
+    if (Array.isArray(data?.message)) return data.message[0] ?? fallback;
     if (typeof data?.message === 'string') return data.message;
     if (error.message) return error.message;
   }

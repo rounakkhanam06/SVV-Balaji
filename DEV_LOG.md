@@ -4436,3 +4436,6 @@ Tests: sales/reports/wallet suites 57/57 (2 new cancel cases). Not run: full sui
 ## 2026-11-12 — Raunak (agent) — Rider face photo
 - Rider app sign-up now requires a face photo (front camera); uploaded via existing `POST /rider/me/document?kind=photo` right after OTP verify. No API change.
 - Admin pending-rider card + Approve dialog show `rider.photoUrl` (face photo) instead of licence.
+
+## 2026-11-12 — Raunak (agent) — Customer "Member since" blank
+- API: storefront account responses (login, verify, profile/photo update) now include `memberSince` (= account.createdAt), not only `GET /me`. Additive field.

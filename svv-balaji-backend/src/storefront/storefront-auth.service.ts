@@ -778,6 +778,9 @@ export class StorefrontAuthService {
       referralCode: customer?.referralCode ?? null,
       businessName: account.businessName,
       gstin: account.gstin,
+      // On every account response (login, verify, profile/photo update), not just /me — the app
+      // rebuilds the profile from whichever it got last, so a missing field blanked "Member since".
+      memberSince: account.createdAt,
     };
   }
 

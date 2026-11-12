@@ -18,7 +18,9 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url       = env("DATABASE_URL")
+  // Direct (non-pooler) connection used by prisma migrate. On Neon: same URL without "-pooler".
+  directUrl = env("DIRECT_URL")
 }
 
 // ---------------------------------------------------------------------------

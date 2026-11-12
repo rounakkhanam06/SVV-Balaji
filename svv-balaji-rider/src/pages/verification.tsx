@@ -267,9 +267,11 @@ export function DocumentScreen() {
                   <TextInput type="date" value={form.issuedOn} onChange={set('issuedOn')} max={today} />
                 </Field>
               ) : null}
-              <Field label={t.requiresExpiry ? 'Valid till' : 'Valid till (if printed)'} required={t.requiresExpiry}>
-                <TextInput type="date" value={form.expiresOn} onChange={set('expiresOn')} min={today} />
-              </Field>
+              {t.code !== 'ID_PROOF' ? (
+                <Field label={t.requiresExpiry ? 'Valid till' : 'Valid till (if printed)'} required={t.requiresExpiry}>
+                  <TextInput type="date" value={form.expiresOn} onChange={set('expiresOn')} min={today} />
+                </Field>
+              ) : null}
               <button className="btn primary block" style={{ marginTop: 8 }} disabled={saving || uploading} onClick={() => void submit()}>
                 {saving ? 'Sending…' : 'Send for review'}
               </button>

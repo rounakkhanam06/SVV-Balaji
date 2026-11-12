@@ -4418,3 +4418,17 @@ Gap: `PATCH /orders/:id/cancel` gave back stock, coins, wallet spend and the cou
 - Not changed: customers still can't cancel from the app (staff only). Refund goes to the wallet only; offering UPI/bank on cancellation, as returns do, would be a client decision. Past cancelled online orders are not refunded retroactively. Check the DB for `status CANCELLED AND paymentMode ONLINE AND paymentStatus PAID`.
 
 Tests: sales/reports/wallet suites 57/57 (2 new cancel cases). Not run: full suite, e2e.
+
+## 2026-11-12 — Raunak (agent) — DB moved from Render to Neon
+- Render `balaji-db` (Oregon) was **suspended by Render**; API could not start.
+- Restored `svv-balaji-backend/backups/svv_balaji_before_push_migration_20260928_153822.dump` into Neon (ap-southeast-1, PG 18), then `prisma migrate deploy` applied all migrations after 20260928090000. **Data entered after 28 Sep 2026 is lost.**
+- `.env` `DATABASE_URL` now = Neon pooled URL. Old file kept as `.env.render-backup`. Run migrations against the **direct** host (drop `-pooler`), not the pooled one.
+- Verified: API boots, Swagger 200, permissions reconciled. Restored data: 1 user (admin@svvbalaji.com), 1 farmer, 7 products, 7 FG batches, 0 orders.
+- Known pre-existing drift: FK `onDelete` on `finished_goods_batches.variantId` / `order_items.variantId` differs between migrations and schema.prisma.
+
+## 2026-11-12 — Raunak (agent) — Rider Aadhaar upload: photo only
+- Migration `20261112100000_id_proof_no_number`: `ID_PROOF` type now has requiresNumber=false, requiresExpiry=false (applied to Neon).
+- Rider app `verification.tsx` hides the "Valid till" field for `ID_PROOF`.
+
+## 2026-11-12 — Raunak (agent) — Prisma directUrl
+- `schema.prisma` datasource now has `directUrl = env("DIRECT_URL")` so migrations bypass the Neon pooler. **Every env (local, Render) must set DIRECT_URL** = Neon URL without `-pooler`, or Prisma fails to load.

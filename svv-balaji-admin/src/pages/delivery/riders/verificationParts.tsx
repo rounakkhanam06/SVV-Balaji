@@ -72,6 +72,7 @@ export function useDocumentReview() {
     approve: (doc: { id: string }, name: string, riderName?: string) => {
       let note = '';
       modal.confirm({
+        centered: true,
         title: `Approve ${name}${riderName ? ` for ${riderName}` : ''}?`,
         icon: <CheckOutlined style={{ color: '#52c41a' }} />,
         content: (
@@ -97,6 +98,7 @@ export function useDocumentReview() {
       let note = '';
       const revoking = doc.status === 'APPROVED';
       modal.confirm({
+        centered: true,
         title: `${revoking ? 'Withdraw approval of' : 'Reject'} ${name}${riderName ? ` for ${riderName}` : ''}?`,
         content: (
           <Space direction="vertical" style={{ width: '100%' }}>

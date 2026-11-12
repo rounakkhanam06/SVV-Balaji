@@ -90,12 +90,23 @@ export function WarehouseFormModal({ open, warehouse, onClose }: WarehouseFormMo
     };
   }, [warehouse]);
 
+  // Reset only when the modal opens or a different warehouse is picked — NOT when the list
+  // refetches (window refocus after copying coordinates from Maps), which would wipe typed values.
   useEffect(() => {
     if (open) {
       form.resetFields();
       form.setFieldsValue(initialValues);
     }
-  }, [open, initialValues, form]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, warehouse?.id, form]);
+
+  /** Google Maps copies "22.7196, 75.8577" — split a pasted pair into both fields. */
+  const handleCoordPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const m = e.clipboardData.getData('text').match(/(-?\d+(?:\.\d+)?)\s*[,\s]\s*(-?\d+(?:\.\d+)?)/);
+    if (!m) return;
+    e.preventDefault();
+    form.setFieldsValue({ latitude: Number(m[1]), longitude: Number(m[2]) });
+  };
 
   const handleAutoDetectCoords = async (manual = true) => {
     const loc = form.getFieldValue('location') || '';
@@ -204,10 +215,10 @@ export function WarehouseFormModal({ open, warehouse, onClose }: WarehouseFormMo
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <Form.Item name="latitude" label="Map Latitude (GPS)">
-            <InputNumber style={{ width: '100%' }} min={-90} max={90} step={0.0001} placeholder="e.g. 22.7196" />
+            <InputNumber style={{ width: '100%' }} min={-90} max={90} step={0.0001} placeholder="e.g. 22.7196" onPaste={handleCoordPaste} />
           </Form.Item>
           <Form.Item name="longitude" label="Map Longitude (GPS)">
-            <InputNumber style={{ width: '100%' }} min={-180} max={180} step={0.0001} placeholder="e.g. 75.8577" />
+            <InputNumber style={{ width: '100%' }} min={-180} max={180} step={0.0001} placeholder="e.g. 75.8577" onPaste={handleCoordPaste} />
           </Form.Item>
         </div>
 

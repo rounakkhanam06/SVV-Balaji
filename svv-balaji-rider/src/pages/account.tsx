@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -132,45 +133,16 @@ export function EarningsScreen() {
         {!e ? <Spinner /> : (
           <>
             {/* 4 Stat Summary Cards in Rider Theme (2x2 Grid) */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
-              {/* Owed to the rider and not yet paid */}
-              <div className="card" style={{ padding: '14px 16px' }}>
-                <div className="between">
-                  <span className="muted" style={{ fontSize: 13, fontWeight: 500 }}>Unpaid</span>
-                  <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'var(--orange-soft)', color: 'var(--orange-dark)', display: 'grid', placeItems: 'center' }}>
-                    <Wallet size={16} />
-                  </div>
-                </div>
-                <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--ink)', marginTop: 6 }}>{inr(payouts?.unpaid ?? 0)}</div>
-              </div>
-
-              {/* Today */}
-              <div className="card" style={{ padding: '14px 16px' }}>
-                <div className="between">
-                  <span className="muted" style={{ fontSize: 13, fontWeight: 500 }}>Today</span>
-                  <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'var(--orange-soft)', color: 'var(--orange-dark)', display: 'grid', placeItems: 'center' }}>
-                    <Coin size={16} />
-                  </div>
-                </div>
-                <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--ink)', marginTop: 6 }}>{inr(e.today || 0)}</div>
-              </div>
-
-              {/* Range Total */}
-              <div className="card" style={{ padding: '14px 16px' }}>
-                <span className="muted" style={{ fontSize: 13, fontWeight: 500 }}>This week</span>
-                <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--ink)', marginTop: 4 }}>{inr(e.thisWeek || 0)}</div>
-                <div style={{ marginTop: 6 }}>
-                  <span className="chip green" style={{ fontSize: 11, padding: '2px 8px', height: 20 }}>
-                    <TrendingUp size={11} /> {e.range.deliveries} deliveries
-                  </span>
-                </div>
-              </div>
-
-              {/* Total Earned */}
-              <div className="card" style={{ padding: '14px 16px' }}>
-                <span className="muted" style={{ fontSize: 13, fontWeight: 500 }}>Paid out so far</span>
-                <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--ink)', marginTop: 4 }}>{inr(paidOut)}</div>
-              </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridAutoRows: '1fr', gap: 12, marginBottom: 14 }}>
+              <StatTile label="Unpaid" icon={<Wallet size={16} />} value={inr(payouts?.unpaid ?? 0)} />
+              <StatTile label="Today" icon={<Coin size={16} />} value={inr(e.today || 0)} />
+              <StatTile
+                label="This week"
+                icon={<TrendingUp size={16} />}
+                value={inr(e.thisWeek || 0)}
+                foot={<span className="chip green" style={{ fontSize: 11, padding: '2px 8px', height: 20 }}><TrendingUp size={11} /> {e.range.deliveries} deliveries</span>}
+              />
+              <StatTile label="Paid out so far" icon={<ArrowUpRight size={16} />} value={inr(paidOut)} />
             </div>
 
             {/* Dynamic Earnings Activity Card */}
@@ -373,7 +345,7 @@ export function CashScreen() {
           key: cfg.keyId || import.meta.env.VITE_RAZORPAY_KEY_ID,
           amount: cfg.amount,
           currency: cfg.currency || 'INR',
-          name: 'Desi Tokri Super Admin',
+          name: 'Desi Tokri',
           description: `Rider Cash Settlement (₹${order.amount})`,
           order_id: order.gatewayOrderId,
           prefill: {
@@ -424,14 +396,14 @@ export function CashScreen() {
             <div className="card" style={{ textAlign: 'center', padding: '24px 16px' }}>
               <div className="muted" style={{ fontSize: 14 }}>You are holding</div>
               <div style={{ fontSize: 38, fontWeight: 700, color: 'var(--ink)' }}>{inr(c.balance)}</div>
-              <div className="muted" style={{ fontSize: 13, marginBottom: 16 }}>Hand this to store or pay Super Admin directly via Razorpay.</div>
+              <div className="muted" style={{ fontSize: 13, marginBottom: 16 }}>Hand this to store or pay Desi Tokri directly via Razorpay.</div>
               {c.balance > 0 ? (
                 <button
                   className="btn primary"
                   style={{ width: '100%', padding: '12px 16px', fontSize: 15, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
                   onClick={() => setShowModal(true)}
                 >
-                  <Wallet size={18} /> Pay Administrator (Razorpay)
+                  <Wallet size={18} /> Pay Desi Tokri (Razorpay)
                 </button>
               ) : null}
             </div>
@@ -440,7 +412,7 @@ export function CashScreen() {
               <div className="card" style={{ border: '2px solid var(--orange)', background: '#fff', padding: 16, marginBottom: 16 }}>
                 <b style={{ fontSize: 16, color: 'var(--ink)', display: 'block', marginBottom: 8 }}>Settle Cash via Razorpay</b>
                 <p className="muted" style={{ fontSize: 13, marginBottom: 12 }}>
-                  Pay your full cash in hand to Super Admin via UPI / Netbanking / Card. Part payments are not allowed.
+                  Pay your full cash in hand to Desi Tokri via UPI / Netbanking / Card. Part payments are not allowed.
                 </p>
 
                 {/* The whole balance is settled at once; the server fixes the amount too. */}
@@ -940,6 +912,22 @@ export function Profile() {
           <Logout size={18} /> Sign out
         </button>
       </div>
+    </div>
+  );
+}
+
+/** One earnings summary tile. Same box for all four, so the 2x2 grid lines up whatever each holds. */
+function StatTile({ label, icon, value, foot }: { label: string; icon: ReactNode; value: string; foot?: ReactNode }) {
+  return (
+    <div className="card" style={{ padding: '14px 16px', margin: 0, display: 'flex', flexDirection: 'column', minHeight: 112 }}>
+      <div className="between">
+        <span className="muted" style={{ fontSize: 13, fontWeight: 500 }}>{label}</span>
+        <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'var(--orange-soft)', color: 'var(--orange-dark)', display: 'grid', placeItems: 'center', flex: '0 0 auto' }}>
+          {icon}
+        </div>
+      </div>
+      <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--ink)', marginTop: 6 }}>{value}</div>
+      {foot ? <div style={{ marginTop: 'auto', paddingTop: 6 }}>{foot}</div> : null}
     </div>
   );
 }

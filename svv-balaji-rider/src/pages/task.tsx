@@ -2,20 +2,76 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { errorCode, errorMessage } from '../api/client';
-import { riderApi, type FailureReason, type TaskDetail, type TaskKind } from '../api/rider';
+import { riderApi, type FailureReason, type TaskDetail, type TaskItem, type TaskKind } from '../api/rider';
 import { currentPosition } from '../live/geo';
 import { Alert, Camera, Cash, Check, Navigate as NavIcon, Phone, Pin, Store } from '../ui/icons';
 import { Field, Modal, OtpInput, Spinner, TextInput, TopBar, inr, time, useToast } from '../ui/kit';
 import { MiniMap, type MapPoint } from '../ui/MiniMap';
 import { STATUS_LABEL, resolveImageUrl } from '../ui/orders';
 
-function TaskItemImage({ src }: { src: string | null | undefined }) {
+function TaskItemImage({ src, size = 44 }: { src: string | null | undefined; size?: number }) {
   const [error, setError] = useState(false);
   const imgUrl = resolveImageUrl(src);
   if (!imgUrl || error) {
-    return <div className="thumb" style={{ width: 44, height: 44, display: 'grid', placeItems: 'center' }} />;
+    return (
+      <div className="thumb" style={{ width: size, height: size, display: 'grid', placeItems: 'center', color: 'var(--muted)', fontSize: size / 3, fontWeight: 700 }}>
+        ?
+      </div>
+    );
   }
-  return <img src={imgUrl} alt="" className="thumb" style={{ width: 44, height: 44, objectFit: 'cover' }} onError={() => setError(true)} />;
+  return <img src={imgUrl} alt="" className="thumb" style={{ width: size, height: size, objectFit: 'cover' }} onError={() => setError(true)} />;
+}
+
+/** Tap an item: a big photo and the few facts a rider checks the pack against before taking it. */
+function ItemVerifySheet({ item, onClose }: { item: TaskItem | null; onClose: () => void }) {
+  const [shown, setShown] = useState(0);
+  const [broken, setBroken] = useState<Record<number, boolean>>({});
+  useEffect(() => { setShown(0); setBroken({}); }, [item]);
+  if (!item) return null;
+  const photos = (item.images?.length ? item.images : item.image ? [item.image] : [])
+    .map((u) => resolveImageUrl(u))
+    .filter((u): u is string => !!u);
+  const main = photos[shown];
+  const facts: Array<[string, string | null | undefined]> = [
+    ['Pack size', item.pack],
+    ['Brand', item.brand],
+    ['SKU', item.sku],
+  ];
+  return (
+    <Modal open onClose={onClose} sheet>
+      <div style={{ borderRadius: 14, overflow: 'hidden', background: 'var(--line)', aspectRatio: '1 / 1', display: 'grid', placeItems: 'center' }}>
+        {main && !broken[shown] ? (
+          <img src={main} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#fff' }} onError={() => setBroken((b) => ({ ...b, [shown]: true }))} />
+        ) : (
+          <span className="muted">No photo for this product</span>
+        )}
+      </div>
+      {photos.length > 1 ? (
+        <div className="row" style={{ gap: 8, marginTop: 10, overflowX: 'auto' }}>
+          {photos.map((u, k) => (
+            <button key={k} onClick={() => setShown(k)} style={{ padding: 0, border: k === shown ? '2px solid var(--green)' : '1px solid var(--line)', borderRadius: 10, background: 'none', flex: '0 0 auto' }}>
+              <img src={u} alt="" style={{ width: 52, height: 52, objectFit: 'cover', borderRadius: 8, display: 'block' }} />
+            </button>
+          ))}
+        </div>
+      ) : null}
+      <div className="between" style={{ marginTop: 14, alignItems: 'flex-start', gap: 12 }}>
+        <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--ink)' }}>{item.name}</div>
+        <b style={{ fontSize: 17, color: 'var(--ink)', whiteSpace: 'nowrap' }}>× {item.quantity}</b>
+      </div>
+      {item.description ? <div className="muted" style={{ fontSize: 13, marginTop: 6 }}>{item.description}</div> : null}
+      <div style={{ marginTop: 12 }}>
+        {facts.filter(([, v]) => v).map(([k, v]) => (
+          <div key={k} className="between" style={{ padding: '7px 0', borderTop: '1px solid var(--line)', fontSize: 14 }}>
+            <span className="muted">{k}</span>
+            <b style={{ color: 'var(--ink)' }}>{v}</b>
+          </div>
+        ))}
+      </div>
+      <div className="muted" style={{ fontSize: 12, marginTop: 10 }}>Match the pack, size and count before you take it.</div>
+      <button className="btn block" style={{ marginTop: 14 }} onClick={onClose}>Done</button>
+    </Modal>
+  );
 }
 
 /** A return pickup runs the other way: customer first, then the store. */
@@ -67,19 +123,8 @@ export function TaskScreen() {
   const step = useStep(id, q.data?.kind);
   const toast = useToast();
   const qc = useQueryClient();
-  const [release, setRelease] = useState(false);
-  const [reason, setReason] = useState('');
+  const [viewItem, setViewItem] = useState<TaskItem | null>(null);
   const t = q.data;
-
-  const releaseM = useMutation({
-    mutationFn: () => riderApi.release(id, reason || 'Unable to take this delivery'),
-    onSuccess: () => {
-      toast('Handed back - it will go to another rider', 'info');
-      void qc.invalidateQueries({ queryKey: ['dashboard'] });
-      navigate('/', { replace: true });
-    },
-    onError: (e) => toast(errorMessage(e), 'error'),
-  });
 
   if (q.isLoading) return <div className="app"><TopBar title="Delivery" back /><Spinner /></div>;
   if (!t) return <div className="app"><TopBar title="Delivery" back /><div className="page"><div className="card empty">{errorMessage(q.error, 'This delivery is not available')}</div></div></div>;
@@ -174,11 +219,21 @@ export function TaskScreen() {
         <div className="card">
           <div className="kv-title" style={{ marginTop: 0 }}>Items ({t.items.reduce((s, i) => s + i.quantity, 0)})</div>
           {t.items.map((i, k) => (
-            <div key={k} className="row" style={{ padding: '8px 0', borderTop: k ? '1px solid var(--line)' : 'none' }}>
+            <button
+              key={k}
+              type="button"
+              className="row"
+              onClick={() => setViewItem(i)}
+              style={{ width: '100%', padding: '8px 0', border: 'none', borderTop: k ? '1px solid var(--line)' : 'none', background: 'none', textAlign: 'left', cursor: 'pointer', font: 'inherit' }}
+            >
               <TaskItemImage src={i.image} />
-              <div style={{ flex: 1, fontSize: 14, color: 'var(--ink)' }}>{i.name}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, color: 'var(--ink)' }}>{i.name}</div>
+                {i.pack ? <div className="muted" style={{ fontSize: 12 }}>{i.pack}</div> : null}
+              </div>
               <b style={{ color: 'var(--ink)' }}>× {i.quantity}</b>
-            </div>
+              <span className="muted" style={{ fontSize: 18 }} aria-hidden>›</span>
+            </button>
           ))}
         </div>
 
@@ -210,9 +265,6 @@ export function TaskScreen() {
             {pickupTrip ? "Can't collect this item" : "Can't deliver this order"}
           </button>
         ) : null}
-        {(pickupTrip ? ['ASSIGNED'] : ['ASSIGNED', 'AT_PICKUP']).includes(t.status) ? (
-          <button className="btn block" style={{ marginTop: 14, background: 'none', color: 'var(--muted)' }} onClick={() => setRelease(true)}>I can't take this delivery</button>
-        ) : null}
       </div>
 
       {primary ? (
@@ -223,14 +275,7 @@ export function TaskScreen() {
         </div>
       ) : null}
 
-      <Modal open={release} onClose={() => setRelease(false)} sheet>
-        <h3 style={{ margin: '0 0 6px', color: 'var(--ink)' }}>Hand this delivery back?</h3>
-        <p className="muted" style={{ margin: 0, fontSize: 14 }}>It will be offered to another rider. You are not paid for it.</p>
-        <Field label="Reason" required>
-          <TextInput value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. Vehicle trouble" />
-        </Field>
-        <button className="btn danger block" style={{ marginTop: 18 }} disabled={releaseM.isPending || reason.trim().length < 3} onClick={() => releaseM.mutate()}>Hand back</button>
-      </Modal>
+      <ItemVerifySheet item={viewItem} onClose={() => setViewItem(null)} />
     </div>
   );
 }

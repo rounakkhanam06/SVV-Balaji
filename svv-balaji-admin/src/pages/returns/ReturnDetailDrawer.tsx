@@ -119,7 +119,12 @@ export function ReturnDetailDrawer({ channel, id, onClose, onChanged }: { channe
             <Descriptions.Item label="Delivered">{when(r.order.deliveredAt)}</Descriptions.Item>
             <Descriptions.Item label={channel === 'B2C' ? 'Customer' : 'Retailer'}>{r.customer.name} · {r.customer.phone}</Descriptions.Item>
             <Descriptions.Item label="Payment">{r.order.paymentMode ?? '—'} · {r.order.paymentStatus.toLowerCase()}</Descriptions.Item>
-            <Descriptions.Item label="Item" span={2}>{r.item.name} ({r.item.sku}) — <strong>{r.quantity}</strong> of {r.item.orderedQuantity}</Descriptions.Item>
+            <Descriptions.Item label="Item" span={2}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <ProductThumb src={r.item.imageUrl} name={r.item.name} />
+                <span style={{ flex: 1, minWidth: 0 }}>{r.item.name} ({r.item.sku}) — <strong>{r.quantity}</strong> of {r.item.orderedQuantity}</span>
+              </div>
+            </Descriptions.Item>
             <Descriptions.Item label="Reason" span={2}>{r.reason.label} {r.reason.companyFault ? <Tag color="red">our fault</Tag> : null}{r.description ? <div><Text type="secondary">{r.description}</Text></div> : null}</Descriptions.Item>
             <Descriptions.Item label="Collect from" span={2}>{r.address.fullName} · {r.address.phone}<br />{[r.address.line1, r.address.line2, r.address.city, r.address.state, r.address.pincode].filter(Boolean).join(', ')}</Descriptions.Item>
             <Descriptions.Item label="Warehouse">{r.warehouse.name}</Descriptions.Item>
@@ -149,7 +154,12 @@ export function ReturnDetailDrawer({ channel, id, onClose, onChanged }: { channe
               </>
             ) : r.exchange ? (
               <>
-                <Descriptions.Item label="Replacement">{r.exchange.replacementName}</Descriptions.Item>
+                <Descriptions.Item label="Replacement">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <ProductThumb src={r.exchange.replacementProduct?.images?.[0] ?? null} name={r.exchange.replacementName ?? ''} size={44} />
+                    <span style={{ flex: 1, minWidth: 0 }}>{r.exchange.replacementName}</span>
+                  </div>
+                </Descriptions.Item>
                 <Descriptions.Item label="Replacement value">{r.exchange.replacementTotal === null ? '—' : inr(r.exchange.replacementTotal)}</Descriptions.Item>
                 <Descriptions.Item label="Difference">{inr(r.exchange.priceDifference)} <Tag>{r.exchange.differenceStatus.toLowerCase()}</Tag></Descriptions.Item>
                 <Descriptions.Item label="Paid from wallet">{inr(r.exchange.differencePaidWallet)}{r.exchange.differenceReference ? ` · ref ${r.exchange.differenceReference}` : ''}</Descriptions.Item>
@@ -351,5 +361,21 @@ function LiveRiderTrip({ r, onChanged }: { r: ReturnDetail; onChanged: () => voi
       />
       <AssignModal open={assigning} task={{ id: t.id, warehouse: { id: '', name: r.warehouse.name } }} onClose={() => setAssigning(false)} onAssigned={onChanged} />
     </>
+  );
+}
+
+/** The catalogue photo of the product (not the customer's evidence), so staff see what should come back. */
+function ProductThumb({ src, name, size = 56 }: { src: string | null; name: string; size?: number }) {
+  if (!src) {
+    return (
+      <div style={{ width: size, height: size, borderRadius: 8, background: '#f3f4f6', display: 'grid', placeItems: 'center', color: '#9ca3af', fontWeight: 600, flex: '0 0 auto' }}>
+        {name.charAt(0).toUpperCase() || '?'}
+      </div>
+    );
+  }
+  return (
+    <div style={{ width: size, height: size, flex: `0 0 ${size}px`, borderRadius: 8, overflow: 'hidden', border: '1px solid #f0f0f0' }}>
+      <Image src={src} alt={name} width={size} height={size} style={{ objectFit: 'cover', display: 'block' }} />
+    </div>
   );
 }

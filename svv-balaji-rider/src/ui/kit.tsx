@@ -154,7 +154,28 @@ export function OtpInput({ value, onChange, length = 6, error, autoFocus = true 
 
 // ------------------------------------------------------------------ overlays
 
+/** Open sheets/modals at once; the page only unlocks when the last one closes. */
+let openModals = 0;
+
 export function Modal({ open, onClose, children, sheet }: { open: boolean; onClose: () => void; children: ReactNode; sheet?: boolean }) {
+  // Freeze the page behind: no scroll, no map pan, while the dialog is up.
+  useEffect(() => {
+    if (!open) return;
+    const html = document.documentElement;
+    const body = document.body;
+    if (openModals++ === 0) {
+      html.style.overflow = 'hidden';
+      body.style.overflow = 'hidden';
+      body.style.touchAction = 'none';
+    }
+    return () => {
+      if (--openModals === 0) {
+        html.style.overflow = '';
+        body.style.overflow = '';
+        body.style.touchAction = '';
+      }
+    };
+  }, [open]);
   if (!open) return null;
   return (
     <div className={`overlay${sheet ? ' sheet-overlay' : ''}`} onClick={onClose} role="dialog" aria-modal>

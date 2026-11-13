@@ -166,10 +166,25 @@ export interface OrderSummaryRow {
   lines: OrderLine[];
   /** Delivered, and at least one product in it hasn't been rated yet. */
   reviewPending: boolean;
+  /** Latest return / exchange on this order (cancelled ones skipped). The order itself stays DELIVERED. */
+  latestReturn?: LatestReturn | null;
+}
+
+/** Latest live return / exchange on an order. */
+export interface LatestReturn {
+  requestNumber: string;
+  type: 'RETURN' | 'EXCHANGE';
+  typeLabel: string;
+  status: string;
+  statusLabel: string;
+  /** How many live requests the order has. */
+  count: number;
 }
 
 export interface OrderDetail {
   orderNumber: string;
+  /** Latest live return / exchange; the order itself stays DELIVERED. */
+  latestReturn?: LatestReturn | null;
   status: string;
   channel: 'B2B' | 'B2C';
   placedAt: string;
@@ -186,7 +201,8 @@ export interface OrderDetail {
   };
   payment: { mode: PaymentMode | null; status: string; reference: string | null };
   deliveryOtp: string | null;
-  rider: { name: string | null; phone: string | null } | null;
+  /** `photoUrl`: the rider's face photo, sent only while the order is out for delivery. */
+  rider: { name: string | null; phone: string | null; photoUrl?: string | null } | null;
   shipment: { awb: string | null; courier: string | null; trackingUrl: string | null; status: string } | null;
   timeline: Array<{ type: string; at: string; note: string | null }>;
 }

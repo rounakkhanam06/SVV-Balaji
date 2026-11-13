@@ -8,12 +8,14 @@ import {
   FileTextOutlined,
   PhoneOutlined,
   RightOutlined,
+  RollbackOutlined,
   SafetyCertificateOutlined,
+  SwapOutlined,
   SyncOutlined,
 } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Button, Input, Modal, Rate, Select, Skeleton, Steps, Tag, Typography, message } from 'antd';
+import { Alert, Avatar, Button, Image, Input, Modal, Rate, Select, Skeleton, Steps, Tag, Typography, message } from 'antd';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { checkoutApi, checkoutError, type OrderDetail } from '../api/checkout';
 import { LiveRiderMap } from '../components/LiveRiderMap';
@@ -24,6 +26,8 @@ import { downloadOrderInvoice } from '../utils/orderInvoice';
 import { getProgressSteps, progressIndex, progressSteps, statusColor, statusLabel } from './orderStatus';
 import { useReorder } from './useReorder';
 import { OrderReturnsCard } from '../components/OrderReturnsCard';
+import { returnsApi } from '../api/returns';
+import { ReturnStatusBlock } from './ReturnsPage';
 
 import { DesktopPageHeader } from '../layout/DesktopPageHeader';
 type Item = OrderDetail['items'][number];
@@ -109,6 +113,9 @@ const HELP_TOPICS: Array<{ value: SupportTicketCategory; label: string }> = [
  * One order, live. Products with prices on top, then the bill and order details,
  * and a way to raise a support ticket about this exact order.
  */
+/** Return / exchange states that will not move again. */
+const RETURN_FINAL = ['COMPLETED', 'REJECTED', 'CANCELLED', 'QC_FAILED', 'DELIVERED'];
+
 export function OrderTrackingPage() {
   const { orderId: orderNumber } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
@@ -128,10 +135,40 @@ export function OrderTrackingPage() {
     queryFn: () => checkoutApi.order(orderNumber as string),
     enabled: Boolean(orderNumber),
     retry: false,
-    refetchInterval: (q) => (q.state.data && ['DELIVERED', 'CANCELLED'].includes(q.state.data.status) ? false : 15_000),
+    // Keep polling after delivery while a return / exchange is still moving.
+    refetchInterval: (q) => {
+      const d = q.state.data;
+      if (!d) return 15_000;
+      if (d.status === 'CANCELLED') return false;
+      if (d.status === 'DELIVERED') return d.latestReturn && !RETURN_FINAL.includes(d.latestReturn.status) ? 20_000 : false;
+      return 15_000;
+    },
+  });
+  // The returns card below has its own query - refresh it when the request moves on.
+  const qc = useQueryClient();
+  const returnStatus = order.data?.latestReturn?.status;
+  useEffect(() => {
+    if (returnStatus) void qc.invalidateQueries({ queryKey: ['storefront', 'returns'] });
+  }, [returnStatus, qc]);
+  // The latest request in full, shown exactly as on its own page.
+  const latestReturnNumber = order.data?.status === 'DELIVERED' ? order.data.latestReturn?.requestNumber : undefined;
+  const returnDetail = useQuery({
+    queryKey: ['storefront', 'returns', 'detail', latestReturnNumber],
+    queryFn: () => returnsApi.detail(latestReturnNumber as string),
+    enabled: Boolean(latestReturnNumber),
+    retry: false,
   });
   const o = order.data;
   const delivered = o?.status === 'DELIVERED';
+  // A return / exchange lives on its own record; the order stays DELIVERED. Show where it is.
+  const ret = delivered ? o?.latestReturn ?? null : null;
+  const retTone = !ret
+    ? { bg: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)', shadow: '0 6px 16px rgba(22,163,74,0.25)', ink: '#15803d' }
+    : ['REJECTED', 'PICKUP_FAILED', 'QC_FAILED', 'DELIVERY_FAILED'].includes(ret.status)
+      ? { bg: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)', shadow: '0 6px 16px rgba(220,38,38,0.25)', ink: '#b91c1c' }
+      : ['COMPLETED', 'DELIVERED', 'REFUND_INITIATED'].includes(ret.status)
+        ? { bg: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)', shadow: '0 6px 16px rgba(22,163,74,0.25)', ink: '#15803d' }
+        : { bg: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)', shadow: '0 6px 16px rgba(124,58,237,0.25)', ink: '#6d28d9' };
   // The GST invoice is issued at dispatch, so there is nothing to download before it.
   const shipped = o?.status === 'DISPATCHED' || delivered;
   const [invoiceLoading, setInvoiceLoading] = useState(false);
@@ -232,7 +269,7 @@ export function OrderTrackingPage() {
             {delivered ? (
               <div
                 style={{
-                  background: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)',
+                  background: retTone.bg,
                   borderRadius: 16,
                   padding: '18px 16px',
                   marginBottom: 12,
@@ -240,15 +277,26 @@ export function OrderTrackingPage() {
                   display: 'flex',
                   alignItems: 'center',
                   gap: 14,
-                  boxShadow: '0 6px 16px rgba(22,163,74,0.25)',
+                  boxShadow: retTone.shadow,
                 }}
               >
                 <div style={{ width: 46, height: 46, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'grid', placeItems: 'center', fontSize: 24, flexShrink: 0 }}>
-                  <CheckCircleFilled />
+                  {ret ? (ret.type === 'EXCHANGE' ? <SwapOutlined /> : <RollbackOutlined />) : <CheckCircleFilled />}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 18, fontWeight: 800, lineHeight: 1.2 }}>Delivered</div>
-                  <div style={{ fontSize: 13, opacity: 0.9, marginTop: 2 }}>on {fullDate(o.deliveredAt ?? o.placedAt)}</div>
+                  {ret ? (
+                    <>
+                      <div style={{ fontSize: 18, fontWeight: 800, lineHeight: 1.2 }}>{ret.typeLabel} · {ret.statusLabel}</div>
+                      <div style={{ fontSize: 13, opacity: 0.9, marginTop: 2 }}>
+                        {ret.requestNumber}{ret.count > 1 ? ` (+${ret.count - 1} more)` : ''} · delivered {fullDate(o.deliveredAt ?? o.placedAt)}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div style={{ fontSize: 18, fontWeight: 800, lineHeight: 1.2 }}>Delivered</div>
+                      <div style={{ fontSize: 13, opacity: 0.9, marginTop: 2 }}>on {fullDate(o.deliveredAt ?? o.placedAt)}</div>
+                    </>
+                  )}
                 </div>
                 <Button
                   icon={<SyncOutlined />}
@@ -266,7 +314,7 @@ export function OrderTrackingPage() {
                       })),
                     )
                   }
-                  style={{ borderRadius: 10, fontWeight: 700, color: '#15803d', border: 'none' }}
+                  style={{ borderRadius: 10, fontWeight: 700, color: retTone.ink, border: 'none' }}
                 >
                   Reorder
                 </Button>
@@ -311,12 +359,32 @@ export function OrderTrackingPage() {
               </Card>
             ) : null}
 
+            {ret && returnDetail.data ? <ReturnStatusBlock r={returnDetail.data} linkToRequest /> : null}
+
             {o.status === 'DISPATCHED' && o.fulfillment.method === 'LOCAL' ? <LiveRiderMap orderNumber={o.orderNumber} /> : null}
 
             {!delivered && o.rider?.name ? (
               <Card title="Your delivery partner">
-                <Typography.Text strong>{o.rider.name}</Typography.Text>
-                {o.rider.phone ? <div><Button type="link" icon={<PhoneOutlined />} href={`tel:${o.rider.phone}`} style={{ paddingLeft: 0 }}>{o.rider.phone}</Button></div> : null}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                  {o.rider.photoUrl ? (
+                    <Image
+                      src={o.rider.photoUrl}
+                      alt={o.rider.name}
+                      width={56}
+                      height={56}
+                      style={{ objectFit: 'cover', borderRadius: '50%' }}
+                      fallback="data:image/gif;base64,R0lGODlhAQABAAAAACw="
+                    />
+                  ) : (
+                    <Avatar size={56} style={{ background: '#f97316', fontSize: 22, flex: '0 0 auto' }}>
+                      {o.rider.name.charAt(0).toUpperCase()}
+                    </Avatar>
+                  )}
+                  <div style={{ minWidth: 0 }}>
+                    <Typography.Text strong style={{ fontSize: 15 }}>{o.rider.name}</Typography.Text>
+                    {o.rider.phone ? <div><Button type="link" icon={<PhoneOutlined />} href={`tel:${o.rider.phone}`} style={{ paddingLeft: 0, height: 'auto' }}>{o.rider.phone}</Button></div> : null}
+                  </div>
+                </div>
               </Card>
             ) : null}
 

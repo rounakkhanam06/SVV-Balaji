@@ -1,6 +1,6 @@
 import { Layout } from 'antd';
-import { Suspense } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Suspense, useLayoutEffect } from 'react';
+import { Outlet, useLocation, useNavigationType } from 'react-router-dom';
 import { BottomNav } from './BottomNav';
 import { DesktopFooter } from './DesktopFooter';
 import { DesktopHeader } from './DesktopHeader';
@@ -33,6 +33,14 @@ export function StoreShell() {
   // Signed-in session still being restored: hold the page (a skeleton in its shape) so nobody
   // sees a guest view or consumer prices flash first. Guests have nothing to restore - no wait.
   const { initialising } = useCustomerAuth();
+
+  // New page = start at the top. Without this the browser keeps the previous page's scroll
+  // offset, so opening Cart or a product from low on a long page lands on the footer while the
+  // new page (or its skeleton) sits above the fold. Back/forward (POP) keeps native restoration.
+  const navType = useNavigationType();
+  useLayoutEffect(() => {
+    if (navType !== 'POP') window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+  }, [location.pathname, navType]);
 
   return (
     <Layout style={{ minHeight: '100dvh', background: '#fafaf9', display: 'flex', flexDirection: 'column' }}>

@@ -387,7 +387,7 @@ export class SalesService {
           select: {
             id: true, taskNumber: true, status: true, attempt: true, offerRound: true,
             needsManualAssignment: true, autoDispatchPaused: true, assignedAt: true, pickedUpAt: true,
-            rider: { select: { id: true, fullName: true, phone: true } },
+            rider: { select: { id: true, fullName: true, phone: true, photoUrl: true } },
             offers: {
               where: { status: 'PENDING' },
               select: { id: true, expiresAt: true, rider: { select: { fullName: true } } },

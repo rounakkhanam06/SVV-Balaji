@@ -90,7 +90,7 @@ export interface ReturnDetail {
     bankName: string | null; reference: string | null; note: string | null; refundedAt: string | null; allowedMethods: RefundMethod[];
   };
   exchange: {
-    replacementProduct: { id: string; name: string; sku: string } | null;
+    replacementProduct: { id: string; name: string; sku: string; images?: string[] } | null;
     replacementName: string | null;
     replacementUnitPrice: number | null;
     replacementTotal: number | null;

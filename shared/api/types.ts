@@ -2707,7 +2707,7 @@ export interface OrderDeliveryTask {
   autoDispatchPaused: boolean;
   assignedAt: string | null;
   pickedUpAt: string | null;
-  rider: { id: string; fullName: string; phone: string } | null;
+  rider: { id: string; fullName: string; phone: string; photoUrl?: string | null } | null;
   /** Open offers of the current broadcast round. `secondsLeft` is measured on the server clock. */
   offers: Array<{ id: string; expiresAt: string; secondsLeft: number; rider: { fullName: string } }>;
 }

@@ -1,20 +1,15 @@
 import {
   CheckCircleOutlined,
   ClockCircleOutlined,
-  ClockCircleFilled,
-  CloseCircleFilled,
   CloseCircleOutlined,
   DisconnectOutlined,
-  IdcardOutlined,
   LoadingOutlined,
   MailOutlined,
   PhoneOutlined,
   ReloadOutlined,
-  SafetyCertificateOutlined,
   ShopOutlined,
-  UserOutlined,
 } from '@ant-design/icons';
-import { Alert, Button, Card, Col, Descriptions, Result, Row, Space, Tag, Typography, message } from 'antd';
+import { Alert, Button, Result, Space, Typography, message } from 'antd';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCustomerAuth } from '../auth/CustomerAuthContext';
@@ -98,205 +93,109 @@ export function UnderReviewPage() {
     );
   }
 
+  const accent = rejected ? '#dc2626' : '#d97706';
+  const tint = rejected ? '#fef2f2' : '#fffbeb';
+  const details: Array<[string, React.ReactNode]> = [
+    ['Store / Business', retailerProfile.storeName || '—'],
+    ['Proprietor', retailerProfile.ownerName || '—'],
+    ['Mobile', retailerProfile.phone || '—'],
+    ['Email', retailerProfile.email || <Text type="secondary">Not provided</Text>],
+    ['GSTIN', <span style={{ fontFamily: 'ui-monospace, Menlo, monospace', letterSpacing: 0.5 }}>{retailerProfile.gstin || '—'}</span>],
+    ['Location', [retailerProfile.address, retailerProfile.pincode].filter(Boolean).join(' - ') || '—'],
+  ];
+  type StepState = 'done' | 'current' | 'failed' | 'todo';
+  const steps: Array<{ label: string; state: StepState }> = [
+    { label: 'Submitted', state: 'done' },
+    { label: rejected ? 'Reviewed' : 'Under review', state: rejected ? 'failed' : 'current' },
+    { label: rejected ? 'Not approved' : 'Approved', state: rejected ? 'failed' : 'todo' },
+  ];
+  const stepColor: Record<StepState, string> = { done: '#16a34a', current: '#d97706', failed: '#dc2626', todo: '#cbd5e1' };
+
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        background: 'linear-gradient(135deg, #fefce8 0%, #fff7ed 50%, #f0fdf4 100%)',
-        padding: '32px 16px',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      <div style={{ maxWidth: 680, width: '100%' }}>
-        {/* Header Branding */}
-        <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <img src="/images/desi-tokri-cropped.png" alt="Desi Tokri" style={{ height: 48, marginBottom: 16 }} />
-        </div>
+    <div style={{ minHeight: '100vh', background: '#f8fafc', padding: '24px 16px', display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
+      <div style={{ maxWidth: 560, width: '100%' }}>
+        <div style={{ background: '#ffffff', borderRadius: 16, border: '1px solid #e2e8f0', boxShadow: '0 10px 30px rgba(15,23,42,0.06)', overflow: 'hidden' }}>
+          <div style={{ height: 4, background: accent }} />
 
-        {/* Main Status Hero Card */}
-        <Card
-          style={{
-            borderRadius: 16,
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-            border: '1px solid #fde68a',
-            overflow: 'hidden',
-          }}
-        >
-          {/* Top Banner */}
-          <div
-            style={{
-              background: rejected
-                ? 'linear-gradient(90deg, #b91c1c 0%, #dc2626 100%)'
-                : 'linear-gradient(90deg, #d97706 0%, #ea580c 100%)',
-              padding: '20px 24px',
-              color: '#ffffff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              margin: '-24px -24px 24px -24px',
-            }}
-          >
-            <Space align="center" size={12}>
-              {rejected ? (
-                <CloseCircleFilled style={{ fontSize: 24, color: '#fecaca' }} />
-              ) : (
-                <ClockCircleFilled style={{ fontSize: 24, color: '#fef08a' }} />
-              )}
-              <div>
-                <Title level={4} style={{ color: '#ffffff', margin: 0 }}>
-                  {rejected ? 'Registration Not Approved' : 'Retailer Account Under Review'}
-                </Title>
-                <Text style={{ color: rejected ? '#fee2e2' : '#fef3c7', fontSize: 13 }}>
-                  {rejected ? 'Reviewed by SVV Balaji Super Admin' : 'Verification in progress by SVV Balaji Super Admin'}
-                </Text>
-              </div>
-            </Space>
-            <Tag color={rejected ? 'red' : 'gold'} style={{ fontSize: 13, padding: '4px 12px', borderRadius: 12, fontWeight: 600 }}>
-              {rejected ? 'NOT APPROVED' : 'PENDING APPROVAL'}
-            </Tag>
-          </div>
-
-          {/* Body Content */}
-          <div style={{ textAlign: 'center', marginBottom: 24 }}>
-            <Result
-              icon={
-                rejected ? (
-                  <CloseCircleOutlined style={{ color: '#dc2626', fontSize: 54 }} />
-                ) : (
-                  <ClockCircleOutlined style={{ color: '#d97706', fontSize: 54 }} />
-                )
-              }
-              title={
-                <span style={{ fontSize: 22, fontWeight: 700, color: '#1e293b' }}>
-                  Welcome, {retailerProfile?.ownerName || 'Partner'}!
-                </span>
-              }
-              subTitle={
-                <div style={{ maxWidth: 520, margin: '0 auto', color: '#475569', fontSize: 15, lineHeight: 1.6 }}>
-                  {rejected ? (
-                    <>
-                      The registration for <strong style={{ color: '#0f172a' }}>{retailerProfile.storeName || 'your store'}</strong>{' '}
-                      was not approved. Contact us if you think this is a mistake or want to correct your details.
-                    </>
-                  ) : (
-                    <>
-                      Your business profile for{' '}
-                      <strong style={{ color: '#0f172a' }}>{retailerProfile.storeName || 'your store'}</strong> has been
-                      submitted. Our Super Admin team is reviewing your GSTIN and store details.
-                    </>
-                  )}
-                </div>
-              }
-            />
-
-            {rejected ? (
-              <div style={{ maxWidth: 520, margin: '0 auto 24px', textAlign: 'left' }}>
-                <Alert type="error" showIcon message="Reason" description={retailerProfile.rejectionReason || 'No reason was given.'} />
-                {support.data ? (
-                  <Space direction="vertical" size={4} style={{ marginTop: 12, fontSize: 13, color: '#475569' }}>
-                    {support.data.isPhoneSupportActive && support.data.tollFreeNumber ? (
-                      <span>
-                        <PhoneOutlined /> {support.data.tollFreeNumber}
-                      </span>
-                    ) : null}
-                    {support.data.isEmailSupportActive && support.data.supportEmail ? (
-                      <a href={`mailto:${support.data.supportEmail}`}>
-                        <MailOutlined /> {support.data.supportEmail}
-                      </a>
-                    ) : null}
-                  </Space>
-                ) : null}
-              </div>
-            ) : (
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 8,
-                background: '#fef3c7',
-                border: '1px solid #fde68a',
-                padding: '6px 16px',
-                borderRadius: 20,
-                color: '#92400e',
-                fontSize: 13,
-                fontWeight: 500,
-                marginBottom: 24,
-              }}
-            >
-              <LoadingOutlined spin style={{ color: '#d97706' }} />
-              <span>
-                We check every 30 seconds
-                {lastChecked ? ` · last checked ${lastChecked.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}` : ''}
-              </span>
+          {/* Status */}
+          <div style={{ padding: '24px 20px 20px', textAlign: 'center' }}>
+            <div style={{ width: 52, height: 52, borderRadius: '50%', margin: '0 auto 12px', display: 'grid', placeItems: 'center', background: tint, color: accent, fontSize: 24 }}>
+              {rejected ? <CloseCircleOutlined /> : <ClockCircleOutlined />}
             </div>
-            )}
+            <span style={{ display: 'inline-block', fontSize: 11, fontWeight: 700, letterSpacing: 0.8, color: accent, background: tint, border: `1px solid ${rejected ? '#fecaca' : '#fde68a'}`, borderRadius: 999, padding: '3px 10px', marginBottom: 10 }}>
+              {rejected ? 'NOT APPROVED' : 'PENDING APPROVAL'}
+            </span>
+            <Title level={4} style={{ margin: '0 0 6px', color: '#0f172a' }}>
+              {rejected ? 'Registration not approved' : `Thanks, ${retailerProfile.ownerName || 'Partner'}`}
+            </Title>
+            <Paragraph style={{ color: '#64748b', fontSize: 14, lineHeight: 1.6, margin: '0 auto', maxWidth: 420 }}>
+              {rejected ? (
+                <>The registration for <b style={{ color: '#0f172a' }}>{retailerProfile.storeName || 'your store'}</b> was not approved. Contact us if you think this is a mistake or want to correct your details.</>
+              ) : (
+                <>We are verifying the store details for <b style={{ color: '#0f172a' }}>{retailerProfile.storeName || 'your store'}</b>. You can start ordering as soon as it is approved.</>
+              )}
+            </Paragraph>
           </div>
 
-          {/* Submitted Profile Audit Box */}
-          <Card
-            type="inner"
-            title={
-              <Space>
-                <ShopOutlined style={{ color: '#ea580c' }} />
-                <span>Submitted Registration Details</span>
-              </Space>
-            }
-            style={{ borderRadius: 12, background: '#fff9eb', borderColor: '#fef3c7', marginBottom: 24 }}
-          >
-            <Descriptions column={{ xs: 1, sm: 2 }} size="small" bordered>
-              <Descriptions.Item label="Store / Business">
-                <Text strong>{retailerProfile?.storeName || '—'}</Text>
-              </Descriptions.Item>
-              <Descriptions.Item label="Proprietor Name">
-                <Text strong>{retailerProfile?.ownerName || '—'}</Text>
-              </Descriptions.Item>
-              <Descriptions.Item label="Registered Phone">
-                <Text code>{retailerProfile?.phone || '—'}</Text>
-              </Descriptions.Item>
-              <Descriptions.Item label="Business Email">
-                {retailerProfile?.email ? (
-                  <Space size={4}>
-                    <MailOutlined style={{ color: '#16a34a' }} />
-                    <Text copyable={{ text: retailerProfile.email }}>
-                      {retailerProfile.email}
-                    </Text>
-                  </Space>
-                ) : (
-                  <Text type="secondary">Not provided</Text>
-                )}
-              </Descriptions.Item>
-              <Descriptions.Item label="GSTIN Number">
-                <Text code style={{ color: '#d97706', fontWeight: 700 }}>
-                  {retailerProfile?.gstin || '—'}
-                </Text>
-              </Descriptions.Item>
-              <Descriptions.Item label="Location">
-                {retailerProfile?.address || '—'} ({retailerProfile?.pincode})
-              </Descriptions.Item>
-            </Descriptions>
-          </Card>
+          {/* Progress */}
+          <div style={{ display: 'flex', alignItems: 'flex-start', padding: '0 20px 18px' }}>
+            {steps.map((st, i) => {
+              const color = stepColor[st.state];
+              return (
+                <div key={st.label} style={{ flex: 1, textAlign: 'center', position: 'relative' }}>
+                  {i > 0 ? <div style={{ position: 'absolute', top: 11, right: '50%', width: '100%', height: 2, background: st.state === 'todo' ? '#e2e8f0' : color }} /> : null}
+                  <div style={{ position: 'relative', width: 24, height: 24, margin: '0 auto 6px', borderRadius: '50%', display: 'grid', placeItems: 'center', fontSize: 12, color: '#fff', background: st.state === 'todo' ? '#fff' : color, border: `2px solid ${color}` }}>
+                    {st.state === 'done' ? <CheckCircleOutlined /> : st.state === 'current' ? <LoadingOutlined spin /> : st.state === 'failed' ? <CloseCircleOutlined /> : null}
+                  </div>
+                  <div style={{ fontSize: 12, fontWeight: st.state === 'todo' ? 500 : 600, color: st.state === 'todo' ? '#94a3b8' : '#334155' }}>{st.label}</div>
+                </div>
+              );
+            })}
+          </div>
 
-          {/* Bottom Action Buttons */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-            <Button type="default" icon={<DisconnectOutlined />} onClick={signOut}>
-              Sign Out
-            </Button>
+          {rejected ? (
+            <div style={{ padding: '0 20px 16px' }}>
+              <Alert type="error" showIcon message="Reason" description={retailerProfile.rejectionReason || 'No reason was given.'} />
+              {support.data ? (
+                <Space direction="vertical" size={4} style={{ marginTop: 10, fontSize: 13 }}>
+                  {support.data.isPhoneSupportActive && support.data.tollFreeNumber ? <span><PhoneOutlined /> {support.data.tollFreeNumber}</span> : null}
+                  {support.data.isEmailSupportActive && support.data.supportEmail ? <a href={`mailto:${support.data.supportEmail}`}><MailOutlined /> {support.data.supportEmail}</a> : null}
+                </Space>
+              ) : null}
+            </div>
+          ) : (
+            <div style={{ margin: '0 20px 16px', textAlign: 'center', fontSize: 12, color: '#64748b' }}>
+              This page updates by itself every 30 seconds
+              {lastChecked ? ` · last checked ${lastChecked.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}` : ''}
+            </div>
+          )}
+
+          {/* Submitted details */}
+          <div style={{ borderTop: '1px solid #f1f5f9', padding: '14px 20px 4px' }}>
+            <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 0.6, color: '#94a3b8', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <ShopOutlined /> SUBMITTED DETAILS
+            </div>
+            {details.map(([k, v], i) => (
+              <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '10px 0', borderBottom: i < details.length - 1 ? '1px solid #f1f5f9' : 'none', fontSize: 14 }}>
+                <span style={{ color: '#64748b', flexShrink: 0 }}>{k}</span>
+                <span style={{ color: '#0f172a', fontWeight: 600, textAlign: 'right', wordBreak: 'break-word', minWidth: 0 }}>{v}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Actions */}
+          <div style={{ display: 'flex', gap: 10, padding: '14px 20px 20px', flexWrap: 'wrap' }}>
             {rejected ? null : (
-            <Button
-              type="primary"
-              icon={checking ? <LoadingOutlined spin /> : <ReloadOutlined />}
-              loading={checking}
-              onClick={handleManualCheck}
-              style={{ background: '#d97706', borderColor: '#d97706' }}
-            >
-              Check Approval Status
-            </Button>
+              <Button type="primary" size="large" icon={<ReloadOutlined />} loading={checking} onClick={handleManualCheck}
+                style={{ flex: '1 1 200px', background: '#d97706', borderColor: '#d97706', borderRadius: 10, fontWeight: 600 }}>
+                Check status
+              </Button>
             )}
+            <Button size="large" icon={<DisconnectOutlined />} onClick={signOut} style={{ flex: '1 1 140px', borderRadius: 10 }}>
+              Sign out
+            </Button>
           </div>
-        </Card>
+        </div>
       </div>
     </div>
   );

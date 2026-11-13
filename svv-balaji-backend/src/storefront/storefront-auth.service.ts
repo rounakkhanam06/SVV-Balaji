@@ -781,6 +781,10 @@ export class StorefrontAuthService {
       // On every account response (login, verify, profile/photo update), not just /me — the app
       // rebuilds the profile from whichever it got last, so a missing field blanked "Member since".
       memberSince: account.createdAt,
+      addressLine: account.addressLine,
+      city: account.city,
+      state: account.state,
+      pincode: account.pincode,
     };
   }
 
@@ -816,8 +820,10 @@ export class StorefrontAuthService {
     if (account.status !== CustomerAccountStatus.PENDING_APPROVAL) {
       throw new BadRequestException(`Only a pending registration can be approved - this one is ${account.status}`);
     }
-    if ((!account.gstin && !account.udyamRegistration) || !account.businessName || !account.addressLine) {
-      throw new BadRequestException('Registration is missing required business details (GSTIN or Udyam Registration)');
+    // GSTIN and Udyam are both optional (client decision, 12 Nov 2026) - a store without a GSTIN is
+    // invoiced without a buyer GSTIN, like B2C. Only the store name and address are needed to approve.
+    if (!account.businessName || !account.addressLine) {
+      throw new BadRequestException('Registration is missing the store name or address');
     }
 
     if (account.gstin) {

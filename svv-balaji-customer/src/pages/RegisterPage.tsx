@@ -188,7 +188,7 @@ export function RegisterPage() {
         display: 'flex',
         flexDirection: 'column',
         position: 'relative',
-        padding: '32px 24px',
+        padding: '20px 24px',
         maxWidth: '800px',
         margin: '0 auto',
         overflowY: 'auto',
@@ -219,8 +219,8 @@ export function RegisterPage() {
 
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', width: '100%', maxWidth: '600px', margin: '0 auto' }}>
 
-          <div style={{ marginBottom: '32px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-            <img src="/images/desi-tokri-cropped.png" alt="Desi Tokri" style={{ height: '48px', marginBottom: '24px' }} />
+          <div style={{ marginBottom: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+            <img src="/images/desi-tokri-cropped.png" alt="Desi Tokri" style={{ height: '40px', marginBottom: '12px' }} />
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 8 }}>
                <Typography.Title level={2} style={{ margin: 0, fontWeight: 800, color: '#0f172a' }}>
                  Become a Partner
@@ -236,9 +236,9 @@ export function RegisterPage() {
 
           <div style={{
             background: '#ffffff',
-            borderRadius: 24,
+            borderRadius: 20,
             border: '1px solid #e2e8f0',
-            padding: '32px',
+            padding: '20px 24px',
             boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
           }}>
             {isCompleted ? (
@@ -263,7 +263,7 @@ export function RegisterPage() {
               />
             ) : (
               <div>
-                <div style={{ marginBottom: 32 }}>
+                <div style={{ marginBottom: 20 }}>
                   <Steps
                     current={currentStep}
                     size="small"
@@ -275,16 +275,16 @@ export function RegisterPage() {
                   />
                 </div>
 
-                <div style={{ minHeight: '300px' }}>
+                <div>
                   {/* Step 1: Store Details */}
                   {currentStep === 0 && (
                     <div className="fade-in">
-                      <Typography.Title level={4} style={{ marginBottom: 24, color: '#0f172a' }}>
+                      <Typography.Title level={5} style={{ marginBottom: 14, color: '#0f172a' }}>
                         Store & Proprietor Information
                       </Typography.Title>
-                      <Row gutter={[20, 20]}>
+                      <Row gutter={[16, 12]}>
                         <Col xs={24} md={12}>
-                          <Typography.Text strong style={{ display: 'block', marginBottom: 8, color: '#475569' }}>
+                          <Typography.Text strong style={{ display: 'block', marginBottom: 4, color: '#475569' }}>
                             Store / Business Name *
                           </Typography.Text>
                           <Input
@@ -292,11 +292,11 @@ export function RegisterPage() {
                             placeholder="e.g. Sri Balaji Provision Store"
                             value={storeName}
                             onChange={(e) => setStoreName(e.target.value)}
-                            style={{ borderRadius: 12, height: 48 }}
+                            style={{ borderRadius: 10, height: 40 }}
                           />
                         </Col>
                         <Col xs={24} md={12}>
-                          <Typography.Text strong style={{ display: 'block', marginBottom: 8, color: '#475569' }}>
+                          <Typography.Text strong style={{ display: 'block', marginBottom: 4, color: '#475569' }}>
                             Proprietor Name *
                           </Typography.Text>
                           <Input
@@ -304,11 +304,11 @@ export function RegisterPage() {
                             placeholder="e.g. Ramesh Kumar"
                             value={ownerName}
                             onChange={(e) => setOwnerName(e.target.value)}
-                            style={{ borderRadius: 12, height: 48 }}
+                            style={{ borderRadius: 10, height: 40 }}
                           />
                         </Col>
                         <Col xs={24} md={otpSent ? 12 : 16}>
-                          <Typography.Text strong style={{ display: 'block', marginBottom: 8, color: '#475569' }}>
+                          <Typography.Text strong style={{ display: 'block', marginBottom: 4, color: '#475569' }}>
                             Mobile Number *
                           </Typography.Text>
                           <Input
@@ -320,25 +320,25 @@ export function RegisterPage() {
                             maxLength={10}
                             inputMode="numeric"
                             disabled={otpSent}
-                            style={{ borderRadius: 12, height: 48 }}
+                            style={{ borderRadius: 10, height: 40 }}
                           />
                         </Col>
                         <Col xs={24} md={otpSent ? 12 : 8}>
-                          <Typography.Text strong style={{ display: 'block', marginBottom: 8, color: 'transparent' }}>
+                          <Typography.Text strong style={{ display: 'block', marginBottom: 4, color: 'transparent' }}>
                             .
                           </Typography.Text>
                           <Button
                             size="large"
                             loading={sendingOtp}
                             onClick={() => void handleSendOtp()}
-                            style={{ width: '100%', borderRadius: 12, height: 48, fontWeight: 600 }}
+                            style={{ width: '100%', borderRadius: 10, height: 40, fontWeight: 600 }}
                           >
                             {otpSent ? 'Resend OTP' : 'Send OTP'}
                           </Button>
                         </Col>
                         {otpSent && (
                           <Col xs={24}>
-                            <Typography.Text strong style={{ display: 'block', marginBottom: 8, color: '#475569' }}>
+                            <Typography.Text strong style={{ display: 'block', marginBottom: 4, color: '#475569' }}>
                               Enter OTP *
                             </Typography.Text>
                             <Input
@@ -348,7 +348,7 @@ export function RegisterPage() {
                               onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, OTP_LENGTH))}
                               maxLength={OTP_LENGTH}
                               inputMode="numeric"
-                              style={{ borderRadius: 12, height: 48, letterSpacing: 6 }}
+                              style={{ borderRadius: 10, height: 40, letterSpacing: 6 }}
                             />
                             {devCode && (
                               <Typography.Text type="secondary" style={{ fontSize: 12 }}>
@@ -358,7 +358,7 @@ export function RegisterPage() {
                           </Col>
                         )}
                         <Col xs={24}>
-                          <Typography.Text strong style={{ display: 'block', marginBottom: 8, color: '#475569' }}>
+                          <Typography.Text strong style={{ display: 'block', marginBottom: 4, color: '#475569' }}>
                             Business Email
                           </Typography.Text>
                           <Input
@@ -366,7 +366,7 @@ export function RegisterPage() {
                             placeholder="store@example.com"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            style={{ borderRadius: 12, height: 48 }}
+                            style={{ borderRadius: 10, height: 40 }}
                           />
                         </Col>
                       </Row>
@@ -376,12 +376,12 @@ export function RegisterPage() {
                   {/* Step 2: GST & Compliance */}
                   {currentStep === 1 && (
                     <div className="fade-in">
-                      <Typography.Title level={4} style={{ marginBottom: 24, color: '#0f172a' }}>
+                      <Typography.Title level={5} style={{ marginBottom: 14, color: '#0f172a' }}>
                         Business & Compliance
                       </Typography.Title>
-                      <Row gutter={[20, 20]}>
+                      <Row gutter={[16, 12]}>
                         <Col xs={24} md={12}>
-                          <Typography.Text strong style={{ display: 'block', marginBottom: 8, color: '#475569' }}>
+                          <Typography.Text strong style={{ display: 'block', marginBottom: 4, color: '#475569' }}>
                             GSTIN Number (Optional)
                           </Typography.Text>
                           <Input
@@ -390,11 +390,11 @@ export function RegisterPage() {
                             value={gstin}
                             onChange={(e) => setGstin(e.target.value.toUpperCase().slice(0, 15))}
                             maxLength={15}
-                            style={{ borderRadius: 12, height: 48 }}
+                            style={{ borderRadius: 10, height: 40 }}
                           />
                         </Col>
                         <Col xs={24} md={12}>
-                          <Typography.Text strong style={{ display: 'block', marginBottom: 8, color: '#475569' }}>
+                          <Typography.Text strong style={{ display: 'block', marginBottom: 4, color: '#475569' }}>
                             Udyam Registration (Optional)
                           </Typography.Text>
                           <Input
@@ -403,11 +403,11 @@ export function RegisterPage() {
                             value={udyam}
                             onChange={(e) => setUdyam(e.target.value.toUpperCase().slice(0, 19))}
                             maxLength={19}
-                            style={{ borderRadius: 12, height: 48 }}
+                            style={{ borderRadius: 10, height: 40 }}
                           />
                         </Col>
                         <Col xs={24} md={12}>
-                          <Typography.Text strong style={{ display: 'block', marginBottom: 8, color: '#475569' }}>
+                          <Typography.Text strong style={{ display: 'block', marginBottom: 4, color: '#475569' }}>
                             Business PAN *
                           </Typography.Text>
                           <Input
@@ -416,11 +416,11 @@ export function RegisterPage() {
                             value={panNumber}
                             onChange={(e) => setPanNumber(e.target.value.toUpperCase().slice(0, 10))}
                             maxLength={10}
-                            style={{ borderRadius: 12, height: 48 }}
+                            style={{ borderRadius: 10, height: 40 }}
                           />
                         </Col>
                         <Col xs={24} md={12}>
-                          <Typography.Text strong style={{ display: 'block', marginBottom: 8, color: '#475569' }}>
+                          <Typography.Text strong style={{ display: 'block', marginBottom: 4, color: '#475569' }}>
                             Aadhaar Number *
                           </Typography.Text>
                           <Input
@@ -429,7 +429,7 @@ export function RegisterPage() {
                             value={aadhaar}
                             onChange={(e) => setAadhaar(e.target.value.replace(/\D/g, '').slice(0, 12))}
                             maxLength={12}
-                            style={{ borderRadius: 12, height: 48 }}
+                            style={{ borderRadius: 10, height: 40 }}
                           />
                         </Col>
                         <Col xs={24}>
@@ -438,7 +438,7 @@ export function RegisterPage() {
                            </Typography.Text>
                         </Col>
                         <Col xs={24} md={12}>
-                          <Typography.Text strong style={{ display: 'block', marginBottom: 8, color: '#475569' }}>
+                          <Typography.Text strong style={{ display: 'block', marginBottom: 4, color: '#475569' }}>
                             Referral Code (optional)
                           </Typography.Text>
                           <Input
@@ -447,7 +447,7 @@ export function RegisterPage() {
                             value={referralCode}
                             onChange={(e) => setReferralCode(e.target.value.toUpperCase().slice(0, 20))}
                             maxLength={20}
-                            style={{ borderRadius: 12, height: 48 }}
+                            style={{ borderRadius: 10, height: 40 }}
                           />
                         </Col>
                       </Row>
@@ -463,12 +463,12 @@ export function RegisterPage() {
                   {/* Step 3: Location */}
                   {currentStep === 2 && (
                     <div className="fade-in">
-                      <Typography.Title level={4} style={{ marginBottom: 24, color: '#0f172a' }}>
+                      <Typography.Title level={5} style={{ marginBottom: 14, color: '#0f172a' }}>
                         Shop Location Details
                       </Typography.Title>
-                      <Row gutter={[20, 20]}>
+                      <Row gutter={[16, 12]}>
                         <Col xs={24}>
-                          <Typography.Text strong style={{ display: 'block', marginBottom: 8, color: '#475569' }}>
+                          <Typography.Text strong style={{ display: 'block', marginBottom: 4, color: '#475569' }}>
                             Complete Street Address *
                           </Typography.Text>
                           <Input.TextArea
@@ -480,7 +480,7 @@ export function RegisterPage() {
                           />
                         </Col>
                         <Col xs={24} md={8}>
-                          <Typography.Text strong style={{ display: 'block', marginBottom: 8, color: '#475569' }}>
+                          <Typography.Text strong style={{ display: 'block', marginBottom: 4, color: '#475569' }}>
                             City / Town *
                           </Typography.Text>
                           <Input
@@ -488,11 +488,11 @@ export function RegisterPage() {
                             placeholder="e.g. Warangal"
                             value={city}
                             onChange={(e) => setCity(e.target.value)}
-                            style={{ borderRadius: 12, height: 48 }}
+                            style={{ borderRadius: 10, height: 40 }}
                           />
                         </Col>
                         <Col xs={24} md={8}>
-                          <Typography.Text strong style={{ display: 'block', marginBottom: 8, color: '#475569' }}>
+                          <Typography.Text strong style={{ display: 'block', marginBottom: 4, color: '#475569' }}>
                             District
                           </Typography.Text>
                           <Input
@@ -500,11 +500,11 @@ export function RegisterPage() {
                             placeholder="e.g. Warangal Urban"
                             value={district}
                             onChange={(e) => setDistrict(e.target.value)}
-                            style={{ borderRadius: 12, height: 48 }}
+                            style={{ borderRadius: 10, height: 40 }}
                           />
                         </Col>
                         <Col xs={24} md={8}>
-                          <Typography.Text strong style={{ display: 'block', marginBottom: 8, color: '#475569' }}>
+                          <Typography.Text strong style={{ display: 'block', marginBottom: 4, color: '#475569' }}>
                             Pincode *
                           </Typography.Text>
                           <Input
@@ -514,11 +514,11 @@ export function RegisterPage() {
                             onChange={(e) => setPincode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                             maxLength={6}
                             inputMode="numeric"
-                            style={{ borderRadius: 12, height: 48 }}
+                            style={{ borderRadius: 10, height: 40 }}
                           />
                         </Col>
                         <Col xs={24} md={12}>
-                          <Typography.Text strong style={{ display: 'block', marginBottom: 8, color: '#475569' }}>
+                          <Typography.Text strong style={{ display: 'block', marginBottom: 4, color: '#475569' }}>
                             State *
                           </Typography.Text>
                           <Input
@@ -526,7 +526,7 @@ export function RegisterPage() {
                             placeholder="e.g. Telangana"
                             value={state}
                             onChange={(e) => setState(e.target.value)}
-                            style={{ borderRadius: 12, height: 48 }}
+                            style={{ borderRadius: 10, height: 40 }}
                           />
                         </Col>
                       </Row>
@@ -535,9 +535,9 @@ export function RegisterPage() {
                 </div>
 
                 {/* Navigation Buttons */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 40, paddingTop: 24, borderTop: '1px solid #f1f5f9' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 20, paddingTop: 16, borderTop: '1px solid #f1f5f9' }}>
                   {currentStep > 0 ? (
-                    <Button size="large" onClick={handlePrev} style={{ borderRadius: 12, height: 48, padding: '0 24px', fontWeight: 600 }}>
+                    <Button size="large" onClick={handlePrev} style={{ borderRadius: 10, height: 40, padding: '0 24px', fontWeight: 600 }}>
                       Back
                     </Button>
                   ) : (
@@ -549,7 +549,7 @@ export function RegisterPage() {
                       type="primary"
                       size="large"
                       onClick={handleNext}
-                      style={{ background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)', border: 'none', borderRadius: 12, fontWeight: 600, height: 48, padding: '0 32px' }}
+                      style={{ background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)', border: 'none', borderRadius: 10, fontWeight: 600, height: 40, padding: '0 28px' }}
                     >
                       Next Step &rarr;
                     </Button>
@@ -559,7 +559,7 @@ export function RegisterPage() {
                       size="large"
                       loading={submitting}
                       onClick={() => void handleSubmit()}
-                      style={{ background: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)', border: 'none', borderRadius: 12, fontWeight: 600, height: 48, padding: '0 32px' }}
+                      style={{ background: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)', border: 'none', borderRadius: 10, fontWeight: 600, height: 40, padding: '0 28px' }}
                     >
                       Submit for Review
                     </Button>

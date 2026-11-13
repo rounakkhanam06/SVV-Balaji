@@ -101,6 +101,19 @@ export interface TaskSummary {
   items: ItemPreview[];
 }
 
+/** One line of goods, with what the rider checks the pack against at pickup. */
+export interface TaskItem {
+  name: string;
+  quantity: number;
+  image: string | null;
+  images?: string[];
+  sku?: string | null;
+  brand?: string | null;
+  /** Pack size, e.g. "500 g" / "48 fl oz". */
+  pack?: string | null;
+  description?: string | null;
+}
+
 export interface TaskDetail {
   id: string;
   taskNumber: string;
@@ -116,7 +129,7 @@ export interface TaskDetail {
   distanceKm: number | null;
   /** Digits in the customer's delivery code (the code itself is never sent to riders). */
   otpLength: number | null;
-  items: Array<{ name: string; quantity: number; image: string | null }>;
+  items: TaskItem[];
   payment: { mode: string | null; codAmount: number; collected: { amount: number; method: string; at: string } | null };
   failure: { code: string; note: string | null; photoUrl: string | null } | null;
   timeline: Array<{ type: string; note: string | null; createdAt: string }>;

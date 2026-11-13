@@ -5,6 +5,7 @@ import { distanceKm } from '../delivery/zones/zone.logic';
 import { MapsService } from '../maps/maps.service';
 import { PrismaService } from '../prisma/prisma.service';
 import type { StoredQuote } from './checkout.service';
+import { STATUS_LABEL as RETURN_STATUS_LABEL, typeLabel as returnTypeLabel } from '../returns/returns.logic';
 
 const num = (d: unknown) => (d === null || d === undefined ? null : Number(d));
 
@@ -76,6 +77,22 @@ export class StorefrontOrdersService {
     ]);
     const reviewed = new Set(reviews.map((r) => r.productId));
 
+    // The order stays DELIVERED once a return/exchange is raised - that lives on its own record.
+    // Surface the latest live one so the list card does not just say "Delivered".
+    const returns = rows.length
+      ? await this.prisma.returnRequest.findMany({
+          where: { orderId: { in: rows.map((o) => o.id) }, status: { not: 'CANCELLED' } },
+          orderBy: { createdAt: 'desc' },
+          select: { orderId: true, requestNumber: true, type: true, status: true },
+        })
+      : [];
+    const latestReturn = new Map<string, (typeof returns)[number]>();
+    const returnCount = new Map<string, number>();
+    for (const r of returns) {
+      if (!latestReturn.has(r.orderId)) latestReturn.set(r.orderId, r);
+      returnCount.set(r.orderId, (returnCount.get(r.orderId) ?? 0) + 1);
+    }
+
     return rows.map((o) => ({
       orderNumber: o.orderNumber,
       status: o.status,
@@ -98,6 +115,12 @@ export class StorefrontOrdersService {
         available: i.product?.isActive ?? false,
       })),
       reviewPending: o.status === 'DELIVERED' && o.items.some((i) => !reviewed.has(i.productId)),
+      latestReturn: (() => {
+        const r = latestReturn.get(o.id);
+        return r
+          ? { requestNumber: r.requestNumber, type: r.type, typeLabel: returnTypeLabel(r.type), status: r.status, statusLabel: RETURN_STATUS_LABEL[r.status], count: returnCount.get(o.id) ?? 1 }
+          : null;
+      })(),
     }));
   }
 
@@ -209,6 +232,29 @@ export class StorefrontOrdersService {
       },
     });
     if (!o) throw new NotFoundException('Order not found');
+    // The rider's face photo, so the shopper knows who to expect at the door. Only while out for delivery.
+    const riderPhotoUrl =
+      o.status === 'DISPATCHED' && o.riderName
+        ? (
+            await this.prisma.deliveryTask.findFirst({
+              where: { orderId: o.id, kind: 'ORDER_DELIVERY', riderId: { not: null }, status: { notIn: ['CANCELLED', 'FAILED', 'RETURNED_TO_STORE'] } },
+              orderBy: { createdAt: 'desc' },
+              select: { rider: { select: { photoUrl: true } } },
+            })
+          )?.rider?.photoUrl ?? null
+        : null;
+    // Order stays DELIVERED once a return/exchange is raised; the header shows the latest live request.
+    const liveReturns = await this.prisma.returnRequest.findMany({
+      where: { orderId: o.id, status: { not: 'CANCELLED' } },
+      orderBy: { createdAt: 'desc' },
+      select: { requestNumber: true, type: true, status: true },
+    });
+    const latestReturn = liveReturns[0]
+      ? {
+          requestNumber: liveReturns[0].requestNumber, type: liveReturns[0].type, typeLabel: returnTypeLabel(liveReturns[0].type),
+          status: liveReturns[0].status, statusLabel: RETURN_STATUS_LABEL[liveReturns[0].status], count: liveReturns.length,
+        }
+      : null;
     const quote = o.pricingSnapshot as unknown as StoredQuote | null;
     const reviews = await this.prisma.productReview.findMany({
       where: { customerId, productId: { in: o.items.map((i) => i.productId) } },
@@ -266,7 +312,8 @@ export class StorefrontOrdersService {
       },
       payment: { mode: o.paymentMode, status: o.paymentStatus, reference: o.paymentTransactions[0]?.gatewayPaymentId ?? null },
       deliveryOtp: showOtp ? o.deliveryOtp : null,
-      rider: o.status === 'DISPATCHED' || o.status === 'DELIVERED' ? { name: o.riderName, phone: o.riderPhone } : null,
+      latestReturn,
+      rider: o.status === 'DISPATCHED' || o.status === 'DELIVERED' ? { name: o.riderName, phone: o.riderPhone, photoUrl: riderPhotoUrl } : null,
       shipment: o.shipment
         ? { awb: o.shipment.awb, courier: o.shipment.courier, trackingUrl: o.shipment.trackingUrl, status: o.shipment.status }
         : null,

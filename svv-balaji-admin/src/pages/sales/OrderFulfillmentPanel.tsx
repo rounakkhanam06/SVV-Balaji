@@ -1,10 +1,11 @@
-import { Alert, App as AntApp, Button, Card, Checkbox, Descriptions, Form, Input, Modal, Select, Space, Table, Tag, Typography } from 'antd';
+import { Alert, App as AntApp, Avatar, Button, Card, Checkbox, Descriptions, Form, Input, Modal, Select, Space, Table, Tag, Typography } from 'antd';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiErrorMessage } from '@shared/api/client';
 import { checkoutAdminApi, type PickPlanRow, type ScanResult } from '@shared/api/checkout';
 import { useFulfillmentAction, usePickPlan } from '@shared/hooks/useCheckoutAdmin';
 import { useRiders } from '@shared/hooks/useDelivery';
+import { RiderPhoto } from '../delivery/riders/riderParts';
 import type { OrderDeliveryTask } from '@shared/api/types';
 import { Can } from '../../components/Can';
 import { liveTask } from './fulfilmentGuide';
@@ -128,9 +129,18 @@ function DeliveryTaskCard({ task }: { task: OrderDeliveryTask | null }) {
       extra={<Link to="/delivery-board">Delivery board</Link>}
     >
       {task.rider ? (
-        <Text>
-          Rider: <Text strong>{task.rider.fullName}</Text> ({task.rider.phone})
-        </Text>
+        <Space size={12} align="center">
+          {task.rider.photoUrl ? (
+            <RiderPhoto url={task.rider.photoUrl} width={48} />
+          ) : (
+            <Avatar size={48} shape="square" style={{ background: '#ff8a00', borderRadius: 8, fontSize: 20 }}>
+              {task.rider.fullName.charAt(0)}
+            </Avatar>
+          )}
+          <Text>
+            Rider: <Text strong>{task.rider.fullName}</Text> ({task.rider.phone})
+          </Text>
+        </Space>
       ) : task.offers.length ? (
         <Space direction="vertical" size={6} style={{ width: '100%' }}>
           <Text type="secondary">Round {task.offerRound} - the first rider to accept gets it:</Text>

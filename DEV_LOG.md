@@ -4438,4 +4438,18 @@ Tests: sales/reports/wallet suites 57/57 (2 new cancel cases). Not run: full sui
 - Admin pending-rider card + Approve dialog show `rider.photoUrl` (face photo) instead of licence.
 
 ## 2026-11-12 — Raunak (agent) — Customer "Member since" blank
-- API: storefront account responses (login, verify, profile/photo update) now include `memberSince` (= account.createdAt), not only `GET /me`. Additive field.
+- API: storefront account responses (login, verify, profile/photo update) now include `memberSince` (= account.createdAt) and `addressLine/city/state/pincode`, not only `GET /me`. Additive fields.
+
+## 2026-11-12 — Raunak (agent) — B2B: GSTIN & Udyam both optional
+- Decision (Raunak, 12 Nov 2026): retailers may register AND be approved with neither GSTIN nor Udyam. Approval now only needs store name + address (`storefront-auth.service.ts` approve). Such stores are invoiced without a buyer GSTIN (B2C-style, no ITC).
+
+### 2026-11-13 — Raunak (agent)
+- Customer web: navigating to Cart / product detail from low on a long page landed on the footer (scroll offset kept across routes). `layout/StoreShell.tsx` now scrolls to top on every pathname change except back/forward (POP). The loading skeleton and min-height were already in place. Frontend only, no API change.
+- Admin order fulfilment card now shows the assigned rider's photo (initial avatar if none). API: `GET` order detail `deliveryTask.rider` now also returns `photoUrl` (additive; `shared/api/types.ts` updated).
+- Rider app task detail: items now show product photos (seed `/images/*.jpg` copied into `svv-balaji-rider/public/images`; the rider app resolves `/images/` paths against its own origin), and tapping an item opens a verify sheet (big photo + gallery, pack size, brand, SKU, short description, qty). API: rider `GET /rider/tasks/:id` `items[]` gains additive `images`, `sku`, `brand`, `pack`, `description` (variant name/SKU/images preferred when the line has a variant).
+- Rider app: every `Modal`/sheet now locks page scroll while open (ref-counted), overlay z-index 50→1200 so the Leaflet map no longer draws over sheets; toast 100→1300.
+- Rider: after accepting, a rider can no longer hand a task back. "I can't take this delivery" button + sheet removed from task screen; `POST /rider/tasks/:id/release` now always 400s (route kept for older app builds). Reassign via admin delivery board. "Can't deliver this order" (failed-delivery flow after pickup) unchanged.
+- Customer order tracking: "Your delivery partner" card shows the rider photo (initial avatar if none). API: storefront order detail `rider` gains additive `photoUrl` (only while DISPATCHED; looked up from the active ORDER_DELIVERY task in a separate query, not a nested include).
+- Customer My Orders: a delivered order with a live return/exchange now shows "Return · <status>" / "Exchange · <status>" (+ request number) instead of plain "Delivered". API: storefront `GET` orders list rows gain additive `latestReturn` {requestNumber,type,typeLabel,status,statusLabel,count} (cancelled requests skipped; separate query, not nested include).
+- Customer order detail: header banner shows "Return/Exchange · <status>" (purple in progress, green done, red failed) instead of "Delivered" when a live request exists; page keeps polling (20s) after delivery while the request is not final and refreshes the returns card when its status changes. API: storefront order detail gains additive `latestReturn` (same shape as list).
+- Customer: new shared `ReturnStatusBlock` (pages/ReturnsPage.tsx) = item+status, pickup/delivery codes, rider, courier tracking, Progress timeline. Used on the return detail page and on Order details (under the banner, for the latest live return/exchange, with a link to the full request). On the return page, Progress now sits above the Refund/Exchange card.

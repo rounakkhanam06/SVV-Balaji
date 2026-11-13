@@ -244,18 +244,12 @@ export class TaskFlowService {
     return this.step(taskId, { status: 'RETURNED_TO_STORE', returnedAt: new Date() }, 'RETURNED_TO_STORE', riderId, loc, verified ? 'Returned (location verified)' : 'Returned');
   }
 
-  /** Before pickup, a rider can hand a task back (it is dispatched to someone else). No pay. */
-  async release(riderId: string, taskId: string, dto: ReleaseDto) {
-    const { task } = await this.mine(riderId, taskId, ['ASSIGNED', 'AT_PICKUP'], true);
-    const updated = await this.prisma.deliveryTask.update({
-      where: { id: taskId }, data: { status: 'READY_FOR_PICKUP', riderId: null, assignedAt: null, arrivedPickupAt: null, arrivedPickupVerified: false },
-    });
-    // Recorded as a declined offer so the dispatcher does not offer it straight back.
-    await this.prisma.deliveryOffer.create({ data: { taskId, riderId, round: task.offerRound, status: 'REJECTED', expiresAt: new Date(), respondedAt: new Date(), rejectReason: dto.reason.slice(0, 200) } });
-    if (task.orderId) await this.prisma.order.update({ where: { id: task.orderId }, data: { riderName: null, riderPhone: null } });
-    await this.dispatch.log(taskId, 'RELEASED', { riderId, note: dto.reason });
-    this.dispatch.changed(updated);
-    await this.dispatch.dispatch(taskId);
-    return { released: true };
+  /**
+   * Accepting is a commitment: a rider can no longer hand a task back. Problems before
+   * pickup go to the store / admin, who can reassign from the delivery board; problems at
+   * the door use the failed-delivery flow. Route kept so older app builds get a clear answer.
+   */
+  async release(_riderId: string, _taskId: string, _dto: ReleaseDto): Promise<never> {
+    throw new BadRequestException('You have accepted this delivery and cannot hand it back. Call the store if there is a problem.');
   }
 }

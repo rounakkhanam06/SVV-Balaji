@@ -63,20 +63,34 @@ const ITEM_PREVIEW_SELECT = { quantity: true, product: { select: { name: true, i
 const itemPreview = (items?: Array<{ quantity: number; product: { name: string; images: string[] } | null }>) =>
   (items ?? []).slice(0, 3).map((i) => ({ name: i.product?.name ?? 'Item', quantity: i.quantity, image: i.product?.images?.[0] ?? null }));
 
+/** What the rider checks a pack against at pickup: photos, pack size, SKU, brand. */
+const VERIFY_PRODUCT = { name: true, images: true, sku: true, brand: true, packLabel: true, unit: true, description: true } as const;
+type VerifyProduct = { name: string; images: string[]; sku: string; brand: string | null; packLabel: string | null; unit: string; description: string | null };
+type VerifyVariant = { name: string; sku: string; images: string[] } | null;
+const verifyItem = (name: string, quantity: number, p: VerifyProduct | null, v: VerifyVariant = null) => {
+  const images = [...(v?.images ?? []), ...(p?.images ?? [])];
+  return {
+    name, quantity,
+    image: images[0] ?? null,
+    images,
+    sku: v?.sku ?? p?.sku ?? null,
+    brand: p?.brand ?? null,
+    pack: v?.name ?? p?.packLabel ?? p?.unit ?? null,
+    description: p?.description ? (p.description.length > 160 ? `${p.description.slice(0, 157)}…` : p.description) : null,
+  };
+};
 /** A return pickup / exchange replacement trip: what the rider carries, from the request. */
 const RETURN_SELECT = {
   requestNumber: true, type: true, quantity: true, reasonLabel: true,
   order: { select: { orderNumber: true } },
-  orderItem: { select: { nameSnapshot: true, product: { select: { name: true, images: true } } } },
-  replacementProduct: { select: { name: true, images: true } },
+  orderItem: { select: { nameSnapshot: true, product: { select: VERIFY_PRODUCT }, variant: { select: { name: true, sku: true, images: true } } } },
+  replacementProduct: { select: VERIFY_PRODUCT },
 } satisfies Prisma.ReturnRequestSelect;
 type ReturnBrief = Prisma.ReturnRequestGetPayload<{ select: typeof RETURN_SELECT }>;
 const returnItems = (kind: string, r: ReturnBrief | null) => {
   if (!r) return [];
-  const product = kind === 'REPLACEMENT_DELIVERY' && r.replacementProduct
-    ? { name: r.replacementProduct.name, images: r.replacementProduct.images }
-    : { name: r.orderItem.nameSnapshot ?? r.orderItem.product.name, images: r.orderItem.product.images };
-  return [{ name: product.name, quantity: r.quantity, image: product.images?.[0] ?? null }];
+  if (kind === 'REPLACEMENT_DELIVERY' && r.replacementProduct) return [verifyItem(r.replacementProduct.name, r.quantity, r.replacementProduct)];
+  return [verifyItem(r.orderItem.nameSnapshot ?? r.orderItem.product.name, r.quantity, r.orderItem.product, r.orderItem.variant)];
 };
 const returnInfo = (r: ReturnBrief | null) => (r ? { requestNumber: r.requestNumber, type: r.type, reason: r.reasonLabel } : null);
 
@@ -525,7 +539,7 @@ export class RidersService {
       where: { id },
       include: {
         warehouse: { select: { name: true, location: true, latitude: true, longitude: true, contactPhone: true } },
-        order: { select: { orderNumber: true, paymentMode: true, deliveryOtp: true, items: { select: { quantity: true, product: { select: { name: true, images: true } } } } } },
+        order: { select: { orderNumber: true, paymentMode: true, deliveryOtp: true, items: { select: { quantity: true, product: { select: VERIFY_PRODUCT }, variant: { select: { name: true, sku: true, images: true } } } } } },
         returnRequest: { select: { ...RETURN_SELECT, pickupOtp: true, replacementOtp: true, reasonLabel: true } },
         events: { orderBy: { createdAt: 'asc' }, select: { type: true, note: true, createdAt: true } },
         cod: true,
@@ -565,7 +579,7 @@ export class RidersService {
       otpLength: t.order?.deliveryOtp?.length
         ?? (t.kind === 'RETURN_PICKUP' ? t.returnRequest?.pickupOtp?.length : t.returnRequest?.replacementOtp?.length) ?? null,
       items: t.order
-        ? t.order.items.map((i) => ({ name: i.product?.name ?? 'Item', quantity: i.quantity, image: i.product?.images?.[0] ?? null }))
+        ? t.order.items.map((i) => verifyItem(i.product?.name ?? 'Item', i.quantity, i.product, i.variant))
         : returnItems(t.kind, t.returnRequest),
       payment: {
         mode: t.order?.paymentMode ?? null,

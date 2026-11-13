@@ -1,4 +1,4 @@
-import { ArrowLeftOutlined, CheckCircleFilled, FilterOutlined, SearchOutlined, ClockCircleFilled, CloseCircleFilled, CustomerServiceOutlined, RightOutlined, StarFilled, SyncOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, RollbackOutlined, SwapOutlined, CheckCircleFilled, FilterOutlined, SearchOutlined, ClockCircleFilled, CloseCircleFilled, CustomerServiceOutlined, RightOutlined, StarFilled, SyncOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
 import { Badge, Button, Drawer, Skeleton, Typography } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
@@ -85,7 +85,21 @@ function EmptyOrders({
 
 const shortDate = (iso: string) => new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 
+const RETURN_BAD = ['REJECTED', 'PICKUP_FAILED', 'QC_FAILED', 'DELIVERY_FAILED'];
+const RETURN_DONE = ['COMPLETED', 'DELIVERED', 'REFUND_INITIATED'];
+
 function statusLine(o: OrderSummaryRow): { icon: React.ReactNode; text: string; sub: string; color: string } {
+  // A return / exchange is its own record; the order stays DELIVERED. Show where the request is.
+  const r = o.latestReturn;
+  if (o.status === 'DELIVERED' && r) {
+    const more = r.count > 1 ? ` (+${r.count - 1} more)` : '';
+    return {
+      icon: r.type === 'EXCHANGE' ? <SwapOutlined /> : <RollbackOutlined />,
+      text: `${r.typeLabel} · ${r.statusLabel}${more}`,
+      sub: `Delivered on ${shortDate(o.deliveredAt ?? o.placedAt)} · ${r.requestNumber}`,
+      color: RETURN_BAD.includes(r.status) ? '#dc2626' : RETURN_DONE.includes(r.status) ? '#16a34a' : '#7c3aed',
+    };
+  }
   if (o.status === 'DELIVERED') {
     return {
       icon: <CheckCircleFilled />,

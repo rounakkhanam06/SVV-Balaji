@@ -102,6 +102,55 @@ export function ReturnDetailPage() {
   const r = q.data;
   return (
     <Shell title={`${r.type === 'RETURN' ? 'Return' : 'Exchange'} ${r.requestNumber}`}>
+      <ReturnStatusBlock r={r} />
+
+      {r.exchange ? <ExchangeCard r={r} onChange={refresh} /> : (
+        <Card title="Refund">
+          <Row label="Paid for these items" value={formatInr(r.itemValue)} />
+          {r.deductions.shippingFee > 0 ? <Row label="Return shipping" value={`− ${formatInr(r.deductions.shippingFee)}`} /> : null}
+          {r.deductions.restockingFee > 0 ? <Row label="Restocking fee" value={`− ${formatInr(r.deductions.restockingFee)}`} /> : null}
+          <Row label="Refund" value={formatInr(r.refund.amount)} bold />
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            {r.refund.method ? REFUND_METHOD_LABEL[r.refund.method] : ''}
+            {r.refund.refundedAt ? ` · paid ${when(r.refund.refundedAt)}${r.refund.reference ? ` (ref ${r.refund.reference})` : ''}` : ''}
+          </Typography.Text>
+          {r.refund.refundedAt && (r.refund.coinsRestored.loyalty > 0 || r.refund.coinsRestored.referral > 0) ? (
+            <div style={{ fontSize: 12, marginTop: 4 }}>Coins returned: {r.refund.coinsRestored.loyalty + r.refund.coinsRestored.referral}</div>
+          ) : null}
+        </Card>
+      )}
+
+
+      {r.mediaUrls.length ? (
+        <Card title="Your photos / videos" size="small">
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {r.mediaUrls.map((u) => <a key={u} href={u} target="_blank" rel="noreferrer"><img src={u} alt="" style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 6 }} onError={(ev) => { (ev.target as HTMLImageElement).style.display = 'none'; }} /></a>)}
+          </div>
+        </Card>
+      ) : null}
+
+      {r.canCancel ? (
+        <Button danger block onClick={() => Modal.confirm({
+          title: 'Cancel this request?',
+          content: 'You can raise a new one later while the window is open.',
+          okText: 'Cancel request',
+          onOk: async () => {
+            try { await returnsApi.cancel(r.requestNumber); message.success('Request cancelled'); refresh(); } catch (e) { message.error(checkoutError(e).message); }
+          },
+        })}>Cancel request</Button>
+      ) : null}
+    </Shell>
+  );
+}
+
+/**
+ * Where a return / exchange stands: item + status, the codes to hand over, the rider,
+ * courier tracking and the step-by-step progress. Shared by the request page and the
+ * order page so a returned / exchanged order reads the same in both places.
+ */
+export function ReturnStatusBlock({ r, linkToRequest }: { r: ReturnDetail; linkToRequest?: boolean }) {
+  return (
+    <>
       <Card>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           {r.product.imageUrl ? <img src={r.product.imageUrl} alt="" style={{ width: 56, height: 56, objectFit: 'contain' }} /> : null}
@@ -123,46 +172,15 @@ export function ReturnDetailPage() {
           {t.trackingUrl ? <div><a href={t.trackingUrl} target="_blank" rel="noreferrer">Track</a></div> : null}
         </Card>
       ))}
-
-      {r.exchange ? <ExchangeCard r={r} onChange={refresh} /> : (
-        <Card title="Refund">
-          <Row label="Paid for these items" value={formatInr(r.itemValue)} />
-          {r.deductions.shippingFee > 0 ? <Row label="Return shipping" value={`− ${formatInr(r.deductions.shippingFee)}`} /> : null}
-          {r.deductions.restockingFee > 0 ? <Row label="Restocking fee" value={`− ${formatInr(r.deductions.restockingFee)}`} /> : null}
-          <Row label="Refund" value={formatInr(r.refund.amount)} bold />
-          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-            {r.refund.method ? REFUND_METHOD_LABEL[r.refund.method] : ''}
-            {r.refund.refundedAt ? ` · paid ${when(r.refund.refundedAt)}${r.refund.reference ? ` (ref ${r.refund.reference})` : ''}` : ''}
-          </Typography.Text>
-          {r.refund.refundedAt && (r.refund.coinsRestored.loyalty > 0 || r.refund.coinsRestored.referral > 0) ? (
-            <div style={{ fontSize: 12, marginTop: 4 }}>Coins returned: {r.refund.coinsRestored.loyalty + r.refund.coinsRestored.referral}</div>
-          ) : null}
-        </Card>
-      )}
-
       <Card title="Progress">
         <Timeline items={r.timeline.map((t) => ({ children: <span><strong>{t.label}</strong> <span style={{ color: '#64748b', fontSize: 12 }}>· {when(t.at)}{t.note ? ` · ${t.note}` : ''}</span></span> }))} />
       </Card>
-
-      {r.mediaUrls.length ? (
-        <Card title="Your photos / videos" size="small">
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {r.mediaUrls.map((u) => <a key={u} href={u} target="_blank" rel="noreferrer"><img src={u} alt="" style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 6 }} onError={(ev) => { (ev.target as HTMLImageElement).style.display = 'none'; }} /></a>)}
-          </div>
-        </Card>
+      {linkToRequest ? (
+        <Link to={`/returns/${r.requestNumber}`} style={{ display: 'block', textAlign: 'center', fontWeight: 600, margin: '4px 0 12px' }}>
+          View full {r.type === 'RETURN' ? 'return' : 'exchange'} request →
+        </Link>
       ) : null}
-
-      {r.canCancel ? (
-        <Button danger block onClick={() => Modal.confirm({
-          title: 'Cancel this request?',
-          content: 'You can raise a new one later while the window is open.',
-          okText: 'Cancel request',
-          onOk: async () => {
-            try { await returnsApi.cancel(r.requestNumber); message.success('Request cancelled'); refresh(); } catch (e) { message.error(checkoutError(e).message); }
-          },
-        })}>Cancel request</Button>
-      ) : null}
-    </Shell>
+    </>
   );
 }
 

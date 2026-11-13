@@ -677,3 +677,5 @@ must not be read as "nearly ready".
 | 45% of effort (panel + 4 mobile apps) not started at week 2 | The back half of the programme carries all the risk | Backend running ahead creates buffer; start WS2.1 immediately |
 | Consumer channel drives media volume up sharply | QR scans loading images/video from a single VPS will not hold | A-04 storage decision + A-08 hosting upgrade both become more urgent under B2C |
 | GSP onboarding is an external process | Vendor approval can take weeks; it is not in our control | A-11 raised with a 18 Aug target to leave runway |
+
+- **12 Nov 2026 — B2B GSTIN/Udyam optional:** a retailer can be approved with neither; invoices then carry no buyer GSTIN.

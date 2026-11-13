@@ -370,7 +370,7 @@ export class RiderAppController {
   @UseGuards(RiderJwtAuthGuard)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Hand a task back before pickup (it goes to another rider)' })
+  @ApiOperation({ summary: 'Disabled: an accepted task cannot be handed back (always 400). Reassign from the delivery board instead.' })
   release(@CurrentRider() r: RiderJwtPayload, @Param('id') id: string, @Body() dto: ReleaseDto) {
     return this.flow.release(r.sub, id, dto);
   }

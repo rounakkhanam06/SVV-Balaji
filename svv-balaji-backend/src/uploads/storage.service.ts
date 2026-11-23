@@ -48,6 +48,7 @@ export const UPLOAD_FOLDERS = {
   'rider-documents': 'svv-balaji/rider-documents',
   'return-media': 'svv-balaji/return-media',
   'transporter-documents': 'svv-balaji/transporter-documents',
+  'payment-proofs': 'svv-balaji/payment-proofs',
   'profile-photos': 'svv-balaji/profile-photos',
 } as const;
 

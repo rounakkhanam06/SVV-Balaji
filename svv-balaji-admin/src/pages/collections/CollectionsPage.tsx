@@ -1,5 +1,5 @@
 import { transportSourceText } from '../../components/TransportSourceFields';
-import { PlusOutlined } from '@ant-design/icons';
+import { EyeOutlined, PlusOutlined } from '@ant-design/icons';
 import { App as AntApp, Button, Card, Col, Row, Select, Space, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useState } from 'react';
@@ -19,6 +19,8 @@ import { EM_DASH, formatCurrency, formatDate, formatQuantity } from '../../utils
 import { RowActions } from '../../components/RowActions';
 import { useDeleteCollection } from '../../hooks/useCollections';
 import { CollectionCorrectionModal } from './CollectionCorrectionModal';
+import { CollectionDetailDrawer } from './CollectionDetailDrawer';
+import { CollectionPaymentModal } from './CollectionPaymentModal';
 import { CollectionFormModal } from './CollectionFormModal';
 import { PAYMENT_STATUS_COLOUR } from '@shared/utils/paymentStatus';
 
@@ -30,6 +32,8 @@ export function CollectionsPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [correcting, setCorrecting] = useState<RawMaterialCollection | null>(null);
   const remove = useDeleteCollection();
+  const [viewingId, setViewingId] = useState<string | null>(null);
+  const [paying, setPaying] = useState<{ row: RawMaterialCollection; status: PaymentStatus } | null>(null);
 
   const collections = useCollections(filters);
   const setPayment = useSetPaymentStatus();
@@ -39,6 +43,11 @@ export function CollectionsPage() {
     collection: RawMaterialCollection,
     paymentStatus: PaymentStatus,
   ) => {
+    // Paid / partial need evidence (method, reference, proof) - collect it in a modal.
+    if (paymentStatus === 'PAID' || paymentStatus === 'PARTIAL') {
+      setPaying({ row: collection, status: paymentStatus });
+      return;
+    }
     try {
       await setPayment.mutateAsync({ id: collection.id, paymentStatus });
       message.success(`${collection.receiptNumber} marked ${label(paymentStatus).toLowerCase()}`);
@@ -165,7 +174,7 @@ export function CollectionsPage() {
     {
       title: 'Actions',
       key: 'actions',
-      width: 150,
+      width: 220,
       fixed: 'right',
       render: (_, row) => {
         // The server's own guards are stricter than anything the list can see -
@@ -182,6 +191,10 @@ export function CollectionsPage() {
             : undefined;
 
         return (
+          <Space size={4}>
+          <Button size="small" icon={<EyeOutlined />} onClick={() => setViewingId(row.id)}>
+            View
+          </Button>
           <RowActions
             entity="collection"
             label={row.receiptNumber}
@@ -191,6 +204,7 @@ export function CollectionsPage() {
             onDelete={() => remove.mutateAsync(row.id)}
             deleteBlockedReason={paid ?? inUse}
           />
+          </Space>
         );
       },
     },
@@ -253,6 +267,12 @@ export function CollectionsPage() {
 
       <CollectionFormModal open={formOpen} onClose={() => setFormOpen(false)} />
       <CollectionCorrectionModal collection={correcting} onClose={() => setCorrecting(null)} />
+      <CollectionDetailDrawer id={viewingId} onClose={() => setViewingId(null)} />
+      <CollectionPaymentModal
+        collection={paying?.row ?? null}
+        status={paying?.status ?? null}
+        onClose={() => setPaying(null)}
+      />
     </Card>
   );
 }

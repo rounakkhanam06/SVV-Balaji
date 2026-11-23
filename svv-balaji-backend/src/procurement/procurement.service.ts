@@ -11,6 +11,7 @@ import {
   UpdateProcurementPlanDto,
 } from './dto/update-procurement.dto';
 import { assertDeletable } from '../common/dependants';
+import { advancePlanStatus, planProgress } from './plan-progress';
 import { listPage, type PageRequest } from '../common/pagination';
 
 @Injectable()
@@ -58,8 +59,8 @@ export class ProcurementService {
     });
   }
 
-  findPlans(branchId?: string, status?: ProcurementPlanStatus) {
-    return this.prisma.procurementPlan.findMany({
+  async findPlans(branchId?: string, status?: ProcurementPlanStatus) {
+    const plans = await this.prisma.procurementPlan.findMany({
       where: { branchId, status },
       orderBy: { scheduledFrom: 'desc' },
       include: {
@@ -68,6 +69,8 @@ export class ProcurementService {
         _count: { select: { inspections: true } },
       },
     });
+    const progress = await planProgress(this.prisma, plans);
+    return plans.map((p) => ({ ...p, ...progress.get(p.id)! }));
   }
 
   async findPlan(id: string) {
@@ -80,7 +83,8 @@ export class ProcurementService {
       },
     });
     if (!plan) throw new NotFoundException('Procurement plan not found');
-    return plan;
+    const progress = await planProgress(this.prisma, [plan]);
+    return { ...plan, ...progress.get(plan.id)! };
   }
 
   async updatePlanStatus(id: string, status: ProcurementPlanStatus) {
@@ -205,6 +209,9 @@ export class ProcurementService {
     // FRD 7.6: an inspection result is the largest single input to the
     // farmer's crop-quality score.
     await this.refreshPerformance(inspection.farmerId);
+
+    // Work has started against the plan - move it to IN_PROGRESS.
+    await advancePlanStatus(this.prisma, inspection.procurementPlanId);
 
     return inspection;
   }

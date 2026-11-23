@@ -6,6 +6,8 @@ import { scopedBranchId } from '../common/branch-scope';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy';
 import { SequenceService } from '../common/sequence.service';
 import { nextRawBatchNumber } from '../common/raw-batch-number';
+import { UpdatePaymentStatusDto } from './dto/update-payment-status.dto';
+import { advancePlanStatus } from '../procurement/plan-progress';
 import { FarmerPerformanceService } from '../farmers/farmer-performance.service';
 import { CreateCollectionDto } from './dto/create-collection.dto';
 import { UpdateCollectionDto } from './dto/update-collection.dto';
@@ -168,6 +170,9 @@ export class CollectionService {
     // timeliness. Refresh after the transaction commits, never inside it.
     await this.refreshPerformance(created.farmerId);
 
+    // Collected quantity counts towards the inspection's procurement plan.
+    await advancePlanStatus(this.prisma, inspection.procurementPlanId);
+
     return created;
   }
 
@@ -231,6 +236,7 @@ export class CollectionService {
         inspection: true,
         batch: true,
         collectedBy: { select: { id: true, fullName: true } },
+        paymentUpdatedBy: { select: { id: true, fullName: true } },
         ...TRANSPORT_SOURCE_INCLUDE,
       },
     });
@@ -247,13 +253,55 @@ export class CollectionService {
    * accepted three, so the two disagreed about what a payment status is. A
    * duplicated enum only stays correct until somebody extends the original.
    */
-  async updatePaymentStatus(id: string, paymentStatus: PaymentStatus) {
+  async updatePaymentStatus(
+    id: string,
+    dtoOrStatus: UpdatePaymentStatusDto | PaymentStatus,
+    updatedById?: string,
+  ) {
+    const dto: UpdatePaymentStatusDto =
+      typeof dtoOrStatus === 'string' ? { paymentStatus: dtoOrStatus } : dtoOrStatus;
     const collection = await this.prisma.rawMaterialCollection.findUnique({ where: { id } });
     if (!collection) throw new NotFoundException('Collection not found');
 
+    const paying = dto.paymentStatus === PaymentStatus.PAID || dto.paymentStatus === PaymentStatus.PARTIAL;
+    if (paying && updatedById) {
+      // Evidence rule: say how it was paid, and prove any non-cash payment.
+      if (!dto.paymentMethod) {
+        throw new BadRequestException('Select how the farmer was paid (cash, UPI, bank transfer, cheque).');
+      }
+      if (dto.paymentMethod !== 'CASH' && !dto.paymentProofUrl) {
+        throw new BadRequestException('Upload the payment proof (screenshot or bank slip) for a non-cash payment.');
+      }
+      if (dto.paymentMethod !== 'CASH' && dto.paymentMethod !== 'OTHER' && !dto.paymentReference?.trim()) {
+        throw new BadRequestException('Enter the UTR / transaction id / cheque number.');
+      }
+      if (dto.paymentStatus === PaymentStatus.PARTIAL && dto.paidAmount == null) {
+        throw new BadRequestException('Enter the amount paid so far for a partial payment.');
+      }
+    }
+    if (dto.paidAmount != null && dto.paidAmount > Number(collection.totalAmount)) {
+      throw new BadRequestException('Amount paid cannot exceed the collection total.');
+    }
+
     return this.prisma.rawMaterialCollection.update({
       where: { id },
-      data: { paymentStatus },
+      data: {
+        paymentStatus: dto.paymentStatus,
+        ...(paying
+          ? {
+              paymentMethod: dto.paymentMethod ?? collection.paymentMethod,
+              paymentReference: dto.paymentReference?.trim() || collection.paymentReference,
+              paymentDate: dto.paymentDate ? new Date(dto.paymentDate) : collection.paymentDate ?? new Date(),
+              paidAmount:
+                dto.paidAmount ??
+                (dto.paymentStatus === PaymentStatus.PAID ? collection.totalAmount : collection.paidAmount),
+              paymentProofUrl: dto.paymentProofUrl ?? collection.paymentProofUrl,
+              paymentRemarks: dto.paymentRemarks?.trim() || collection.paymentRemarks,
+            }
+          : { paymentRemarks: dto.paymentRemarks?.trim() || collection.paymentRemarks }),
+        paymentUpdatedAt: new Date(),
+        paymentUpdatedById: updatedById ?? null,
+      },
     });
   }
 

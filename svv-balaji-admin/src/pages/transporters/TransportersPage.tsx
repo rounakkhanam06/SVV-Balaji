@@ -1,4 +1,4 @@
-import { PlusOutlined } from '@ant-design/icons';
+import { EyeOutlined, PlusOutlined } from '@ant-design/icons';
 import { App as AntApp, Button, Card, Input, Segmented, Space, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useState } from 'react';
@@ -10,6 +10,7 @@ import { RowActions } from '../../components/RowActions';
 import { insuranceState, type Transporter } from '../../../../shared/api/transporters';
 import { useSetTransporterActive, useTransporters } from '../../hooks/useTransporters';
 import { formatDate } from '../../utils/format';
+import { TransporterDetailDrawer } from './TransporterDetailDrawer';
 import { TransporterFormModal } from './TransporterFormModal';
 
 const INSURANCE_TAG = {
@@ -30,6 +31,7 @@ export function TransportersPage() {
   const setActive = useSetTransporterActive();
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Transporter | null>(null);
+  const [viewing, setViewing] = useState<Transporter | null>(null);
 
   const columns: ColumnsType<Transporter> = [
     {
@@ -44,7 +46,7 @@ export function TransportersPage() {
       key: 'name',
       render: (_, t) => (
         <Space direction="vertical" size={0}>
-          <Typography.Text strong>{t.name}</Typography.Text>
+          <Typography.Link strong onClick={() => setViewing(t)}>{t.name}</Typography.Link>
           {t.contactPerson ? <Typography.Text type="secondary" style={{ fontSize: 12 }}>{t.contactPerson}</Typography.Text> : null}
         </Space>
       ),
@@ -81,9 +83,11 @@ export function TransportersPage() {
     {
       title: 'Actions',
       key: 'actions',
-      width: 100,
+      width: 170,
       align: 'center',
       render: (_, t) => (
+        <Space size={4}>
+        <Button size="small" icon={<EyeOutlined />} onClick={() => setViewing(t)}>View</Button>
         <RowActions
           label={t.name}
           entity="transporter"
@@ -102,6 +106,7 @@ export function TransportersPage() {
             }
           }}
         />
+        </Space>
       ),
     },
   ];
@@ -148,6 +153,7 @@ export function TransportersPage() {
           onRetry={() => transporters.refetch()}
         />
       </Card>
+      <TransporterDetailDrawer transporter={viewing} onClose={() => setViewing(null)} />
       <TransporterFormModal open={formOpen} onClose={() => setFormOpen(false)} editing={editing} />
     </>
   );

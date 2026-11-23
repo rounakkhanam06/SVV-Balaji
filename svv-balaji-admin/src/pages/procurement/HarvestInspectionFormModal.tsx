@@ -147,6 +147,12 @@ export function HarvestInspectionFormModal({
       width={760}
       destroyOnClose
     >
+      <Alert
+        type="info"
+        showIcon
+        style={{ marginBottom: 16 }}
+        message="Quality check only - no weight is entered here. The crop is weighed when it is collected (Procurement → Collections)."
+      />
       <Form
         form={form}
         layout="vertical"

@@ -65,8 +65,8 @@ export class CollectionController {
 
   @Patch('collections/:id/payment-status')
   @RequirePermission('collections.payment')
-  updatePaymentStatus(@Param('id') id: string, @Body() dto: UpdatePaymentStatusDto) {
-    return this.collectionService.updatePaymentStatus(id, dto.paymentStatus);
+  updatePaymentStatus(@Param('id') id: string, @Body() dto: UpdatePaymentStatusDto, @CurrentUser() user: JwtPayload) {
+    return this.collectionService.updatePaymentStatus(id, dto, user.sub);
   }
 
   // --- Batches (FRD Section 15) --------------------------------------------

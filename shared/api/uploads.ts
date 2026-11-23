@@ -10,7 +10,8 @@ export type UploadFolder =
   | 'products'
   | 'categories'
   | 'banners'
-  | 'transporter-documents';
+  | 'transporter-documents'
+  | 'payment-proofs';
 
 export interface StoredFile {
   /** Absolute and publicly fetchable. This is what goes into `fileUrl`. */

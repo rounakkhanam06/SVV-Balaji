@@ -939,6 +939,11 @@ export interface ProcurementPlan {
   createdById: string;
   createdBy?: UserRef;
   _count?: { inspections: number };
+  /** Net weight collected against this plan, in the plan's unit (computed server-side). */
+  collectedQuantity?: number;
+  collectionCount?: number;
+  /** Collected / planned x 100; can exceed 100. */
+  progressPercent?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -1070,6 +1075,15 @@ export interface RawMaterialCollection {
   purchaseRate: string;
   totalAmount: string;
   paymentStatus: PaymentStatus;
+  /** Payment evidence - set when marked PARTIAL / PAID. */
+  paymentMethod?: string | null;
+  paymentReference?: string | null;
+  paymentDate?: string | null;
+  paidAmount?: string | null;
+  paymentProofUrl?: string | null;
+  paymentRemarks?: string | null;
+  paymentUpdatedAt?: string | null;
+  paymentUpdatedBy?: UserRef | null;
 
   /** FRD 14.4 — RC-YYYYMMDD-NNN, issued to the farmer and the company. */
   receiptNumber: string;

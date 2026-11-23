@@ -17,7 +17,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider  = "postgresql"
   url       = env("DATABASE_URL")
   // Direct (non-pooler) connection used by prisma migrate. On Neon: same URL without "-pooler".
   directUrl = env("DIRECT_URL")
@@ -266,10 +266,11 @@ model User {
   fieldVisitPlansCreated    FieldVisitPlan[]        @relation("FieldVisitPlanCreatedBy")
 
   // Phase 2 back-relations
-  procurementPlansCreated ProcurementPlan[]       @relation("ProcurementPlansCreated")
-  harvestInspections      HarvestInspection[]     @relation("HarvestInspections")
-  rawMaterialCollections  RawMaterialCollection[] @relation("RawMaterialCollections")
-  stockMovements          StockMovement[]         @relation("StockMovements")
+  procurementPlansCreated   ProcurementPlan[]       @relation("ProcurementPlansCreated")
+  harvestInspections        HarvestInspection[]     @relation("HarvestInspections")
+  collectionPaymentsUpdated RawMaterialCollection[] @relation("CollectionPaymentsUpdated")
+  rawMaterialCollections    RawMaterialCollection[] @relation("RawMaterialCollections")
+  stockMovements            StockMovement[]         @relation("StockMovements")
 
   farmPlotsCreated FarmPlot[] @relation("FarmPlotsCreated")
   farmersCreated   Farmer[]   @relation("FarmersCreated")
@@ -986,6 +987,21 @@ model RawMaterialCollection {
   purchaseRate  Decimal       @db.Decimal(12, 2)
   totalAmount   Decimal       @db.Decimal(14, 2)
   paymentStatus PaymentStatus @default(PENDING)
+
+  /// Payment evidence, set when the status moves to PARTIAL / PAID.
+  /// CASH | UPI | BANK_TRANSFER | CHEQUE | OTHER
+  paymentMethod      String?
+  /// UTR / transaction id / cheque number.
+  paymentReference   String?
+  paymentDate        DateTime?
+  /// Amount actually paid so far (useful for PARTIAL).
+  paidAmount         Decimal?  @db.Decimal(14, 2)
+  /// Screenshot / bank slip / receipt. Required for non-cash payments.
+  paymentProofUrl    String?
+  paymentRemarks     String?
+  paymentUpdatedAt   DateTime?
+  paymentUpdatedById String?
+  paymentUpdatedBy   User?     @relation("CollectionPaymentsUpdated", fields: [paymentUpdatedById], references: [id])
 
   /// FRD 14.4 - receipt issued to farmer and company.
   receiptNumber String @unique

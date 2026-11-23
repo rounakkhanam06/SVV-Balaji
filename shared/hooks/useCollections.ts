@@ -1,3 +1,4 @@
+import type { CollectionPaymentEvidence } from '../api/collections';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { batchesApi, collectionsApi } from '../api/collections';
 import { queryKeys } from '../api/queryKeys';
@@ -39,8 +40,15 @@ export function useSetPaymentStatus() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, paymentStatus }: { id: string; paymentStatus: PaymentStatus }) =>
-      collectionsApi.setPaymentStatus(id, paymentStatus),
+    mutationFn: ({
+      id,
+      paymentStatus,
+      evidence,
+    }: {
+      id: string;
+      paymentStatus: PaymentStatus;
+      evidence?: CollectionPaymentEvidence;
+    }) => collectionsApi.setPaymentStatus(id, paymentStatus, evidence),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.collections.all });
     },

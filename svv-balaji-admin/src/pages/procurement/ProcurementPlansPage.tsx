@@ -1,5 +1,5 @@
 import { PlusOutlined } from '@ant-design/icons';
-import { App as AntApp, Badge, Button, Card, Col, Row, Select, Tag, Typography } from 'antd';
+import { App as AntApp, Badge, Button, Card, Col, Progress, Row, Select, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useState } from 'react';
 import { apiErrorMessage } from '../../api/client';
@@ -75,6 +75,28 @@ export function ProcurementPlansPage() {
       key: 'plannedQuantity',
       align: 'right',
       render: (_, plan) => formatQuantity(plan.plannedQuantity, plan.unit),
+    },
+    {
+      title: 'Collected',
+      key: 'progress',
+      width: 200,
+      render: (_, plan) => {
+        const pct = plan.progressPercent ?? 0;
+        return (
+          <div>
+            <Typography.Text>{formatQuantity(String(plan.collectedQuantity ?? 0), plan.unit)}</Typography.Text>
+            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+              {' '}· {plan.collectionCount ?? 0} collection{plan.collectionCount === 1 ? '' : 's'}
+            </Typography.Text>
+            <Progress
+              percent={Math.min(pct, 100)}
+              format={() => `${pct}%`}
+              size="small"
+              status={pct >= 100 ? 'success' : 'active'}
+            />
+          </div>
+        );
+      },
     },
     {
       title: 'Window',

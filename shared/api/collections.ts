@@ -39,10 +39,11 @@ export const collectionsApi = {
   async setPaymentStatus(
     id: string,
     paymentStatus: PaymentStatus,
+    evidence: CollectionPaymentEvidence = {},
   ): Promise<RawMaterialCollection> {
     const response = await api.patch<RawMaterialCollection>(
       `/collections/${id}/payment-status`,
-      { paymentStatus },
+      { paymentStatus, ...evidence },
     );
     return unwrap<RawMaterialCollection>(response.data);
   },
@@ -87,3 +88,23 @@ export const batchesApi = {
     return unwrap<BatchTrace>(response.data);
   },
 };
+
+export const COLLECTION_PAYMENT_METHODS = {
+  CASH: 'Cash',
+  UPI: 'UPI',
+  BANK_TRANSFER: 'Bank transfer (NEFT/RTGS/IMPS)',
+  CHEQUE: 'Cheque',
+  OTHER: 'Other',
+} as const;
+export type CollectionPaymentMethod = keyof typeof COLLECTION_PAYMENT_METHODS;
+
+/** Sent with PARTIAL / PAID. Proof is required for anything but cash. */
+export interface CollectionPaymentEvidence {
+  paymentMethod?: CollectionPaymentMethod;
+  paymentReference?: string;
+  /** YYYY-MM-DD */
+  paymentDate?: string;
+  paidAmount?: number;
+  paymentProofUrl?: string;
+  paymentRemarks?: string;
+}

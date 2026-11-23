@@ -412,6 +412,18 @@ export const NAV_SECTIONS: NavSection[] = [
         zone: 'supply',
       },
       {
+        key: 'machines',
+        path: '/machines',
+        label: 'Machines',
+        permission: 'MACHINES_VIEW',
+        description:
+          'Machine list production runs are booked on, and utilisation per machine: runs, run ' +
+          'hours (start to completion), output and % of the hours it is meant to run.',
+        endpoints: ['GET /machines', 'GET /machines/utilisation', 'POST /machines', 'PATCH /machines/:id'],
+        workstream: 'WS2.4',
+        zone: 'supply',
+      },
+      {
         key: 'cleaning-grading',
         path: '/cleaning-grading',
         label: 'Cleaning & Grading',
@@ -434,18 +446,6 @@ export const NAV_SECTIONS: NavSection[] = [
           'POST /production-batches',
           'PATCH /production-batches/:id/complete',
         ],
-        workstream: 'WS2.4',
-        zone: 'supply',
-      },
-      {
-        key: 'machines',
-        path: '/machines',
-        label: 'Machines',
-        permission: 'MACHINES_VIEW',
-        description:
-          'Machine list production runs are booked on, and utilisation per machine: runs, run ' +
-          'hours (start to completion), output and % of the hours it is meant to run.',
-        endpoints: ['GET /machines', 'GET /machines/utilisation', 'POST /machines', 'PATCH /machines/:id'],
         workstream: 'WS2.4',
         zone: 'supply',
       },
@@ -479,23 +479,6 @@ export const NAV_SECTIONS: NavSection[] = [
         zone: 'supply',
       },
       {
-        key: 'finished-goods',
-        path: '/finished-goods',
-        label: 'Finished Goods',
-        permission: 'PACKAGING_VIEW',
-        description:
-          'Packaging into FG batches, print-ready labels with QR and barcode, and finished ' +
-          'goods stock. Only QA-released batches can be stocked.',
-        endpoints: [
-          'GET /finished-goods',
-          'POST /finished-goods',
-          'GET /finished-goods/:id/label',
-          'GET /finished-goods-stock',
-        ],
-        workstream: 'WS2.4',
-        zone: 'supply',
-      },
-      {
         key: 'yield-tracking',
         path: '/yield-tracking',
         label: 'Loss & Yield Tracking',
@@ -512,6 +495,23 @@ export const NAV_SECTIONS: NavSection[] = [
           'GET /supply-chain/yield/machine-health',
         ],
         workstream: 'WS2.6',
+        zone: 'supply',
+      },
+      {
+        key: 'finished-goods',
+        path: '/finished-goods',
+        label: 'Finished Goods',
+        permission: 'PACKAGING_VIEW',
+        description:
+          'Packaging into FG batches, print-ready labels with QR and barcode, and finished ' +
+          'goods stock. Only QA-released batches can be stocked.',
+        endpoints: [
+          'GET /finished-goods',
+          'POST /finished-goods',
+          'GET /finished-goods/:id/label',
+          'GET /finished-goods-stock',
+        ],
+        workstream: 'WS2.4',
         zone: 'supply',
       },
     ],

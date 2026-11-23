@@ -5,6 +5,7 @@ import { apiErrorMessage } from '../../api/client';
 import type { CreateTransportDto, SupplierTransport } from '../../../../shared/api/transports';
 import { useCreateTransport, useUpdateTransport } from '../../hooks/useTransports';
 import { useSuppliers } from '../../hooks/useSuppliers';
+import { usePurchaseOrders } from '../../hooks/usePurchaseOrders';
 import { WarehouseSelect } from '../../components/pickers';
 import { TransportSourceFields } from '../../components/TransportSourceFields';
 import type { TransportSource } from '../../../../shared/api/transporters';
@@ -43,6 +44,31 @@ export function TransportFormModal({
   const update = useUpdateTransport();
   const suppliers = useSuppliers();
   const supplierId = Form.useWatch('supplierId', form) as string | undefined;
+  const purchaseOrders = usePurchaseOrders(supplierId ? { supplierId, limit: 100 } : undefined);
+  // Only POs that can still take a delivery; keep the one already linked when editing.
+  const poOptions = (supplierId ? purchaseOrders.data ?? [] : [])
+    .filter(
+      (po) =>
+        po.supplierId === supplierId &&
+        (po.status === 'CONFIRMED' || po.status === 'PARTIALLY_FULFILLED' || po.id === editing?.purchaseOrderId),
+    )
+    .map((po) => ({
+      value: po.id,
+      label: `${po.poNumber} · ${po.materialName} · ${po.expectedQuantity} ${po.unit} @ ₹${po.purchaseRate}`,
+      po,
+    }));
+
+  const onPoChange = (id?: string) => {
+    const po = poOptions.find((o) => o.value === id)?.po;
+    if (!po) return;
+    // Prefill from the PO; the user can still adjust quantity for a part delivery.
+    form.setFieldsValue({
+      materialName: po.materialName,
+      unit: po.unit,
+      quantity: form.getFieldValue('quantity') ?? Number(po.expectedQuantity),
+      purchaseRate: Number(po.purchaseRate),
+    });
+  };
 
   useEffect(() => {
     if (open) {
@@ -138,6 +164,7 @@ export function TransportFormModal({
                 placeholder={suppliers.isLoading ? 'Loading suppliers…' : 'Select supplier'}
                 loading={suppliers.isLoading}
                 options={supplierOptions}
+                onChange={() => form.setFieldValue('purchaseOrderId', undefined)}
               />
             </Form.Item>
           </Col>
@@ -147,6 +174,23 @@ export function TransportFormModal({
             </Form.Item>
           </Col>
         </Row>
+
+        <Form.Item
+          name="purchaseOrderId"
+          label="Purchase Order (optional)"
+          extra="Links this delivery to a confirmed PO. On receipt the PO moves to Partially Fulfilled / Fulfilled automatically."
+        >
+          <Select
+            allowClear
+            showSearch
+            optionFilterProp="label"
+            disabled={!supplierId}
+            loading={!!supplierId && purchaseOrders.isLoading}
+            placeholder={supplierId ? (poOptions.length ? 'Select purchase order' : 'No open POs for this supplier') : 'Select a supplier first'}
+            options={poOptions.map(({ value, label }) => ({ value, label }))}
+            onChange={onPoChange}
+          />
+        </Form.Item>
 
         <Row gutter={16}>
           <Col span={12}>

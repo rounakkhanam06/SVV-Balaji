@@ -1,5 +1,5 @@
 import { PlusOutlined } from '@ant-design/icons';
-import { Button, Card, Col, Row, Select, Tag, Tooltip, Typography } from 'antd';
+import { Alert, Button, Card, Col, Row, Select, Tag, Tooltip, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useState } from 'react';
 import {
@@ -191,6 +191,21 @@ export function HarvestInspectionsPage() {
               Record inspection
             </Button>
           </Can>
+        }
+      />
+
+      <Alert
+        type="info"
+        showIcon
+        style={{ marginBottom: 16 }}
+        message="An inspection checks quality only - quantity is not recorded here"
+        description={
+          <>
+            Record moisture, foreign matter, grain size / colour, smell, damage and photos, then mark the harvest
+            Approved, Rejected or Hold for re-inspection. The crop is <b>weighed at Collection</b>: open
+            Procurement → Collections, pick the approved inspection and enter gross / net weight. That weight becomes
+            the raw batch quantity, the farmer's payment and the plan's collected figure.
+          </>
         }
       />
 

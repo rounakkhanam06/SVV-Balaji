@@ -1,6 +1,7 @@
 import {
   AppstoreOutlined,
   ArrowLeftOutlined,
+  ArrowRightOutlined,
   BarcodeOutlined,
   EyeOutlined,
   InfoCircleOutlined,
@@ -111,6 +112,23 @@ function ProductEditor({ editId }: { editId?: string }) {
       },
       { replace: true },
     );
+
+  const TAB_TITLES: Record<TabKey, string> = {
+    basic: 'Basic info',
+    pricing: 'Pricing & orders',
+    media: 'Media & SEO',
+    info: 'Product information',
+    offers: 'Offers & FAQs',
+    inventory: 'Inventory',
+    variants: 'Pack sizes',
+  };
+  const tabIndex = TAB_KEYS.indexOf(activeTab);
+  const prevTab = tabIndex > 0 ? TAB_KEYS[tabIndex - 1] : null;
+  const nextTab = tabIndex < TAB_KEYS.length - 1 ? TAB_KEYS[tabIndex + 1] : null;
+  const goToTab = (key: TabKey) => {
+    setActiveTab(key);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const categoryLabel = (values: ProductFormValues) => {
     const rows = categories.data?.data ?? [];
@@ -250,6 +268,41 @@ function ProductEditor({ editId }: { editId?: string }) {
               tab('variants', <BarcodeOutlined />, '7. Pack sizes', <VariantsTab />),
             ]}
           />
+          {/* Step navigation - makes it obvious there are more sections after this one. */}
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: 12,
+              flexWrap: 'wrap',
+              marginTop: 24,
+              paddingTop: 16,
+              borderTop: '1px solid rgba(0,0,0,0.06)',
+            }}
+          >
+            <div>
+              {prevTab ? (
+                <Button size="large" icon={<ArrowLeftOutlined />} onClick={() => goToTab(prevTab)}>
+                  Back: {TAB_TITLES[prevTab]}
+                </Button>
+              ) : null}
+            </div>
+            <span style={{ color: 'rgba(0,0,0,0.45)' }}>
+              Step {tabIndex + 1} of {TAB_KEYS.length}
+            </span>
+            <div>
+              {nextTab ? (
+                <Button type="primary" size="large" onClick={() => goToTab(nextTab)}>
+                  Next: {TAB_TITLES[nextTab]} <ArrowRightOutlined />
+                </Button>
+              ) : (
+                <Button type="primary" size="large" icon={<SaveOutlined />} loading={saving} onClick={handleSubmit}>
+                  {isEdit ? 'Save changes' : 'Create product'}
+                </Button>
+              )}
+            </div>
+          </div>
         </Form>
       </Card>
 

@@ -323,6 +323,7 @@ are now answered** — only cloud storage (Decision 3) is still outstanding.
 | — | Recipe quantity tolerance (raw used vs recipe) | *Raised 28 Oct — `SVV_Balaji_Recipe_Production_Decisions_28Oct.md` §1* | — | 🟡 Not built; today no amount check (blend ratio only) |
 | — | Planned runs when a new recipe version is approved | *Raised 28 Oct — same note §2* | — | 🟡 Today: blocked at /start, must re-plan |
 | — | Oil (litre) loss measurement | *Raised 28 Oct — same note §3* | — | 🟡 Loss recorded as null for non-mass output until answered |
+| — | Recipe outputs & by-products (multi-output products, e.g. soybean oil + meal) | *Plan parked 23 Nov — `SVV_Balaji_Recipe_ByProducts_Plan.md`. Raunak to confirm 3 build choices; client to confirm whether by-products become sellable stock* | — | 🟡 Not built; workaround = loss % covers all non-main output |
 | — | Farmer training channel | **No farmer app — executive visits the farm, trains, logs manually in the portal** | 11 Aug 2026 | ✅ Scope confirmed, no change needed |
 
 ### Decision 1 — B2B + B2C with per-channel pricing
@@ -665,6 +666,7 @@ must not be read as "nearly ready".
 | **A-11** | **Confirm GSP vendor, GSTIN and API credentials** | SVV Balaji (Finance) | **18 Aug** | **Open — Critical.** Invoicing is built and waiting: the company GSTIN goes into GST Settings; the GSP is one adapter class (29 Sep) |
 | **A-12** | **Agree a pagination convention for list endpoints** | Raunak | **13 Aug** | **Open — target date reached.** 22 panel screens now built against the unpaginated shape; the envelope adapter absorbs it, so nothing is blocked, but the movement ledger, production and quality lists grow monotonically |
 | A-13 | Decide: order `DRAFT` state, finished-goods movement ledger, allocation history on cancel | Raunak | 15 Aug | Open — shapes WS2.5 screens |
+| A-15 | Recipe by-products: confirm build choices (100% rule, %/qty entry, density gate) and ask client about sellable by-products + per-product %s | Raunak / Ravi | — | Open — see `SVV_Balaji_Recipe_ByProducts_Plan.md` |
 | A-14 | Fix permission seeding so a new key added to an already-configured role's defaults actually grants | Raunak | — | ✅ **Closed 21 Sep** — `permission_key_state` + `PermissionsService.backfillNewPermissions()`; new keys reach configured roles on boot, revocations stick. See `DEV_LOG.md` (2026-09-21) |
 
 ---

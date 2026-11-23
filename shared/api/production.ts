@@ -189,6 +189,12 @@ export const productionApi = {
     return unwrap<CleaningGradingRecord>(response.data);
   },
 
+  /** QA sign-off (FRD 18.3). Refused for the operator who recorded the cleaning. */
+  async verifyCleaning(id: string): Promise<CleaningGradingRecord> {
+    const response = await api.patch<CleaningGradingRecord>(`/cleaning-grading/${id}/verify`);
+    return unwrap<CleaningGradingRecord>(response.data);
+  },
+
   // --- Production batches (FRD Section 20) ---------------------------------
 
   async listBatches(filters: {

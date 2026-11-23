@@ -183,6 +183,16 @@ export function useCreateCleaningRecord() {
   });
 }
 
+export function useVerifyCleaningRecord() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => productionApi.verifyCleaning(id),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.cleaning.all });
+    },
+  });
+}
+
 // --- Production batches -----------------------------------------------------
 
 export function useProductionBatches(filters: {

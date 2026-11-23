@@ -2027,7 +2027,6 @@ export interface CreateCleaningGradingInput {
   wastageQuantity?: number;
   byProductQuantity?: number;
   byProductName?: string;
-  qaVerified?: boolean;
   remarks?: string;
 }
 

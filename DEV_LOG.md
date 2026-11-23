@@ -4465,3 +4465,5 @@ Tests: sales/reports/wallet suites 57/57 (2 new cancel cases). Not run: full sui
 
 ### 2026-11-23 — 10th malware force-push
 - origin/main force-pushed from 8ca88bd to 7c5f5c4 (same message as 8ca88bd, dated 18 Nov) = 8ca88bd + the `init` vector (5 init files, `node init` in every package.json, .gitignore, backend .eslintrc.js). Pull stopped mid-merge; aborted. No loader process, no ~/.node_modules. Clean 111bd9f + this entry force-pushed over it. Branch protection / credential rotation still outstanding - the attacker re-forces after every clean push.
+- Admin: Cleaning & Grading form no longer sends qaVerified (backend rejects it since QA sign-off moved to PATCH /cleaning-grading/:id/verify). Added Verify button in the QA column (quality.create) + productionApi.verifyCleaning / useVerifyCleaningRecord.
+- Parked: recipe outputs/by-products plan in SVV_Balaji_Recipe_ByProducts_Plan.md (PROJECT_STATE A-15). Nothing built yet.

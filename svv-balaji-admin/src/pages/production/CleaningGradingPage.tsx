@@ -23,7 +23,8 @@ import { Can } from '../../components/Can';
 import { DataTable } from '../../components/DataTable';
 import { PageHeader } from '../../components/PageHeader';
 import { useBatches } from '../../hooks/useCollections';
-import { useCleaningRecords, useCreateCleaningRecord } from '../../hooks/useProduction';
+import { useCleaningRecords, useCreateCleaningRecord, useVerifyCleaningRecord } from '../../hooks/useProduction';
+import { useCan } from '@shared/auth/useCan';
 import { EM_DASH, formatDate, formatQuantity } from '../../utils/format';
 import { positiveNumber, required } from '../../validation/rules';
 
@@ -157,9 +158,10 @@ function CleaningFormModal({ open, onClose }: { open: boolean; onClose: () => vo
           </Col>
         </Row>
 
-        <Form.Item name="qaVerified" valuePropName="checked" initialValue={false}>
-          <Checkbox>QA verified — cleared for production (FRD 18.3)</Checkbox>
-        </Form.Item>
+        <Typography.Paragraph type="secondary" style={{ marginBottom: 12 }}>
+          QA sign-off is a separate step: after saving, a QA user (not the operator who recorded it) clicks
+          <b> Verify</b> on the record in the list. Production only accepts verified material (FRD 18.3).
+        </Typography.Paragraph>
 
         <Form.Item name="remarks" label="Remarks">
           <Input.TextArea rows={2} placeholder="Optional" />
@@ -172,6 +174,9 @@ function CleaningFormModal({ open, onClose }: { open: boolean; onClose: () => vo
 export function CleaningGradingPage() {
   const [formOpen, setFormOpen] = useState(false);
   const records = useCleaningRecords();
+  const verify = useVerifyCleaningRecord();
+  const canVerify = useCan('QUALITY_INSPECT');
+  const { message, modal } = AntApp.useApp();
 
   const columns: ColumnsType<CleaningGradingRecord> = [
     {
@@ -255,9 +260,40 @@ export function CleaningGradingPage() {
       title: 'QA',
       dataIndex: 'qaVerified',
       key: 'qaVerified',
-      width: 120,
-      render: (verified: boolean) =>
-        verified ? <Tag color="green">Verified</Tag> : <Tag color="gold">Not verified</Tag>,
+      width: 170,
+      render: (verified: boolean, row) =>
+        verified ? (
+          <Tag color="green">Verified</Tag>
+        ) : (
+          <Space size={4}>
+            <Tag color="gold">Not verified</Tag>
+            {canVerify ? (
+              <Button
+                size="small"
+                type="primary"
+                ghost
+                loading={verify.isPending && verify.variables === row.id}
+                onClick={() =>
+                  modal.confirm({
+                    title: 'QA verify this cleaning record?',
+                    content: 'This clears the cleaned material for production. It cannot be undone.',
+                    okText: 'Verify',
+                    onOk: async () => {
+                      try {
+                        await verify.mutateAsync(row.id);
+                        message.success('Cleaning record verified — cleared for production');
+                      } catch (e) {
+                        message.error(apiErrorMessage(e, 'Could not verify'));
+                      }
+                    },
+                  })
+                }
+              >
+                Verify
+              </Button>
+            ) : null}
+          </Space>
+        ),
     },
     {
       title: 'Operator',

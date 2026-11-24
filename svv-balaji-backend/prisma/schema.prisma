@@ -160,6 +160,15 @@ enum ProductionStatus {
   CANCELLED
 }
 
+/// Raw material consumed outside the recipe's limit (client decision 24 Nov 2026)
+/// needs a Production Manager's decision before the run may start. Null on a run
+/// = within the limit (or no limit could be computed).
+enum ConsumptionApproval {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 /// FRD 21 - quality is checked at three points in the lifecycle.
 enum InspectionStage {
   RAW_MATERIAL
@@ -286,6 +295,7 @@ model User {
   recipesApproved          Recipe[]                @relation("RecipesApproved")
   recipeLinkChanges        RecipeLinkLog[]         @relation("RecipeLinkChanges")
   productionBatchesCreated ProductionBatch[]       @relation("ProductionBatchesCreated")
+  consumptionDecisions     ProductionBatch[]       @relation("ConsumptionDecisions")
   qualityInspections       QualityInspection[]     @relation("QualityInspections")
   finishedGoodsPacked      FinishedGoodsBatch[]    @relation("FinishedGoodsPacked")
   batchHoldEvents          BatchHoldEvent[]        @relation("BatchHoldEvents")
@@ -1407,6 +1417,22 @@ model ProductionBatch {
   costPerUnit               Decimal?  @db.Decimal(14, 4)
   costRecordedAt            DateTime?
   costRecordedById          String?
+
+  // --- Consumption limit (client decision 24 Nov 2026) -----------------------
+  /// Raw input the recipe expects for plannedQuantity, in KG. Null = could not be
+  /// computed (non-mass units) - no limit was applied.
+  expectedInputQuantity       Decimal?             @db.Decimal(12, 3)
+  /// (actual - expected) / expected x 100, on the run's total input.
+  consumptionVariancePercent  Decimal?             @db.Decimal(7, 2)
+  /// The tolerance in force when the run was created (Super Admin setting).
+  consumptionTolerancePercent Decimal?             @db.Decimal(5, 2)
+  consumptionApproval         ConsumptionApproval?
+  /// Operator's reason for going over / under.
+  consumptionReason           String?
+  consumptionDecidedById      String?
+  consumptionDecidedBy        User?                @relation("ConsumptionDecisions", fields: [consumptionDecidedById], references: [id])
+  consumptionDecidedAt        DateTime?
+  consumptionDecisionNote     String?
 
   branchId String
   branch   Branch @relation(fields: [branchId], references: [id])
@@ -5138,6 +5164,22 @@ model AppNotification {
 /// The selling company as it must appear on a tax invoice. Single row, created
 /// on first read. Invoices snapshot these fields when issued, so editing this
 /// never restates an invoice already out.
+/// Production rules Super Admin can change without a deploy. Single row.
+model ProductionSettings {
+  id String @id @default(uuid())
+
+  /// How far raw material used may differ from what the recipe expects, as % of
+  /// the expected input, before a Production Manager must approve (both over
+  /// and under). Client decision 24 Nov 2026.
+  consumptionTolerancePercent Decimal @default(2) @db.Decimal(5, 2)
+
+  updatedById String?
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+
+  @@map("production_settings")
+}
+
 model GstSettings {
   id String @id @default(uuid())
 

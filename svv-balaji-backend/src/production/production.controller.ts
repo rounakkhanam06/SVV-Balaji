@@ -1,12 +1,14 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiProperty, ApiTags } from '@nestjs/swagger';
 import { ProductionStatus } from '@prisma/client';
 import { IsEnum } from 'class-validator';
 import { ProductionService } from './production.service';
 import {
   CompleteProductionDto,
+  ConsumptionDecisionDto,
   CreateCleaningGradingDto,
   CreateProductionBatchDto,
+  ProductionSettingsDto,
 } from './dto/production.dto';
 import { UpdateProductionBatchDto } from './dto/update-production-batch.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -71,6 +73,47 @@ export class ProductionController {
     @Query('limit') limit?: string,
   ) {
     return this.productionService.findAll(user, { status, branchId, productId }, pageRequest(page, limit));
+  }
+
+  @Get('production-settings')
+  @RequirePermission('production.view')
+  @ApiOperation({ summary: 'Production rules: consumption tolerance % (Super Admin sets it)' })
+  getSettings() {
+    return this.productionService.getSettings();
+  }
+
+  @Patch('production-settings')
+  @RequirePermission('productionSettings.manage')
+  @ApiOperation({ summary: 'Set the consumption tolerance % (client decision 24 Nov 2026)' })
+  updateSettings(@Body() dto: ProductionSettingsDto, @CurrentUser() user: JwtPayload) {
+    return this.productionService.updateSettings(dto, user.sub);
+  }
+
+  @Get('production-batches/consumption-check')
+  @RequirePermission('production.create')
+  @ApiOperation({
+    summary: 'Expected raw input and allowed min/max for a planned quantity',
+    description: 'consumed = comma-separated kg figures being entered. Use it to warn on the form before submit.',
+  })
+  consumptionCheck(
+    @Query('recipeId') recipeId: string,
+    @Query('plannedQuantity') plannedQuantity: string,
+    @Query('consumed') consumed?: string,
+  ) {
+    const planned = Number(plannedQuantity);
+    if (!recipeId || !(planned > 0)) throw new BadRequestException('recipeId and a positive plannedQuantity are required');
+    const list = (consumed ?? '').split(',').map((v) => Number(v)).filter((n) => Number.isFinite(n) && n > 0);
+    return this.productionService.consumptionCheck(recipeId, planned, list);
+  }
+
+  @Patch('production-batches/:id/consumption-approval')
+  @RequirePermission('production.approveConsumption')
+  @ApiOperation({
+    summary: 'Production Manager approves or rejects consumption outside the recipe limit',
+    description: 'Approve lets the run start. Reject cancels it and returns the reserved stock. The run creator cannot decide (Super Admin excepted).',
+  })
+  decideConsumption(@Param('id') id: string, @Body() dto: ConsumptionDecisionDto, @CurrentUser() user: JwtPayload) {
+    return this.productionService.decideConsumption(id, dto, user);
   }
 
   @Get('production-batches/:id')

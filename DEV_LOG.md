@@ -4467,3 +4467,23 @@ Tests: sales/reports/wallet suites 57/57 (2 new cancel cases). Not run: full sui
 - origin/main force-pushed from 8ca88bd to 7c5f5c4 (same message as 8ca88bd, dated 18 Nov) = 8ca88bd + the `init` vector (5 init files, `node init` in every package.json, .gitignore, backend .eslintrc.js). Pull stopped mid-merge; aborted. No loader process, no ~/.node_modules. Clean 111bd9f + this entry force-pushed over it. Branch protection / credential rotation still outstanding - the attacker re-forces after every clean push.
 - Admin: Cleaning & Grading form no longer sends qaVerified (backend rejects it since QA sign-off moved to PATCH /cleaning-grading/:id/verify). Added Verify button in the QA column (quality.create) + productionApi.verifyCleaning / useVerifyCleaningRecord.
 - Parked: recipe outputs/by-products plan in SVV_Balaji_Recipe_ByProducts_Plan.md (PROJECT_STATE A-15). Nothing built yet.
+- Docs: SVV_Balaji_Panel_Walkthrough.md — step-by-step walkthrough of every admin panel, dependencies (what breaks if a step is skipped), apps, and the client requirements list.
+
+## 2026-11-24 — Raunak (agent) — client answers recorded: recipe, production, by-products
+- Client answered 5 questions: loss gross-up costed into FG, consumption max/min limit with Production Manager approval, waste → recoverable by-products as full sellable stock, machine cost per hour with idle time + kg/hour capacity, recipe versions forward-only.
+- Recorded in new `SVV_Balaji_Client_Answers_24Nov.md`; decision rows + A-15 updated in `PROJECT_STATE.md`. **Nothing built yet.**
+- By-products as sellable stock is scope growth — Ravi to confirm commercially.
+- Follow-up same day: limit band is a Super Admin dynamic setting; started/completed production keeps its recipe version; not-started planned runs switch to the new version; by-products entered as % and fixed qty; density mandatory for kg↔litre; oil loss = actual qty entry. Still open: block vs warn when outputs ≠ 100%.
+- Final: recipe outputs ≠ 100% → block save; planned runs auto-switch to newly approved version. All build choices now settled.
+
+## 2026-11-24 — Raunak (agent) — Step 1 built: raw-material consumption limit + PM approval
+**API contract changes (backend + shared/admin):**
+- New `GET/PATCH /api/v1/production-settings` — `consumptionTolerancePercent` (default 2, 0–50). PATCH needs new permission `productionSettings.manage` (Super Admin only by default).
+- New `GET /api/v1/production-batches/consumption-check?recipeId&plannedQuantity&consumed=kg,kg` — expected kg, min/max, variance, withinLimit (or `computable:false` for non-mass units).
+- New `PATCH /api/v1/production-batches/:id/consumption-approval` `{decision: APPROVED|REJECTED, note?}` — permission `production.approveConsumption` (default PRODUCTION_MANAGER). Creator can't decide (Super Admin can). Reject needs note, cancels run, releases reservation.
+- `POST /production-batches` takes optional `consumptionReason`. Outside the limit (over **or** under) without it → 400 with the allowed range; with it → run forced to PLANNED (stock reserved, not consumed), `consumptionApproval=PENDING`, staff alert `CONSUMPTION_APPROVAL` to holders of the approve permission in that branch. `/start` refuses PENDING.
+- ProductionBatch gains `expectedInputQuantity`, `consumptionVariancePercent`, `consumptionTolerancePercent`, `consumptionApproval` (enum `ConsumptionApproval`), `consumptionReason`, `consumptionDecidedById/At`, `consumptionDecisionNote`. New table `production_settings`.
+- Expected input = Σ ingredient qty × planned/batch yield; fallback planned ÷ (1 − loss%) (100 kg @2% → 102.04). Compared in kg; litre outputs get no limit until density (step 5).
+**Admin:** production form shows expected/allowed range live, warns and asks for a reason when outside; list shows "Needs approval" tag; detail drawer has Approve / Reject; "Limit ±x%" popover on Production batches page for Super Admin.
+**Tests:** new `src/production/consumption-limit.spec.ts` (9); production + auth suites 75/75 pass; admin `tsc` clean. Traceability chain untouched (consumption rows unchanged).
+**Deploy:** migration `20261124100000_consumption_limit` (additive) + `prisma generate` + API restart + admin build. Applied to the dev (Neon) DB 24 Nov.

@@ -31,6 +31,7 @@ import { useCompleteProduction, useProductionBatches, useDeleteProductionBatch }
 import { EM_DASH, formatDate, formatQuantity } from '../../utils/format';
 import { ProductionBatchDetailDrawer } from './ProductionBatchDetailDrawer';
 import { ProductionBatchFormModal } from './ProductionBatchFormModal';
+import { ConsumptionToleranceSetting } from './ConsumptionToleranceSetting';
 
 const STATUS_COLOURS: Record<ProductionStatus, string> = {
   PLANNED: 'default',
@@ -246,8 +247,11 @@ export function ProductionBatchesPage() {
       dataIndex: 'status',
       key: 'status',
       width: 130,
-      render: (status: ProductionStatus) => (
-        <Tag color={STATUS_COLOURS[status]}>{label(status)}</Tag>
+      render: (status: ProductionStatus, batch) => (
+        <>
+          <Tag color={STATUS_COLOURS[status]}>{label(status)}</Tag>
+          {batch.consumptionApproval === 'PENDING' ? <Tag color="orange">Needs approval</Tag> : null}
+        </>
       ),
     },
     {
@@ -321,11 +325,14 @@ export function ProductionBatchesPage() {
         title="Production batches"
         subtitle="Manufacturing runs (FRD Section 20). Starting a run consumes raw material and pins the recipe version — those consumption rows are what let a finished pack name the farmers behind it."
         actions={
+          <Space>
+          <ConsumptionToleranceSetting />
           <Can do="PRODUCTION_BATCH_CREATE">
             <Button type="primary" icon={<PlusOutlined />} onClick={() => openForm()}>
               Start run
             </Button>
           </Can>
+          </Space>
         }
       />
 

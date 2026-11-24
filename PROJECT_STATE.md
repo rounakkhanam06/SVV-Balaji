@@ -320,10 +320,12 @@ are now answered** — only cloud storage (Decision 3) is still outstanding.
 | — | Machine utilisation (FRD34 gaps §2) | **Machine list + runs** | 10 Oct 2026 | ✅ Built 10 Oct |
 | — | Quick-delivery assignment | **By weight: rider states kg they can carry; Super Admin sets pay per kg** | 10 Oct 2026 | ✅ Built 10 Oct |
 | — | Refunds & affiliate payouts | **Customer picks wallet / UPI / bank; Super Admin pays from own account, marks paid; customer sees it** | 10 Oct 2026 | ✅ Built 10 Oct (wallet = instant) |
-| — | Recipe quantity tolerance (raw used vs recipe) | *Raised 28 Oct — `SVV_Balaji_Recipe_Production_Decisions_28Oct.md` §1* | — | 🟡 Not built; today no amount check (blend ratio only) |
-| — | Planned runs when a new recipe version is approved | *Raised 28 Oct — same note §2* | — | 🟡 Today: blocked at /start, must re-plan |
-| — | Oil (litre) loss measurement | *Raised 28 Oct — same note §3* | — | 🟡 Loss recorded as null for non-mass output until answered |
-| — | Recipe outputs & by-products (multi-output products, e.g. soybean oil + meal) | *Plan parked 23 Nov — `SVV_Balaji_Recipe_ByProducts_Plan.md`. Raunak to confirm 3 build choices; client to confirm whether by-products become sellable stock* | — | 🟡 Not built; workaround = loss % covers all non-main output |
+| — | Recipe quantity tolerance (raw used vs recipe) | **Max/min consumption limit from recipe; warn + notify Production Manager; no over/under consumption without PM approval** (`SVV_Balaji_Client_Answers_24Nov.md` §2) | 24 Nov 2026 | ✅ Built 24 Nov (needs migration `20261124100000_consumption_limit` on deploy). Band = Super Admin setting, default ±2% |
+| — | Planned runs when a new recipe version is approved | **Forward only: old version unusable after approval; past batches unchanged** (`SVV_Balaji_Client_Answers_24Nov.md` §5) | 24 Nov 2026 | 🟡 Not built: started/completed runs keep their version; not-started planned runs move to the new version (replaces today's block + re-plan) |
+| — | Oil (litre) loss measurement | **Record actual loss quantity** (`SVV_Balaji_Client_Answers_24Nov.md`) | 24 Nov 2026 | 🟡 Not built |
+| — | Recipe outputs & by-products (multi-output products, e.g. soybean oil + meal) | **Waste classified recoverable (by-product) vs non-recoverable; by-products fully sellable with own stock, sales, invoices** (`SVV_Balaji_Client_Answers_24Nov.md` §3) | 24 Nov 2026 | 🟡 Not built; scope growth — Ravi to confirm. Raunak's 3 build choices still open |
+| — | Processing loss costing | **Raw grossed up (100 kg FG → 102.04 kg raw); loss cost absorbed into FG cost** (`SVV_Balaji_Client_Answers_24Nov.md` §1) | 24 Nov 2026 | 🟡 Not built |
+| — | Machine cost basis | **Per hour, idle time tracked, rated capacity kg/hour (e.g. 200)** (`SVV_Balaji_Client_Answers_24Nov.md` §4) | 24 Nov 2026 | 🟡 Not built; extends 10 Oct machines |
 | — | Farmer training channel | **No farmer app — executive visits the farm, trains, logs manually in the portal** | 11 Aug 2026 | ✅ Scope confirmed, no change needed |
 
 ### Decision 1 — B2B + B2C with per-channel pricing
@@ -666,7 +668,7 @@ must not be read as "nearly ready".
 | **A-11** | **Confirm GSP vendor, GSTIN and API credentials** | SVV Balaji (Finance) | **18 Aug** | **Open — Critical.** Invoicing is built and waiting: the company GSTIN goes into GST Settings; the GSP is one adapter class (29 Sep) |
 | **A-12** | **Agree a pagination convention for list endpoints** | Raunak | **13 Aug** | **Open — target date reached.** 22 panel screens now built against the unpaginated shape; the envelope adapter absorbs it, so nothing is blocked, but the movement ledger, production and quality lists grow monotonically |
 | A-13 | Decide: order `DRAFT` state, finished-goods movement ledger, allocation history on cancel | Raunak | 15 Aug | Open — shapes WS2.5 screens |
-| A-15 | Recipe by-products: confirm build choices (100% rule, %/qty entry, density gate) and ask client about sellable by-products + per-product %s | Raunak / Ravi | — | Open — see `SVV_Balaji_Recipe_ByProducts_Plan.md` |
+| A-15 | Recipe by-products: confirm build choices (100% rule, %/qty entry, density gate) and ask client about sellable by-products + per-product %s | Raunak / Ravi | — | Client part answered 24 Nov (sellable, own stock/invoices). 24 Nov follow-up: % + fixed qty both; density mandatory; oil loss = actual qty entry. ≠100% = block. Open: per-product %s, scope sign-off |
 | A-14 | Fix permission seeding so a new key added to an already-configured role's defaults actually grants | Raunak | — | ✅ **Closed 21 Sep** — `permission_key_state` + `PermissionsService.backfillNewPermissions()`; new keys reach configured roles on boot, revocations stick. See `DEV_LOG.md` (2026-09-21) |
 
 ---

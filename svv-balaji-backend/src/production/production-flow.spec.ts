@@ -63,7 +63,7 @@ describe('ProductionService - run lifecycle', () => {
       qualityInspection: { findFirst: jest.fn(async () => null) },
       $transaction: jest.fn(async (cb: any) => cb(tx)),
     };
-    service = new ProductionService(prisma, {} as any, cost);
+    service = new ProductionService(prisma, {} as any, cost, { notify: jest.fn() } as any);
   });
 
   describe('completing', () => {

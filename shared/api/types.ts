@@ -2100,6 +2100,15 @@ export interface ProductionBatch {
   totalCost?: string | null;
   costPerUnit?: string | null;
 
+  /** Consumption limit (client decision 24 Nov 2026). Null approval = within limit. */
+  expectedInputQuantity?: string | null;
+  consumptionVariancePercent?: string | null;
+  consumptionTolerancePercent?: string | null;
+  consumptionApproval?: 'PENDING' | 'APPROVED' | 'REJECTED' | null;
+  consumptionReason?: string | null;
+  consumptionDecidedAt?: string | null;
+  consumptionDecisionNote?: string | null;
+
   branchId: string;
   branch?: BranchRef;
   createdById: string;
@@ -2204,6 +2213,27 @@ export interface CreateProductionBatchInput {
   machineNumber?: string;
   operatorName?: string;
   productionLine?: string;
+  /** Required when raw material is outside the recipe limit; the run then waits for approval. */
+  consumptionReason?: string;
+}
+
+/** GET /production-batches/consumption-check. All figures in KG. */
+export type ConsumptionCheck =
+  | {
+      computable: true;
+      expectedKg: number;
+      actualKg: number;
+      minKg: number;
+      maxKg: number;
+      variancePercent: number;
+      tolerancePercent: number;
+      /** Null when no quantities were sent. */
+      withinLimit: boolean | null;
+    }
+  | { computable: false; reason: string };
+
+export interface ProductionSettings {
+  consumptionTolerancePercent: string;
 }
 
 // --- Quality (FRD Section 21) -----------------------------------------------

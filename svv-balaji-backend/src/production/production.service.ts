@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma, ProductionStatus, ProductionType } from '@prisma/client';
+import { ConsumptionApproval, Prisma, ProductionStatus, ProductionType, UserRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { scopedBranchId } from '../common/branch-scope';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy';
@@ -12,6 +12,8 @@ import {
 } from './dto/production.dto';
 import { listPage, type PageRequest } from '../common/pagination';
 import { kgOf, toUnit } from '../packaging/packaging.service';
+import { StaffAlertsService } from '../realtime/staff-alerts.service';
+import { checkConsumptionLimit, type ConsumptionLimitResult } from './consumption-limit.logic';
 
 /**
  * How far a blend may drift from its recipe before production is refused,
@@ -53,7 +55,92 @@ export class ProductionService {
     private readonly prisma: PrismaService,
     private readonly sequence: SequenceService,
     private readonly cost: ProductionCostService,
+    private readonly alerts: StaffAlertsService,
   ) {}
+
+  // --- Production settings & consumption limit (client decision 24 Nov 2026) --
+
+  async getSettings() {
+    const row = await this.prisma.productionSettings.findFirst({ orderBy: { createdAt: 'asc' } });
+    return row ?? this.prisma.productionSettings.create({ data: {} });
+  }
+
+  async updateSettings(dto: { consumptionTolerancePercent: number }, userId: string) {
+    const current = await this.getSettings();
+    return this.prisma.productionSettings.update({
+      where: { id: current.id },
+      data: { consumptionTolerancePercent: dto.consumptionTolerancePercent, updatedById: userId },
+    });
+  }
+
+  /**
+   * Expected raw input for a run and the allowed min/max, so the form can warn
+   * before submit. `consumed` is optional: without it only the limits come back.
+   */
+  async consumptionCheck(recipeId: string, plannedQuantity: number, consumed: number[] = []) {
+    const recipe = await this.prisma.recipe.findUnique({ where: { id: recipeId }, include: { ingredients: true } });
+    if (!recipe) throw new NotFoundException('Recipe not found');
+    const { consumptionTolerancePercent } = await this.getSettings();
+    const result = this.limitFor(recipe, plannedQuantity, consumed.map((q) => ({ quantity: q, unit: 'KG' })), Number(consumptionTolerancePercent));
+    return result
+      ? { computable: true, ...result, withinLimit: consumed.length ? result.withinLimit : null, unit: 'KG' }
+      : { computable: false, reason: 'Recipe or output is not in a mass unit, so no limit applies yet.' };
+  }
+
+  private limitFor(
+    recipe: { unit: string; batchYieldQuantity: Prisma.Decimal | null; expectedLossPercent: Prisma.Decimal | null; ingredients: Array<{ quantity: Prisma.Decimal; unit: string }> },
+    plannedQuantity: number,
+    consumed: Array<{ quantity: number; unit: string }>,
+    tolerancePercent: number,
+  ): ConsumptionLimitResult | null {
+    return checkConsumptionLimit({
+      plannedQuantity,
+      unit: recipe.unit,
+      batchYieldQuantity: recipe.batchYieldQuantity == null ? null : Number(recipe.batchYieldQuantity),
+      expectedLossPercent: recipe.expectedLossPercent == null ? null : Number(recipe.expectedLossPercent),
+      ingredients: recipe.ingredients.map((g) => ({ quantity: Number(g.quantity), unit: g.unit })),
+      consumed,
+      tolerancePercent,
+    });
+  }
+
+  /**
+   * Production Manager approves or rejects a run whose raw material is outside
+   * the limit. Approve = the run may start. Reject = the run is cancelled and its
+   * reservation given back. The person who created the run cannot decide it
+   * (Super Admin excepted).
+   */
+  async decideConsumption(id: string, dto: { decision: 'APPROVED' | 'REJECTED'; note?: string }, user: JwtPayload) {
+    const run = await this.prisma.productionBatch.findUnique({ where: { id }, include: { consumptions: true } });
+    if (!run) throw new NotFoundException('Production batch not found');
+    if (run.consumptionApproval !== ConsumptionApproval.PENDING) {
+      throw new BadRequestException(
+        run.consumptionApproval
+          ? `This run's consumption was already ${run.consumptionApproval.toLowerCase()}.`
+          : 'This run is within the consumption limit - nothing to approve.',
+      );
+    }
+    if (run.createdById === user.sub && user.role !== UserRole.SUPER_ADMIN) {
+      throw new BadRequestException('You created this run, so another Production Manager has to approve its consumption.');
+    }
+    if (dto.decision === 'REJECTED' && !dto.note?.trim()) {
+      throw new BadRequestException('Give a reason when rejecting, so the operator knows what to fix.');
+    }
+    const decided = {
+      consumptionApproval: dto.decision as ConsumptionApproval,
+      consumptionDecidedById: user.sub,
+      consumptionDecidedAt: new Date(),
+      consumptionDecisionNote: dto.note?.trim() || null,
+    };
+
+    if (dto.decision === 'APPROVED') {
+      return this.prisma.productionBatch.update({ where: { id }, data: decided });
+    }
+    return this.prisma.$transaction(async (tx) => {
+      if (run.status === ProductionStatus.PLANNED) await this.releaseReservation(tx, run);
+      return tx.productionBatch.update({ where: { id }, data: { ...decided, status: ProductionStatus.CANCELLED } });
+    });
+  }
 
   /**
    * The machine a run is booked on, checked and turned into the snapshot the
@@ -335,11 +422,35 @@ export class ProductionService {
       this.assertBlendMatchesRecipe(recipe, rmBatches, dto.consumptions);
     }
 
+    /**
+     * Consumption limit (client decision 24 Nov 2026). Outside the Super Admin's
+     * tolerance - over or under - the run is still created, but only as PLANNED
+     * (stock reserved, nothing consumed) and held for a Production Manager's
+     * approval. It cannot start until approved.
+     */
+    const { consumptionTolerancePercent } = await this.getSettings();
+    const limit = this.limitFor(
+      recipe,
+      dto.plannedQuantity,
+      dto.consumptions.map((c) => ({ quantity: c.quantityUsed, unit: 'KG' })),
+      Number(consumptionTolerancePercent),
+    );
+    const needsApproval = !!limit && !limit.withinLimit;
+    if (limit && needsApproval && !dto.consumptionReason?.trim()) {
+      throw new BadRequestException(
+        `Raw material of ${limit.actualKg} kg is ${limit.variancePercent > 0 ? 'over' : 'under'} the recipe's ` +
+          `${limit.expectedKg} kg by ${Math.abs(limit.variancePercent)}% (allowed ${limit.minKg}-${limit.maxKg} kg, ` +
+          `+/-${limit.tolerancePercent}%). Correct the quantity, or give a reason - the run will then wait for a ` +
+          'Production Manager to approve it.',
+      );
+    }
+    const status = needsApproval ? ProductionStatus.PLANNED : dto.status;
+
     const productionDate = new Date(dto.productionDate);
     const machine = await this.machineFields(dto.machineId, dto.branchId);
-    if (dto.status !== ProductionStatus.PLANNED) await this.assertMachineFree(dto.machineId);
+    if (status !== ProductionStatus.PLANNED) await this.assertMachineFree(dto.machineId);
 
-    return this.prisma.$transaction(async (tx) => {
+    const created = await this.prisma.$transaction(async (tx) => {
       const productionBatchNumber = await this.sequence.next(tx, 'PB', productionDate);
 
       /**
@@ -355,7 +466,7 @@ export class ProductionService {
        * IN_PROGRESS - which is why FRD 20.1 production planning did not exist
        * in practice despite the status being in the enum.
        */
-      const planOnly = dto.status === ProductionStatus.PLANNED;
+      const planOnly = status === ProductionStatus.PLANNED;
 
       const production = await tx.productionBatch.create({
         data: {
@@ -377,6 +488,11 @@ export class ProductionService {
           branchId: dto.branchId,
           warehouseId: dto.warehouseId,
           createdById,
+          expectedInputQuantity: limit?.expectedKg,
+          consumptionVariancePercent: limit?.variancePercent,
+          consumptionTolerancePercent: limit?.tolerancePercent,
+          consumptionApproval: needsApproval ? ConsumptionApproval.PENDING : null,
+          consumptionReason: needsApproval ? dto.consumptionReason!.trim() : null,
         },
       });
 
@@ -441,6 +557,22 @@ export class ProductionService {
         },
       });
     });
+
+    if (limit && needsApproval && created) {
+      await this.alerts.notify({
+        type: 'CONSUMPTION_APPROVAL',
+        title: `Approval needed: ${created.productionBatchNumber}`,
+        body:
+          `Raw material ${limit.actualKg} kg vs recipe ${limit.expectedKg} kg ` +
+          `(${limit.variancePercent > 0 ? '+' : ''}${limit.variancePercent}%, allowed +/-${limit.tolerancePercent}%). ` +
+          `Reason: ${dto.consumptionReason!.trim()}`,
+        link: `/production-batches/${created.id}`,
+        permission: 'production.approveConsumption',
+        branchId: dto.branchId,
+        tag: `consumption-${created.id}`,
+      });
+    }
+    return created && { ...created, consumptionLimit: limit };
   }
 
   /**
@@ -640,6 +772,11 @@ export class ProductionService {
     if (production.status !== ProductionStatus.PLANNED) {
       throw new BadRequestException(
         `Only a PLANNED run can be started (this one is ${production.status}).`,
+      );
+    }
+    if (production.consumptionApproval === ConsumptionApproval.PENDING) {
+      throw new BadRequestException(
+        'Raw material on this run is outside the recipe limit and is waiting for a Production Manager to approve it.',
       );
     }
     if (!production.warehouseId) {

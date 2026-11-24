@@ -974,6 +974,20 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
         defaultRoles: [PROD],
       },
       {
+        key: 'production.approveConsumption',
+        label: 'Approve raw material outside the recipe limit',
+        description:
+          'A run using more or less raw material than the recipe allows (tolerance set by Super Admin) ' +
+          'waits for this. Approve lets it start; reject cancels it. Not the run creator.',
+        defaultRoles: [PROD],
+      },
+      {
+        key: 'productionSettings.manage',
+        label: 'Set production rules',
+        description: 'Consumption tolerance % - how far raw material may differ from the recipe before approval is needed.',
+        defaultRoles: [],
+      },
+      {
         key: 'production.edit',
         label: 'Correct a production batch',
         description:

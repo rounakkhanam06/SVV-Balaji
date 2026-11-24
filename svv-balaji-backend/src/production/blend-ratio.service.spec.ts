@@ -85,6 +85,8 @@ describe('ProductionService - blend ratio enforcement', () => {
 
     prisma = {
       recipe: { findUnique: jest.fn(async () => recipe) },
+      // Blend tests are not about the amount: a tolerance wide enough that the consumption limit never trips.
+      productionSettings: { findFirst: jest.fn(async () => ({ id: 's', consumptionTolerancePercent: 100000 })) },
       rawMaterialBatch: {
         findMany: jest.fn(async ({ where }) =>
           where.id.in.map((id: string) => batches[id]).filter(Boolean),
@@ -109,6 +111,7 @@ describe('ProductionService - blend ratio enforcement', () => {
       prisma as unknown as PrismaService,
       sequence as unknown as SequenceService,
       { refreshAfterCompletion: jest.fn() } as unknown as ProductionCostService,
+      { notify: jest.fn() } as any,
     );
   });
 

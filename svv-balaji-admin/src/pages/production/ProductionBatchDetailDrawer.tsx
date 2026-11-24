@@ -1,7 +1,9 @@
-import { Alert, Descriptions, Drawer, Empty, Space, Spin, Table, Tag, Typography } from 'antd';
+import { useState } from 'react';
+import { Alert, App as AntApp, Button, Descriptions, Drawer, Empty, Input, Space, Spin, Table, Tag, Typography } from 'antd';
+import { useCanKey } from '@shared/auth/useCan';
 import { apiErrorMessage } from '../../api/client';
 import type { ProductionConsumption, QualityInspection } from '../../api/types';
-import { useProductionBatch } from '../../hooks/useProduction';
+import { useDecideConsumption, useProductionBatch } from '../../hooks/useProduction';
 import { EM_DASH, formatDate, formatQuantity } from '../../utils/format';
 import { ProductionCostCard } from './ProductionCostCard';
 
@@ -25,6 +27,21 @@ export function ProductionBatchDetailDrawer({
 }: ProductionBatchDetailDrawerProps) {
   const batch = useProductionBatch(batchId ?? undefined);
   const data = batch.data;
+  const can = useCanKey();
+  const decide = useDecideConsumption();
+  const { message } = AntApp.useApp();
+  const [note, setNote] = useState('');
+
+  const onDecide = async (decision: 'APPROVED' | 'REJECTED') => {
+    if (!data) return;
+    try {
+      await decide.mutateAsync({ id: data.id, decision, note: note.trim() || undefined });
+      message.success(decision === 'APPROVED' ? 'Approved - the run can now be started' : 'Rejected - run cancelled, stock released');
+      setNote('');
+    } catch (e) {
+      message.error(apiErrorMessage(e, 'Could not record the decision'), 8);
+    }
+  };
 
   return (
     <Drawer
@@ -41,6 +58,35 @@ export function ProductionBatchDetailDrawer({
         <Alert type="error" showIcon message={apiErrorMessage(batch.error)} />
       ) : data ? (
         <Space direction="vertical" size={16} style={{ width: '100%' }}>
+          {data.consumptionApproval ? (
+            <Alert
+              type={data.consumptionApproval === 'PENDING' ? 'warning' : data.consumptionApproval === 'APPROVED' ? 'success' : 'error'}
+              showIcon
+              message={
+                data.consumptionApproval === 'PENDING'
+                  ? 'Raw material outside the recipe limit - waiting for Production Manager approval'
+                  : `Consumption outside limit was ${data.consumptionApproval.toLowerCase()}`
+              }
+              description={
+                <Space direction="vertical" style={{ width: '100%' }}>
+                  <span>
+                    Expected {data.expectedInputQuantity ?? EM_DASH} kg · variance {data.consumptionVariancePercent ?? EM_DASH}% · allowed ±{data.consumptionTolerancePercent ?? EM_DASH}%
+                  </span>
+                  {data.consumptionReason ? <span>Reason: {data.consumptionReason}</span> : null}
+                  {data.consumptionDecisionNote ? <span>Decision note: {data.consumptionDecisionNote}</span> : null}
+                  {data.consumptionApproval === 'PENDING' && can('production.approveConsumption') ? (
+                    <>
+                      <Input.TextArea rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note (required to reject)" />
+                      <Space>
+                        <Button type="primary" loading={decide.isPending} onClick={() => void onDecide('APPROVED')}>Approve</Button>
+                        <Button danger loading={decide.isPending} disabled={!note.trim()} onClick={() => void onDecide('REJECTED')}>Reject & cancel run</Button>
+                      </Space>
+                    </>
+                  ) : null}
+                </Space>
+              }
+            />
+          ) : null}
           <Descriptions bordered column={2} size="small" title="Run">
             <Descriptions.Item label="Product">{data.product?.name ?? EM_DASH}</Descriptions.Item>
             <Descriptions.Item label="Status">

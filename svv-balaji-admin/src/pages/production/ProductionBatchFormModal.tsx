@@ -19,6 +19,7 @@ import type { Dayjs } from 'dayjs';
 import { useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { machinesApi } from '@shared/api/machines';
+import { productionApi } from '@shared/api/production';
 import { apiErrorMessage } from '../../api/client';
 import type { CreateProductionBatchInput, ProductionBatch } from '../../api/types';
 import { BranchSelect, WarehouseSelect } from '../../components/pickers';
@@ -111,6 +112,22 @@ export function ProductionBatchFormModal({ open, onClose }: ProductionBatchFormM
     [recipe, consumptions, cropOfBatch, plannedQuantity],
   );
 
+  /**
+   * Consumption limit (client decision 24 Nov 2026). The server is the judge;
+   * this asks it for the expected input and allowed range so the operator sees
+   * the warning before submitting. Outside the range a reason is required and
+   * the run waits for a Production Manager.
+   */
+  const consumedKg = (consumptions ?? []).map((l) => Number(l?.quantityUsed ?? 0)).filter((n) => n > 0);
+  const limitQuery = useQuery({
+    queryKey: ['consumption-check', recipeId, Number(plannedQuantity ?? 0), consumedKg.join(',')],
+    queryFn: () => productionApi.consumptionCheck(recipeId as string, Number(plannedQuantity), consumedKg),
+    enabled: open && !!recipeId && Number(plannedQuantity ?? 0) > 0,
+    placeholderData: (prev) => prev,
+  });
+  const limit = limitQuery.data?.computable ? limitQuery.data : null;
+  const outsideLimit = !!limit && limit.withinLimit === false;
+
   // Only a multigrain run is gated on the ratio - a single-grain recipe has no
   // ratio to hold.
   const blendBlocks = multigrain && !blend.balanced;
@@ -134,7 +151,11 @@ export function ProductionBatchFormModal({ open, onClose }: ProductionBatchFormM
         ...values,
         productionDate: toIsoDate(values.productionDate) as string,
       });
-      message.success(`Production run ${batch.productionBatchNumber} started`, 6);
+      if (batch.consumptionApproval === 'PENDING') {
+        message.warning(`Run ${batch.productionBatchNumber} is waiting for Production Manager approval - stock reserved, not consumed`, 8);
+      } else {
+        message.success(`Production run ${batch.productionBatchNumber} ${batch.status === 'PLANNED' ? 'planned' : 'started'}`, 6);
+      }
       onClose();
     } catch (error) {
       message.error(apiErrorMessage(error, 'Could not start the run'), 8);
@@ -323,6 +344,37 @@ export function ProductionBatchFormModal({ open, onClose }: ProductionBatchFormM
             )}
           </Form.List>
         )}
+
+        {limit ? (
+          <Alert
+            type={outsideLimit ? 'warning' : 'info'}
+            showIcon
+            style={{ marginTop: 16 }}
+            message={
+              outsideLimit
+                ? `Raw material ${limit.actualKg} kg is ${limit.variancePercent > 0 ? 'over' : 'under'} the recipe by ${Math.abs(limit.variancePercent)}%`
+                : `Recipe needs about ${limit.expectedKg} kg of raw material`
+            }
+            description={
+              <>
+                Allowed {limit.minKg} - {limit.maxKg} kg (±{limit.tolerancePercent}%, set by Super Admin).
+                {outsideLimit
+                  ? ' Correct the quantity, or give a reason below: the run will be saved as planned (stock reserved) and cannot start until a Production Manager approves it.'
+                  : null}
+              </>
+            }
+          />
+        ) : null}
+        {outsideLimit ? (
+          <Form.Item
+            name="consumptionReason"
+            label="Reason for the difference"
+            style={{ marginTop: 12 }}
+            rules={[required('Reason')]}
+          >
+            <Input.TextArea rows={2} placeholder="e.g. grain is moist, extra needed for the same output" />
+          </Form.Item>
+        ) : null}
 
         <Divider orientation="left" plain>
           Machine & operator (FRD 20.6)

@@ -5,7 +5,9 @@ import type {
   CompleteProductionInput,
   CreateCleaningGradingInput,
   CreateProductInput,
+  ConsumptionCheck,
   CreateProductionBatchInput,
+  ProductionSettings,
   CreateRecipeInput,
   Product,
   ProductionBatch,
@@ -233,6 +235,30 @@ export const productionApi = {
 
   async deleteBatch(id: string): Promise<void> {
     await api.delete(`/production-batches/${id}`);
+  },
+
+  /** Expected raw input and allowed min/max for a run (client decision 24 Nov 2026). */
+  async consumptionCheck(recipeId: string, plannedQuantity: number, consumed: number[]): Promise<ConsumptionCheck> {
+    const response = await api.get<ConsumptionCheck>('/production-batches/consumption-check', {
+      params: { recipeId, plannedQuantity, consumed: consumed.join(',') || undefined },
+    });
+    return unwrap<ConsumptionCheck>(response.data);
+  },
+
+  /** Production Manager: approve lets the run start; reject cancels it. */
+  async decideConsumption(id: string, decision: 'APPROVED' | 'REJECTED', note?: string): Promise<ProductionBatch> {
+    const response = await api.patch<ProductionBatch>(`/production-batches/${id}/consumption-approval`, pruneEmpty({ decision, note }));
+    return unwrap<ProductionBatch>(response.data);
+  },
+
+  async getSettings(): Promise<ProductionSettings> {
+    const response = await api.get<ProductionSettings>('/production-settings');
+    return unwrap<ProductionSettings>(response.data);
+  },
+
+  async updateSettings(input: { consumptionTolerancePercent: number }): Promise<ProductionSettings> {
+    const response = await api.patch<ProductionSettings>('/production-settings', input);
+    return unwrap<ProductionSettings>(response.data);
   },
 
   /** FRD 20.5 — records actual output and derives process loss. */

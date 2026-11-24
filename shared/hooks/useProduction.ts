@@ -277,3 +277,28 @@ export function useSetProductionStatus() {
     },
   });
 }
+
+/** Production Manager decision on a run outside the consumption limit. Reject releases reserved stock. */
+export function useDecideConsumption() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, decision, note }: { id: string; decision: 'APPROVED' | 'REJECTED'; note?: string }) =>
+      productionApi.decideConsumption(id, decision, note),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.productionBatches.all });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.warehouses.all });
+    },
+  });
+}
+
+export function useProductionSettings() {
+  return useQuery({ queryKey: ['production-settings'], queryFn: () => productionApi.getSettings() });
+}
+
+export function useUpdateProductionSettings() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { consumptionTolerancePercent: number }) => productionApi.updateSettings(input),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['production-settings'] }),
+  });
+}

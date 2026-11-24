@@ -8,6 +8,7 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  Max,
   Min,
   ValidateNested,
 } from 'class-validator';
@@ -187,6 +188,34 @@ export class CreateProductionBatchDto {
   @IsOptional()
   @IsString()
   productionLine?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Required when raw material is outside the recipe limit (GET /production-batches/consumption-check). ' +
+      'The run is then created PLANNED and waits for a Production Manager to approve it.',
+  })
+  @IsOptional()
+  @IsString()
+  consumptionReason?: string;
+}
+
+export class ProductionSettingsDto {
+  @ApiProperty({ description: 'Allowed difference between raw material used and the recipe, % of expected (over and under).', example: 2 })
+  @IsNumber()
+  @Min(0)
+  @Max(50)
+  consumptionTolerancePercent: number;
+}
+
+export class ConsumptionDecisionDto {
+  @ApiProperty({ enum: ['APPROVED', 'REJECTED'] })
+  @IsEnum(['APPROVED', 'REJECTED'])
+  decision: 'APPROVED' | 'REJECTED';
+
+  @ApiPropertyOptional({ description: 'Required when rejecting.' })
+  @IsOptional()
+  @IsString()
+  note?: string;
 }
 
 export class CompleteProductionDto {

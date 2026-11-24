@@ -16,7 +16,8 @@ export type StaffAlertType =
   | 'RETURN_REQUEST'
   | 'AFFILIATE_APPLICATION'
   | 'RETAILER_SIGNUP'
-  | 'SUPPORT_TICKET';
+  | 'SUPPORT_TICKET'
+  | 'CONSUMPTION_APPROVAL';
 
 export interface StaffAlert {
   type: StaffAlertType;

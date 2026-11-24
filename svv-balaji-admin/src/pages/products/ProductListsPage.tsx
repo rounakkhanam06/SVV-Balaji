@@ -4,6 +4,7 @@ import {
   CheckCircleOutlined,
   DeleteOutlined,
   EditOutlined,
+  EyeOutlined,
   PictureOutlined,
   PlusOutlined,
   SearchOutlined,
@@ -38,6 +39,7 @@ import { apiErrorMessage } from '../../api/client';
 import type { Product } from '../../api/types';
 import { Can } from '../../components/Can';
 import { PageHeader } from '../../components/PageHeader';
+import { ProductViewDrawer } from './ProductViewDrawer';
 import { CategorySelect } from '../../components/pickers';
 import {
   useDeleteProduct,
@@ -64,6 +66,7 @@ const { Text } = Typography;
 export function ProductListsPage() {
   const { message } = AntApp.useApp();
   const navigate = useNavigate();
+  const [viewId, setViewId] = useState<string | null>(null);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
@@ -278,10 +281,13 @@ export function ProductListsPage() {
     {
       title: 'Actions',
       key: 'actions',
-      width: 130,
+      width: 160,
       fixed: 'right',
       render: (_, record) => (
         <Space size={2}>
+          <Tooltip title="View product">
+            <Button type="text" icon={<EyeOutlined />} onClick={() => setViewId(record.id)} />
+          </Tooltip>
           <Can do="PRODUCT_MANAGE">
             <Tooltip title="Edit product">
               <Button type="text" icon={<EditOutlined />} onClick={() => navigate(`/products/edit/${record.id}`)} />
@@ -320,6 +326,7 @@ export function ProductListsPage() {
 
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
+      <ProductViewDrawer productId={viewId} onClose={() => setViewId(null)} />
       <PageHeader
         title="Product List & Catalog Editor"
         subtitle="Everything shoppers and retailers see is managed here: details, prices, pack sizes, category placement and publishing."

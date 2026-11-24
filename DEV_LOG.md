@@ -4490,3 +4490,6 @@ Tests: sales/reports/wallet suites 57/57 (2 new cancel cases). Not run: full sui
 
 ## 2026-11-24 — Raunak (agent) — removed "FRD" references from user-visible text
 - Admin, field app, shared components and user-facing backend strings (permission descriptions on the Roles screen, report/completeness reasons): page subtitles, headings, tooltips no longer cite FRD section numbers. Code comments and Swagger docs keep them (developer-only). No behaviour change. Rule going forward: don't put FRD references in UI text.
+
+## 2026-11-24 — Raunak (agent) — product View drawer
+- Admin Product List: new eye icon in Actions opens a read-only drawer (`ProductViewDrawer.tsx`) with images, basics, live B2C/B2B prices, pack sizes, ordering/stock, specs, details, FAQs. Visible to anyone who can open the list. Uses existing `GET /products/:id`; no API change.

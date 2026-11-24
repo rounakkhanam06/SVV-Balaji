@@ -1,5 +1,5 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermission } from '../auth/decorators/require-permission.decorator';
@@ -42,9 +42,13 @@ export class DashboardController {
   @RequirePermission('dashboard.view')
   @ApiOperation({
     summary: 'Customer & Retail dashboard: today and this month by channel, orders to fulfil, approvals, tickets, returns, receivables, low stock',
-    description: 'Today / this month are IST calendar days. Branch staff see their own branch.',
+    description:
+      'Today / this month are IST calendar days. Optional from/to (YYYY-MM-DD, IST) replace "this month" ' +
+      'with that period for the revenue-by-channel figures. Branch staff see their own branch.',
   })
-  getCommerce(@CurrentUser() user: JwtPayload) {
-    return this.reports.commerceDashboard(user);
+  @ApiQuery({ name: 'from', required: false, example: '2026-11-01' })
+  @ApiQuery({ name: 'to', required: false, example: '2026-11-24' })
+  getCommerce(@CurrentUser() user: JwtPayload, @Query('from') from?: string, @Query('to') to?: string) {
+    return this.reports.commerceDashboard(user, from, to);
   }
 }

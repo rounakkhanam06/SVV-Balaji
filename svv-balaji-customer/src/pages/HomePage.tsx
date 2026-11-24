@@ -18,6 +18,7 @@ import {
   ThunderboltFilled,
   TruckFilled,
   UserOutlined,
+  DownOutlined,
 } from '@ant-design/icons';
 import { Badge, Button, Carousel, Input, InputNumber, Typography } from 'antd';
 import { useEffect, useState, type ReactNode } from 'react';
@@ -44,6 +45,8 @@ import { locationLine, useShopperLocation } from '../location/useShopperLocation
 
 interface HeroSlide {
   id: string;
+  /** IMAGE_ONLY = finished artwork (1600x600), drawn as-is. */
+  layout?: 'TEXT' | 'IMAGE_ONLY';
   badgeText?: string | null;
   title: string;
   description: string;
@@ -113,6 +116,7 @@ export function HomePage() {
     publishedBanners && publishedBanners.length > 0
       ? publishedBanners.map((banner) => ({
           id: banner.id,
+          layout: banner.layout,
           badgeText: banner.badgeText,
           title: banner.title,
           description: banner.description,
@@ -143,149 +147,42 @@ export function HomePage() {
         className="store-safe-top mobile-only"
         style={{
           background: '#ffffff',
-          borderBottom: '1px solid #e2e8f0',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
+          borderBottom: '1px solid #eeece9',
         }}
       >
-        <div
-          className="store-container home-mobile-header"
-        >
-          {/* Logo & Greeting / Delivery Address */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
-            <Link
-              to="/"
-              className="home-logo-box"
-              style={{
-                textDecoration: 'none',
-              }}
-            >
-              <img
-                src="/images/desi-tokri-cropped.png"
-                alt="Desi Tokri"
-                className="home-logo-img"
-              />
-            </Link>
+        {/* Three clear zones: logo | who + where (two lines) | trace. */}
+        <div className="store-container home-mobile-header">
+          <Link to="/" className="home-logo-box" aria-label="Desi Tokri home">
+            <img src="/images/desi-tokri-cropped.png" alt="Desi Tokri" className="home-logo-img" />
+          </Link>
 
-            <div style={{ flex: 1, minWidth: 0 }}>
-              {isRetailer ? (
-                <>
-                  <Typography.Title
-                    level={4}
-                    style={{
-                      margin: 0,
-                      color: '#065f46',
-                      lineHeight: 1.2,
-                      fontSize: 14,
-                      fontWeight: 700,
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                    }}
-                  >
-                    {retailerProfile?.storeName || 'My Store'}
-                  </Typography.Title>
-                  <button
-                    type="button"
-                    onClick={() => setPickingLocation(true)}
-                    aria-label="Change location"
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 4, marginTop: 2, padding: 0, border: 'none', background: 'none',
-                      cursor: 'pointer', maxWidth: '100%', minWidth: 0,
-                    }}
-                  >
-                    <EnvironmentOutlined style={{ color: '#ea580c', fontSize: 12, flexShrink: 0 }} />
-                    <span
-                      style={{
-                        fontSize: 12, fontWeight: 600, color: shopperLocation ? '#334155' : '#ea580c',
-                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                      }}
-                    >
-                      {shopperLocation ? locationLine(shopperLocation) : 'Set your location'}
-                    </span>
-                    <span style={{ fontSize: 10, color: '#64748b', flexShrink: 0 }}>▾</span>
-                  </button>
-                </>
-              ) : (
-                <div role="button" tabIndex={0} onClick={() => setPickingLocation(true)} onKeyDown={(e) => e.key === 'Enter' && setPickingLocation(true)}
-                  style={{ display: 'block', minWidth: 0, cursor: 'pointer' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
-                    <EnvironmentOutlined style={{ color: '#ea580c', fontSize: 13, flexShrink: 0 }} />
-                    <Typography.Text
-                      strong
-                      style={{
-                        fontSize: 13,
-                        color: '#0f172a',
-                        lineHeight: 1.25,
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        display: 'block',
-                      }}
-                    >
-                      {shopperLocation ? `Deliver to ${locationLine(shopperLocation)}` : 'Set delivery location'} ▾
-                    </Typography.Text>
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 11,
-                      color: '#64748b',
-                      marginTop: 2,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                    }}
-                  >
-                    <span
-                      style={{
-                        background: '#ecfdf5',
-                        color: '#047857',
-                        fontWeight: 700,
-                        padding: '1px 6px',
-                        borderRadius: 4,
-                        fontSize: 10,
-                        flexShrink: 0,
-                        lineHeight: 1.3,
-                      }}
-                    >
-                      ⚡ 24 Mins
-                    </span>
-                    <span className="home-header-badge-extra" style={{ color: '#cbd5e1' }}>•</span>
-                    <span
-                      className="home-header-badge-extra"
-                      style={{
-                        fontWeight: 500,
-                        fontSize: 10,
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                      }}
-                    >
-                      100% Farm Traceable
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+          <button
+            type="button"
+            className="home-hdr-who"
+            onClick={() => setPickingLocation(true)}
+            aria-label="Change delivery location"
+          >
+            <span className="home-hdr-title">
+              {isRetailer ? retailerProfile?.storeName || 'My Store' : 'Deliver to'}
+            </span>
+            <span className={`home-hdr-loc${shopperLocation ? '' : ' is-unset'}`}>
+              <EnvironmentOutlined />
+              <span className="home-hdr-loc-text">
+                {shopperLocation ? locationLine(shopperLocation) : 'Set your location'}
+              </span>
+              <DownOutlined className="home-hdr-caret" />
+            </span>
+          </button>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-            <Link
-              to="/trace"
-              className="home-trace-btn"
-              title="Trace Batch QR"
-            >
-              <QrcodeOutlined style={{ fontSize: 15 }} />
-              <span className="home-trace-text">Trace</span>
-            </Link>
-          </div>
+          <Link to="/trace" className="home-trace-btn" title="Trace a pack" aria-label="Trace a pack">
+            <QrcodeOutlined />
+          </Link>
         </div>
 
         <LocationPicker open={pickingLocation} onClose={() => setPickingLocation(false)} />
 
         {/* Mobile Search input */}
-        <div className="store-container home-search-container" style={{ paddingTop: 0, paddingBottom: 14 }}>
+        <div className="store-container home-search-container" style={{ paddingTop: 2, paddingBottom: 12 }}>
           <Input
             size="middle"
             placeholder="Search atta, dal, rice, spices..."
@@ -295,9 +192,8 @@ export function HomePage() {
               borderRadius: 12,
               height: 44,
               fontSize: 13,
-              border: '1px solid #e2e8f0',
-              background: '#f8fafc',
-              boxShadow: '0 1px 4px rgba(0,0,0,0.02)',
+              border: '1px solid #e7e5e4',
+              background: '#fafaf9',
             }}
             readOnly
             onClick={() => navigate('/search')}
@@ -315,15 +211,19 @@ export function HomePage() {
         {/* DESKTOP HERO SECTION: BANNER SLIDER (LEFT) + QUICK WIDGETS (RIGHT)      */}
         {/* ======================================================================= */}
         <div className="desktop-only">
-          <div style={{ display: 'grid', gridTemplateColumns: '1.7fr 1fr', gap: 24, alignItems: 'stretch' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '2.1fr 1fr', gap: 20, alignItems: 'stretch' }}>
             {/* Left: Large Desktop Promo Carousel */}
-            <div style={{ borderRadius: 20, overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
+            <div className="hero-slot">
               <Carousel autoplay effect="fade" dotPosition="bottom">
                 {heroSlides.map((slide) => (
                   <div key={slide.id}>
+                    {slide.layout === 'IMAGE_ONLY' ? (
+                      <BannerArtwork slide={slide} onOpen={(to) => navigate(to)} />
+                    ) : (
                     <div
                       style={{
-                        height: 320,
+                        height: '100%',
+                        aspectRatio: '8 / 3',
                         background: slide.background,
                         color: '#fff',
                         padding: '36px 44px',
@@ -340,30 +240,29 @@ export function HomePage() {
                               display: 'inline-flex',
                               alignItems: 'center',
                               gap: 6,
-                              background: 'rgba(255,255,255,0.2)',
-                              backdropFilter: 'blur(4px)',
+                              background: 'rgba(255,255,255,0.16)',
                               padding: '4px 12px',
                               borderRadius: 20,
                               fontSize: 12,
-                              fontWeight: 700,
-                              color: '#fef08a',
+                              fontWeight: 600,
+                              color: '#ffffff',
                               marginBottom: 12,
                             }}
                           >
                             <SafetyCertificateFilled /> {slide.badgeText}
                           </div>
                         )}
-                        <Typography.Title level={2} style={{ color: '#fff', margin: '0 0 10px', fontSize: 32, fontWeight: 800, lineHeight: 1.15 }}>
+                        <Typography.Title level={2} style={{ color: '#fff', margin: '0 0 10px', fontSize: 30, fontWeight: 700, lineHeight: 1.2 }}>
                           {slide.title}
                         </Typography.Title>
-                        <Typography.Text style={{ color: '#d1fae5', fontSize: 15, display: 'block', marginBottom: 24, lineHeight: 1.4 }}>
+                        <Typography.Text style={{ color: 'rgba(255,255,255,0.88)', fontSize: 15, display: 'block', marginBottom: 24, lineHeight: 1.5 }}>
                           {slide.description}
                         </Typography.Text>
                         <div style={{ display: 'flex', gap: 12 }}>
                           <Button
                             type="primary"
                             size="large"
-                            style={{ background: '#f59e0b', borderColor: '#f59e0b', color: '#1c1917', fontWeight: 700, borderRadius: 10 }}
+                            style={{ background: '#ffffff', borderColor: '#ffffff', color: '#065f46', fontWeight: 600, borderRadius: 10 }}
                             onClick={() => navigate(slide.ctaLinkPrimary)}
                           >
                             {slide.ctaTextPrimary}
@@ -371,7 +270,7 @@ export function HomePage() {
                           {slide.ctaTextSecondary && slide.ctaLinkSecondary && (
                             <Button
                               size="large"
-                              style={{ background: 'rgba(255,255,255,0.15)', borderColor: 'rgba(255,255,255,0.3)', color: '#fff', fontWeight: 600, borderRadius: 10 }}
+                              style={{ background: 'transparent', borderColor: 'rgba(255,255,255,0.55)', color: '#fff', fontWeight: 600, borderRadius: 10 }}
                               onClick={() => navigate(slide.ctaLinkSecondary as string)}
                             >
                               {slide.ctaTextSecondary}
@@ -383,15 +282,14 @@ export function HomePage() {
                         src={slide.imageUrl}
                         alt={slide.title}
                         style={{
-                          height: 220,
-                          width: 220,
+                          height: 240,
+                          width: 240,
                           objectFit: 'cover',
-                          borderRadius: 24,
-                          border: '6px solid rgba(255,255,255,0.2)',
-                          boxShadow: '0 12px 32px rgba(0,0,0,0.25)',
+                          borderRadius: 16,
                         }}
                       />
                     </div>
+                    )}
                   </div>
                 ))}
               </Carousel>
@@ -403,10 +301,9 @@ export function HomePage() {
               <div
                 style={{
                   background: '#ffffff',
-                  borderRadius: 18,
-                  padding: '20px 22px',
+                  borderRadius: 16,
+                  padding: '18px 20px',
                   border: '1px solid #e7e5e4',
-                  boxShadow: '0 2px 10px rgba(0,0,0,0.03)',
                   flex: 1,
                   display: 'flex',
                   flexDirection: 'column',
@@ -431,17 +328,12 @@ export function HomePage() {
                       >
                         <QrcodeOutlined />
                       </div>
-                      <Typography.Text strong style={{ fontSize: 15, color: '#065f46' }}>
-                        Trace Batch Provenance
+                      <Typography.Text strong style={{ fontSize: 15, color: '#1c1917' }}>
+                        Trace your pack
                       </Typography.Text>
                     </div>
-                    <span style={{ fontSize: 11, color: '#059669', background: '#f0fdf4', padding: '2px 8px', borderRadius: 4, fontWeight: 600 }}>
-                      Live QR
-                    </span>
                   </div>
-                  <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 12 }}>
-                    Enter the printed batch code on any Desi Tokri pack to view farm origin, lab test &amp; milling dates.
-                  </Typography.Text>
+
                 </div>
 
                 <form onSubmit={handleTraceSubmit}>
@@ -468,11 +360,11 @@ export function HomePage() {
               {isRetailer ? (
                 <div
                   style={{
-                    background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
-                    color: '#ffffff',
-                    borderRadius: 18,
-                    padding: '20px 22px',
-                    boxShadow: '0 4px 14px rgba(15, 23, 42, 0.15)',
+                    background: '#f0fdf4',
+                    color: '#1c1917',
+                    borderRadius: 16,
+                    padding: '18px 20px',
+                    border: '1px solid #d1fae5',
                     flex: 1,
                     display: 'flex',
                     flexDirection: 'column',
@@ -482,32 +374,34 @@ export function HomePage() {
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
                       <div>
-                        <span style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                          Retailer Account Position
+                        <span style={{ fontSize: 11, color: '#047857', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>
+                          Your store
                         </span>
-                        <Typography.Text strong style={{ color: '#ffffff', display: 'block', fontSize: 15 }}>
+                        <Typography.Text strong style={{ color: '#1c1917', display: 'block', fontSize: 16 }}>
                           {retailerProfile?.storeName || 'My Store'}
                         </Typography.Text>
                       </div>
-                      <CreditCardOutlined style={{ color: '#38bdf8', fontSize: 20 }} />
+                      <ShopOutlined style={{ color: '#059669', fontSize: 20 }} />
                     </div>
 
                     <div style={{ marginTop: 6 }}>
-                      <span style={{ fontSize: 11, color: '#cbd5e1', display: 'block' }}>Payment</span>
-                      <strong style={{ fontSize: 15, color: '#34d399' }}>Pay online or cash on delivery</strong>
+                      <span style={{ fontSize: 12, color: '#57534e', display: 'block' }}>
+                        {retailerProfile?.gstin ? `GSTIN ${retailerProfile.gstin} · ` : ''}Pay online or cash on delivery
+                      </span>
                     </div>
                   </div>
 
                   <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
                     <Button
                       block
-                      style={{ background: '#3b82f6', borderColor: '#3b82f6', color: '#fff', fontWeight: 600, borderRadius: 8 }}
+                      type="primary"
+                      style={{ fontWeight: 600, borderRadius: 8 }}
                       onClick={() => navigate('/orders')}
                     >
-                      Repeat Order
+                      Repeat an order
                     </Button>
                     <Button
-                      style={{ background: 'rgba(255,255,255,0.1)', borderColor: 'rgba(255,255,255,0.2)', color: '#fff', borderRadius: 8 }}
+                      style={{ borderRadius: 8, fontWeight: 600 }}
                       onClick={() => navigate('/loyalty')}
                     >
                       Rewards
@@ -517,11 +411,11 @@ export function HomePage() {
               ) : (
                 <div
                   style={{
-                    background: 'linear-gradient(135deg, #ea580c 0%, #c2410c 100%)',
-                    color: '#ffffff',
-                    borderRadius: 18,
-                    padding: '20px 22px',
-                    boxShadow: '0 4px 14px rgba(234, 88, 12, 0.2)',
+                    background: '#fffbf5',
+                    color: '#1c1917',
+                    borderRadius: 16,
+                    padding: '18px 20px',
+                    border: '1px solid #fde7cf',
                     flex: 1,
                     display: 'flex',
                     flexDirection: 'column',
@@ -530,27 +424,25 @@ export function HomePage() {
                 >
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-                      <span style={{ fontSize: 11, color: '#ffedd5', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 700 }}>
-                        Kirana &amp; B2B Wholesale
+                      <span style={{ fontSize: 11, color: '#c2410c', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>
+                        For shops &amp; retailers
                       </span>
-                      <ShopOutlined style={{ color: '#ffedd5', fontSize: 22 }} />
+                      <ShopOutlined style={{ color: '#ea580c', fontSize: 20 }} />
                     </div>
-                    <Typography.Title level={4} style={{ color: '#ffffff', margin: '2px 0 6px 0', fontSize: 17, fontWeight: 800 }}>
-                      Buy Wholesale / Direct Mill Supply
+                    <Typography.Title level={4} style={{ color: '#1c1917', margin: '2px 0 6px 0', fontSize: 16, fontWeight: 700 }}>
+                      Buy wholesale, direct from the mill
                     </Typography.Title>
-                    <Typography.Text style={{ color: '#fed7aa', fontSize: 12, display: 'block', lineHeight: 1.4 }}>
-                      Wholesale tier pricing on bulk packs for your store once your account is approved.
-                    </Typography.Text>
+
                   </div>
 
                   <div style={{ marginTop: 14 }}>
                     <Button
                       block
                       type="primary"
-                      style={{ background: '#ffffff', borderColor: '#ffffff', color: '#ea580c', fontWeight: 700, borderRadius: 8, height: 38 }}
+                      style={{ background: '#f97316', borderColor: '#f97316', color: '#ffffff', fontWeight: 600, borderRadius: 8, height: 38 }}
                       onClick={() => navigate('/retailers/register')}
                     >
-                      Register Business &rarr;
+                      Register your business
                     </Button>
                   </div>
                 </div>
@@ -561,39 +453,39 @@ export function HomePage() {
           {/* Desktop Trust Pillars Banner */}
           <div
             style={{
-              marginTop: 24,
+              marginTop: 20,
               background: '#ffffff',
               borderRadius: 14,
               border: '1px solid #e7e5e4',
-              padding: '16px 24px',
+              padding: '14px 24px',
               display: 'grid',
               gridTemplateColumns: 'repeat(4, 1fr)',
               gap: 20,
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <CheckCircleFilled style={{ color: '#059669', fontSize: 22 }} />
+              <span className="trust-ico"><CheckCircleFilled /></span>
               <div>
                 <strong style={{ fontSize: 13, color: '#1c1917', display: 'block' }}>100% Farm-Traceable</strong>
                 <span style={{ fontSize: 11, color: '#78716c' }}>QR on every pack</span>
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <TruckFilled style={{ color: '#2563eb', fontSize: 22 }} />
+              <span className="trust-ico"><TruckFilled /></span>
               <div>
                 <strong style={{ fontSize: 13, color: '#1c1917', display: 'block' }}>Same-Day Delivery</strong>
                 <span style={{ fontSize: 11, color: '#78716c' }}>Direct mill dispatch</span>
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <ThunderboltFilled style={{ color: '#f59e0b', fontSize: 22 }} />
+              <span className="trust-ico"><ThunderboltFilled /></span>
               <div>
                 <strong style={{ fontSize: 13, color: '#1c1917', display: 'block' }}>Wholesale Margins</strong>
                 <span style={{ fontSize: 11, color: '#78716c' }}>Special schemes &amp; slabs</span>
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <SafetyCertificateFilled style={{ color: '#7c3aed', fontSize: 22 }} />
+              <span className="trust-ico"><SafetyCertificateFilled /></span>
               <div>
                 <strong style={{ fontSize: 13, color: '#1c1917', display: 'block' }}>Certified Standards</strong>
                 <span style={{ fontSize: 11, color: '#78716c' }}>FSSAI &amp; Agmark tested</span>
@@ -609,6 +501,9 @@ export function HomePage() {
           <Carousel autoplay dotPosition="bottom">
             {heroSlides.map((slide) => (
               <div key={slide.id}>
+                {slide.layout === 'IMAGE_ONLY' ? (
+                  <BannerArtwork slide={slide} onOpen={(to) => navigate(to)} />
+                ) : (
                 <div
                   onClick={() => navigate(slide.ctaLinkPrimary)}
                   className="home-carousel-slide"
@@ -644,6 +539,7 @@ export function HomePage() {
                     className="home-carousel-img"
                   />
                 </div>
+                )}
               </div>
             ))}
           </Carousel>
@@ -697,7 +593,7 @@ export function HomePage() {
 
           {/* Desktop wide category grid */}
           <div className="desktop-only">
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 18 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 16 }}>
               {categories.map((category) => (
                 <Link
                   key={category.id}
@@ -705,9 +601,9 @@ export function HomePage() {
                   className="product-card-hover"
                   style={{
                     background: '#ffffff',
-                    borderRadius: 16,
+                    borderRadius: 14,
                     border: '1px solid #e7e5e4',
-                    padding: '18px 14px',
+                    padding: 12,
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
@@ -717,27 +613,23 @@ export function HomePage() {
                 >
                   <div
                     style={{
-                      width: 90,
-                      height: 90,
-                      borderRadius: 18,
+                      width: '100%',
+                      aspectRatio: '1 / 1',
+                      borderRadius: 10,
                       background: category.color,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      marginBottom: 12,
+                      marginBottom: 10,
                       overflow: 'hidden',
-                      boxShadow: '0 4px 10px rgba(0,0,0,0.04)',
                     }}
                   >
-                    <img src={category.image} alt={category.name} style={{ width: '80%', height: '80%', objectFit: 'contain' }} />
+                    <img src={category.image} alt={category.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                   </div>
-                  <Typography.Text strong style={{ fontSize: 14, color: '#1c1917', marginBottom: 4 }}>
+                  <Typography.Text strong style={{ fontSize: 14, color: '#1c1917', marginBottom: 2 }}>
                     {category.name}
                   </Typography.Text>
-                  <span style={{ fontSize: 11, color: '#059669', fontWeight: 600 }}>
+                  <span style={{ fontSize: 12, color: '#78716c' }}>
                     {category.subcategories.length > 0
-                      ? `${category.subcategories.length} ${category.subcategories.length === 1 ? 'Variety' : 'Varieties'} →`
-                      : 'Shop now →'}
+                      ? `${category.subcategories.length} ${category.subcategories.length === 1 ? 'variety' : 'varieties'}`
+                      : 'Shop now'}
                   </span>
                 </Link>
               ))}
@@ -870,7 +762,6 @@ export function HomePage() {
                           >
                             {scheme.tag}
                           </span>
-                          <span style={{ fontSize: 11, opacity: 0.8, color: scheme.textColor }}>⚡ Limited Time</span>
                         </div>
                         <Typography.Title level={4} style={{ color: scheme.textColor, margin: '14px 0 6px', fontWeight: 800, fontSize: 20 }}>
                           {scheme.title}
@@ -957,7 +848,7 @@ export function HomePage() {
                         {product.timesOrdered > 1 ? ` · ordered ${product.timesOrdered} times` : ''}
                       </Typography.Text>
                       <div style={{ marginTop: 2 }}>
-                        <Typography.Text strong style={{ fontSize: 15, color: '#c2410c' }}>
+                        <Typography.Text strong style={{ fontSize: 15, color: '#1c1917' }}>
                           {product.price !== null ? formatInr(product.price) : 'N/A'}
                         </Typography.Text>
                         <Typography.Text type="secondary" style={{ fontSize: 11 }}>
@@ -1004,9 +895,9 @@ export function HomePage() {
         {isRetailer ? (
           <div
             style={{
-              background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
-              border: '1px solid #bbf7d0',
-              borderRadius: 18,
+              background: '#ffffff',
+              border: '1px solid #e7e5e4',
+              borderRadius: 16,
               padding: '24px 28px',
               display: 'flex',
               flexDirection: 'column',
@@ -1015,35 +906,35 @@ export function HomePage() {
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
               <div>
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#166534', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  Verified Retailer Account
+                <span style={{ fontSize: 11, fontWeight: 600, color: '#047857', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Retailer account
                 </span>
-                <Typography.Title level={4} style={{ margin: '2px 0 0', color: '#065f46', fontSize: 18 }}>
+                <Typography.Title level={4} style={{ margin: '2px 0 0', color: '#1c1917', fontSize: 18 }}>
                   {retailerProfile?.storeName || 'My Store'}
                 </Typography.Title>
-                <Typography.Text style={{ fontSize: 12, color: '#15803d' }}>
-                  GST: {retailerProfile?.gstin || '—'} | Dedicated B2B Wholesale Supply
+                <Typography.Text style={{ fontSize: 13, color: '#78716c' }}>
+                  GSTIN {retailerProfile?.gstin || '—'} · Orders are paid online or by cash on delivery
                 </Typography.Text>
               </div>
-              <Button
-                type="primary"
-                style={{ background: '#059669', borderColor: '#059669', fontWeight: 600, borderRadius: 8 }}
-                onClick={() => navigate('/orders')}
-              >
-                View Orders &amp; Invoices &rarr;
-              </Button>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <Button style={{ fontWeight: 600, borderRadius: 8 }} onClick={() => navigate('/profile')}>
+                  Store profile
+                </Button>
+                <Button style={{ fontWeight: 600, borderRadius: 8 }} onClick={() => navigate('/loyalty')}>
+                  Rewards
+                </Button>
+                <Button type="primary" style={{ fontWeight: 600, borderRadius: 8 }} onClick={() => navigate('/orders')}>
+                  Orders &amp; invoices
+                </Button>
+              </div>
             </div>
-
-            <Typography.Text style={{ fontSize: 13, color: '#166534' }}>
-              Orders are paid online or by cash on delivery.
-            </Typography.Text>
           </div>
         ) : (
           <div
             style={{
-              background: 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)',
-              border: '1px solid #fed7aa',
-              borderRadius: 18,
+              background: '#ffffff',
+              border: '1px solid #e7e5e4',
+              borderRadius: 16,
               padding: '24px 28px',
               display: 'flex',
               alignItems: 'center',
@@ -1053,22 +944,22 @@ export function HomePage() {
             }}
           >
             <div>
-              <span style={{ fontSize: 11, fontWeight: 700, color: '#ea580c', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Kirana &amp; B2B Wholesale Supply
+              <span style={{ fontSize: 11, fontWeight: 600, color: '#c2410c', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                For shops &amp; retailers
               </span>
-              <Typography.Title level={4} style={{ margin: '4px 0 2px', color: '#9a3412', fontSize: 18 }}>
+              <Typography.Title level={4} style={{ margin: '4px 0 2px', color: '#1c1917', fontSize: 18 }}>
                 Own a Grocery Store or Supermarket?
               </Typography.Title>
-              <Typography.Text style={{ fontSize: 13, color: '#c2410c' }}>
+              <Typography.Text style={{ fontSize: 13, color: '#78716c' }}>
                 Get direct mill supply at wholesale tier prices once your store is approved.
               </Typography.Text>
             </div>
             <Button
               type="primary"
-              style={{ background: '#ea580c', borderColor: '#ea580c', fontWeight: 600, borderRadius: 8, height: 40 }}
+              style={{ background: '#f97316', borderColor: '#f97316', fontWeight: 600, borderRadius: 8, height: 40 }}
               onClick={() => navigate('/retailers/register')}
             >
-              Become a Partner &rarr;
+              Become a partner
             </Button>
           </div>
         )}
@@ -1172,8 +1063,8 @@ function ShelfCards({ products, isRetailer }: { products: ShelfProduct[]; isReta
             }}
           >
             <Link to={`/product-detail/${product.slug}`} style={{ textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column' }}>
-              <div style={{ height: 85, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 8, background: '#f8f7f5', borderRadius: 8 }}>
-                <img src={product.image} alt={product.name} style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain', mixBlendMode: 'multiply' }} />
+              <div className="pc-media pc-media--sm" style={{ marginBottom: 8, borderRadius: 8 }}>
+                <img src={product.image} alt={product.name} loading="lazy" />
               </div>
               <Typography.Text style={{ fontSize: 12, fontWeight: 700, color: '#292524', lineHeight: 1.2, height: 28, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
                 {product.name}
@@ -1224,7 +1115,7 @@ function ShelfCards({ products, isRetailer }: { products: ShelfProduct[]; isReta
 
     {/* Desktop 6-column product grid */}
     <div className="desktop-only">
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 20 }}>
         {products.map((product) => {
           const cartLine = cart.lines.find((line) => line.productId === product.id);
           return (
@@ -1235,51 +1126,36 @@ function ShelfCards({ products, isRetailer }: { products: ShelfProduct[]; isReta
                 borderRadius: 14,
                 background: '#ffffff',
                 border: '1px solid #e7e5e4',
-                padding: 12,
+                overflow: 'hidden',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
               }}
             >
               <Link to={`/product-detail/${product.slug}`} style={{ textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column' }}>
-                <div
-                  style={{
-                    height: 120,
-                    borderRadius: 10,
-                    background: '#f8f7f5',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginBottom: 10,
-                    padding: 8,
-                  }}
-                >
-                  <img src={product.image} alt={product.name} style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain', mixBlendMode: 'multiply' }} />
+                <div className="pc-media">
+                  <img src={product.image} alt={product.name} loading="lazy" />
                 </div>
-                <Typography.Text strong style={{ fontSize: 13, lineHeight: 1.25, height: 32, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', color: '#1c1917' }}>
-                  {product.name}
-                </Typography.Text>
+                <div className="pc-body">
+                <span className="pc-name">{product.name}</span>
                 {product.rating && product.reviewCount ? (
                   <div style={{ marginTop: 3 }}>
                     <RatingBadge rating={product.rating} count={product.reviewCount} />
                   </div>
                 ) : null}
-                <Typography.Text type="secondary" style={{ fontSize: 11, marginTop: 2 }}>
-                  {product.weight}
-                </Typography.Text>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, margin: '8px 0 10px' }}>
-                  <Typography.Text strong style={{ fontSize: 16, color: '#c2410c' }}>
-                    {product.price !== null ? formatInr(product.price) : 'N/A'}
-                  </Typography.Text>
-                  {product.mrp && (
-                    <Typography.Text delete type="secondary" style={{ fontSize: 12 }}>
-                      {formatInr(product.mrp)}
-                    </Typography.Text>
-                  )}
+                <span className="pc-meta">{product.weight}</span>
+                <div className="pc-price-row">
+  <span className="pc-price">{product.price !== null ? formatInr(product.price) : 'N/A'}</span>
+  {product.mrp && product.price !== null && Number(product.mrp) > product.price ? (
+    <>
+      <span className="pc-mrp">{formatInr(product.mrp)}</span>
+      <span className="pc-off">{Math.round((1 - product.price / Number(product.mrp)) * 100)}% off</span>
+    </>
+  ) : null}
+</div>
                 </div>
               </Link>
-
-              <div>
+              <div className="pc-action">
                 {cartLine ? (
                   <div
                     style={{
@@ -1377,7 +1253,7 @@ function GridCards({ products, isRetailer }: { products: ShelfProduct[]; isRetai
           >
             <Link to={`/product-detail/${product.slug}`} style={{ textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column' }}>
               <div style={{ position: 'relative' }}>
-                <ProductThumb image={product.image} square />
+                <div className="pc-media"><img src={product.image} alt={product.name} loading="lazy" /></div>
                 {product.badge && (
                   <Typography.Text
                     style={{
@@ -1396,32 +1272,26 @@ function GridCards({ products, isRetailer }: { products: ShelfProduct[]; isRetai
                   </Typography.Text>
                 )}
               </div>
-              <div style={{ padding: '14px 14px 0' }}>
-                <Typography.Text strong style={{ display: 'block', fontSize: 14, color: '#1c1917', lineHeight: 1.3 }}>
-                  {product.name}
-                </Typography.Text>
+              <div className="pc-body">
+                <span className="pc-name">{product.name}</span>
                 {product.rating && product.reviewCount ? (
                   <div style={{ marginTop: 3 }}>
                     <RatingBadge rating={product.rating} count={product.reviewCount} />
                   </div>
                 ) : null}
-                <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                  {product.variant}
-                </Typography.Text>
-                <div style={{ margin: '6px 0 10px', display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                  <Typography.Text strong style={{ fontSize: 16, color: '#c2410c' }}>
-                    {product.price !== null ? formatInr(product.price) : 'N/A'}
-                  </Typography.Text>
-                  {product.mrp && (
-                    <Typography.Text delete type="secondary" style={{ fontSize: 12 }}>
-                      {formatInr(product.mrp)}
-                    </Typography.Text>
-                  )}
-                </div>
+                <span className="pc-meta">{product.variant}</span>
+                <div className="pc-price-row">
+  <span className="pc-price">{product.price !== null ? formatInr(product.price) : 'N/A'}</span>
+  {product.mrp && product.price !== null && Number(product.mrp) > product.price ? (
+    <>
+      <span className="pc-mrp">{formatInr(product.mrp)}</span>
+      <span className="pc-off">{Math.round((1 - product.price / Number(product.mrp)) * 100)}% off</span>
+    </>
+  ) : null}
+</div>
               </div>
             </Link>
-
-            <div style={{ padding: '0 14px 14px' }}>
+            <div className="pc-action">
               {cartLine ? (
                 <div
                   style={{
@@ -1528,6 +1398,27 @@ function SectionHeader({ title, to, subtitle }: { title: string; to?: string; su
           View All <RightOutlined style={{ fontSize: 10 }} />
         </Link>
       )}
+    </div>
+  );
+}
+
+/**
+ * A finished banner uploaded from Admin > Banner Management ("Full image"):
+ * the artwork is the whole slide, 8:3 on web and phone. A tap opens its link
+ * when one is set.
+ */
+function BannerArtwork({ slide, onOpen }: { slide: HeroSlide; onOpen: (to: string) => void }) {
+  const link = slide.ctaLinkPrimary?.trim();
+  return (
+    <div
+      className="banner-artwork"
+      role={link ? 'link' : undefined}
+      tabIndex={link ? 0 : undefined}
+      onClick={link ? () => onOpen(link) : undefined}
+      onKeyDown={link ? (e) => e.key === 'Enter' && onOpen(link) : undefined}
+      style={{ cursor: link ? 'pointer' : 'default' }}
+    >
+      <img src={slide.imageUrl} alt={slide.title} />
     </div>
   );
 }

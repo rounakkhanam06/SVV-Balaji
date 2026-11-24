@@ -610,3 +610,7 @@ body {
   }
 }
 
+
+/* Dashboard list rows */
+.dash-row { transition: background .15s; }
+.dash-row:hover { background: #F6FAF7; }

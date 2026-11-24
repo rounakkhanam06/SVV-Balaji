@@ -1642,3 +1642,171 @@ select {
     padding: 0 16px !important;
   }
 }
+
+/* Desktop refinement (24 Nov 2026): one icon style for the trust strip, flat cart button. */
+.trust-ico {
+  width: 36px; height: 36px; border-radius: 10px; flex: 0 0 36px;
+  display: inline-grid; place-items: center;
+  background: #ecfdf5; color: #047857; font-size: 17px;
+}
+.hdr-cart { transition: background .15s; }
+.hdr-cart:hover { background: #ea580c !important; }
+
+/* ---------------------------------------------------------------------------
+ * Product cards (24 Nov 2026). One look on Home, category and deal grids:
+ * square image box the photo fills, then name > pack size > price, clearly ranked.
+ * ------------------------------------------------------------------------- */
+.pc-media {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  background: #f6f5f3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  overflow: hidden;
+}
+.pc-media > img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  mix-blend-mode: multiply;
+  display: block;
+  transition: transform .25s ease;
+}
+.product-card-hover:hover .pc-media > img { transform: scale(1.04); }
+.pc-media--sm { padding: 0; }
+
+.pc-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: 14px 16px 0;
+}
+.pc-name {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 14.5px;
+  font-weight: 600;
+  line-height: 1.35;
+  min-height: calc(1.35em * 2);
+  color: #1c1917;
+}
+.pc-meta {
+  display: block;
+  margin-top: 4px;
+  font-size: 12.5px;
+  color: #78716c;
+}
+.pc-price-row {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin: 10px 0 14px;
+}
+.pc-price {
+  font-size: 19px;
+  font-weight: 700;
+  color: #1c1917;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+.pc-mrp {
+  font-size: 13px;
+  color: #a8a29e;
+  text-decoration: line-through;
+}
+.pc-off {
+  font-size: 12px;
+  font-weight: 600;
+  color: #15803d;
+}
+.pc-action { padding: 0 16px 16px; }
+
+/* The lift on hover read as busy; a border change is enough. */
+.product-card-hover:hover {
+  transform: none;
+  box-shadow: 0 6px 16px -6px rgba(28, 25, 23, 0.12);
+  border-color: #d6d3d1 !important;
+}
+
+@media (max-width: 767px) {
+  .pc-body { padding: 8px 10px 0; }
+  .pc-name { font-size: 12.5px; }
+  .pc-meta { font-size: 11px; margin-top: 2px; }
+  .pc-price-row { margin: 6px 0 8px; gap: 2px 6px; }
+  .pc-price { font-size: 15px; }
+  .pc-mrp { font-size: 11px; }
+  .pc-off { font-size: 10.5px; }
+  .pc-action { padding: 0 10px 10px; }
+}
+
+/* Mobile home header (24 Nov 2026): logo | who + where | trace, one row, more air. */
+.home-mobile-header {
+  padding-top: 12px !important;
+  padding-bottom: 12px !important;
+  gap: 12px !important;
+}
+.home-logo-box {
+  width: 52px !important;
+  height: 40px !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+}
+.home-hdr-who {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+}
+.home-hdr-title {
+  max-width: 100%;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #1c1917;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.home-hdr-loc {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  min-width: 0;
+  font-size: 12px;
+  color: #57534e;
+}
+.home-hdr-loc .anticon { color: #059669; font-size: 12px; flex-shrink: 0; }
+.home-hdr-loc.is-unset { color: #c2410c; font-weight: 600; }
+.home-hdr-loc-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.home-hdr-loc .home-hdr-caret { color: #a8a29e; font-size: 9px; }
+.home-trace-btn {
+  width: 38px !important;
+  height: 38px !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  justify-content: center;
+  font-size: 17px !important;
+  flex-shrink: 0;
+}
+
+/* Banners (24 Nov 2026). Desktop hero slot follows the 8:3 banner shape;
+ * "Full image" banners are the artwork itself, edge to edge, on web and phone. */
+.hero-slot { border-radius: 16px; overflow: hidden; aspect-ratio: 8 / 3; min-width: 0; width: 100%; align-self: start; }
+.hero-slot .slick-list, .hero-slot .slick-track, .hero-slot .slick-slide > div { height: 100%; }
+.banner-artwork { width: 100%; aspect-ratio: 8 / 3; overflow: hidden; background: #f5f5f4; }
+.banner-artwork img { width: 100%; height: 100%; object-fit: cover; display: block; }

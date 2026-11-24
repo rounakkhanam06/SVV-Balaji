@@ -1427,8 +1427,12 @@ export interface CategoryTreeNode {
 export type BannerPlacement = 'HOMEPAGE' | 'CATEGORIES_PAGE' | 'PRODUCTS_PAGE';
 export type BannerAudience = 'ALL' | 'B2C' | 'B2B';
 
+/** IMAGE_ONLY: one finished 1600x600 artwork, no text drawn by the storefront. */
+export type BannerLayout = 'TEXT' | 'IMAGE_ONLY';
+
 export interface Banner {
   id: string;
+  layout?: BannerLayout;
   title: string;
   badgeText: string | null;
   description: string;
@@ -1448,12 +1452,15 @@ export interface Banner {
 }
 
 export interface CreateBannerInput {
+  layout?: BannerLayout;
   title: string;
   badgeText?: string;
-  description: string;
+  /** Required for TEXT banners. */
+  description?: string;
   imageUrl: string;
-  ctaTextPrimary: string;
-  ctaLinkPrimary: string;
+  ctaTextPrimary?: string;
+  /** TEXT: main button link. IMAGE_ONLY: optional link for a tap on the banner. */
+  ctaLinkPrimary?: string;
   ctaTextSecondary?: string;
   ctaLinkSecondary?: string;
   backgroundColor?: string;

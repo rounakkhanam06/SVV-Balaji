@@ -9,7 +9,7 @@ import {
   RocketOutlined,
   ShoppingOutlined,
 } from '@ant-design/icons';
-import {
+import { Segmented,
   Alert,
   App as AntApp,
   Button,
@@ -69,8 +69,10 @@ function BannerFormDrawer({
 }) {
   const [form] = Form.useForm<CreateBannerInput>();
   const isEdit = Boolean(banner);
-
+  const layout = Form.useWatch('layout', form) ?? banner?.layout ?? 'TEXT';
+  const textMode = layout !== 'IMAGE_ONLY';
   const defaultValues: CreateBannerInput = {
+    layout: 'TEXT',
     title: '',
     description: '',
     badgeText: '',
@@ -132,17 +134,36 @@ function BannerFormDrawer({
         requiredMark
         initialValues={initialValues}
       >
+        <Form.Item
+          name="layout"
+          label="Banner type"
+          extra={
+            textMode
+              ? 'The website writes your headline, text and buttons over a colour background, with the image beside it.'
+              : 'Upload one finished banner with any text already in it. The same image is used on the website and the phone app.'
+          }
+        >
+          <Segmented
+            block
+            options={[
+              { label: 'Full image (designed banner)', value: 'IMAGE_ONLY' },
+              { label: 'Image + text', value: 'TEXT' },
+            ]}
+          />
+        </Form.Item>
+
         <Row gutter={16}>
-          <Col span={16}>
+          <Col span={textMode ? 16 : 24}>
             <Form.Item
               name="title"
-              label="Banner Headline Title"
-              rules={[{ required: true, message: 'Please enter banner title' }]}
+              label={textMode ? 'Banner Headline Title' : 'Banner name (for your reference)'}
+              extra={textMode ? undefined : 'Not shown on the banner. Used in this list and read out by screen readers.'}
+              rules={[{ required: true, message: textMode ? 'Please enter banner title' : 'Give the banner a name' }]}
             >
-              <Input placeholder="Direct From Verified Mandis to Your Store" />
+              <Input placeholder={textMode ? 'Direct From Verified Mandis to Your Store' : 'Diwali atta offer'} />
             </Form.Item>
           </Col>
-          <Col span={8}>
+          <Col span={8} style={{ display: textMode ? undefined : 'none' }}>
             <Form.Item name="badgeText" label="Eyebrow Badge Pill">
               <Input placeholder="100% FARM-TRACEABLE STAPLES" />
             </Form.Item>
@@ -152,7 +173,8 @@ function BannerFormDrawer({
         <Form.Item
           name="description"
           label="Banner Subtitle Copy"
-          rules={[{ required: true, message: 'Please enter description' }]}
+          hidden={!textMode}
+          rules={[{ required: textMode, message: 'Please enter description' }]}
         >
           <Input.TextArea
             rows={3}
@@ -165,7 +187,14 @@ function BannerFormDrawer({
           label="Banner Illustration / Image"
           rules={[{ required: true, message: 'Please upload a banner image' }]}
         >
-          <FileUploadField folder="banners" hint="Recommended wide/landscape image, shown on the storefront hero." />
+          <FileUploadField
+            folder="banners"
+            hint={
+              textMode
+                ? 'Recommended wide/landscape image, shown beside the text on the storefront hero.'
+                : 'Upload at 1600 x 600 px (8:3). Keep important text and logos in the middle area - the edges can be trimmed slightly on small screens.'
+            }
+          />
         </Form.Item>
 
         <Divider orientation="left" plain>
@@ -202,31 +231,32 @@ function BannerFormDrawer({
         </Row>
 
         <Divider orientation="left" plain>
-          CTA Buttons & Links
+          {textMode ? 'CTA Buttons & Links' : 'Link'}
         </Divider>
 
         <Row gutter={16}>
-          <Col span={12}>
+          <Col span={12} style={{ display: textMode ? undefined : 'none' }}>
             <Form.Item
               name="ctaTextPrimary"
               label="Primary CTA Button Label"
-              rules={[{ required: true }]}
+              rules={[{ required: textMode, message: 'Enter the button label' }]}
             >
               <Input placeholder="Explore Catalog" />
             </Form.Item>
           </Col>
-          <Col span={12}>
+          <Col span={textMode ? 12 : 24}>
             <Form.Item
               name="ctaLinkPrimary"
-              label="Primary Button Route Link"
-              rules={[{ required: true }]}
+              label={textMode ? 'Primary Button Route Link' : 'Open this page when the banner is tapped (optional)'}
+              extra={textMode ? undefined : 'e.g. /products or /deals. Leave empty if the banner is just for display.'}
+              rules={[{ required: textMode, message: 'Enter the button link' }]}
             >
               <Input placeholder="/products" prefix={<LinkOutlined />} />
             </Form.Item>
           </Col>
         </Row>
 
-        <Row gutter={16}>
+        <Row gutter={16} style={{ display: textMode ? undefined : 'none' }}>
           <Col span={12}>
             <Form.Item name="ctaTextSecondary" label="Secondary CTA Button Label (Optional)">
               <Input placeholder="Trace A Batch" />
@@ -244,7 +274,7 @@ function BannerFormDrawer({
         </Divider>
 
         <Row gutter={16}>
-          <Col span={12}>
+          <Col span={12} style={{ display: textMode ? undefined : 'none' }}>
             <Form.Item name="backgroundColor" label="Theme Background Color">
               <Select
                 options={[
@@ -570,7 +600,11 @@ export function BannersPage() {
         }
         style={{ borderRadius: 8 }}
       >
-        {currentPreview ? (
+        {currentPreview && currentPreview.layout === 'IMAGE_ONLY' ? (
+          <div style={{ borderRadius: 16, overflow: 'hidden', aspectRatio: '8 / 3', background: '#f5f5f4' }}>
+            <img src={currentPreview.imageUrl} alt={currentPreview.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+          </div>
+        ) : currentPreview ? (
           <div
             style={{
               borderRadius: 16,

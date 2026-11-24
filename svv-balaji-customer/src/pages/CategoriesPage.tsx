@@ -12,6 +12,7 @@ import { RatingBadge } from '../components/ProductReviews';
 
 interface CategoryPageBanner {
   id: string;
+  layout?: 'TEXT' | 'IMAGE_ONLY';
   title: string;
   badgeText?: string | null;
   description: string;
@@ -230,6 +231,11 @@ export function CategoriesPage() {
                     <Carousel autoplay dotPosition="bottom">
                       {catBanners.map((banner) => (
                         <div key={banner.id}>
+{banner.layout === 'IMAGE_ONLY' ? (
+  <Link to={banner.ctaLinkPrimary || '#'} onClick={(e) => { if (!banner.ctaLinkPrimary) e.preventDefault(); }} className="banner-artwork" style={{ display: 'block' }}>
+    <img src={banner.imageUrl} alt={banner.title} />
+  </Link>
+) : (
                           <Link to={banner.ctaLinkPrimary || '/categories'} style={{ textDecoration: 'none' }}>
                             <div
                               style={{
@@ -263,7 +269,8 @@ export function CategoriesPage() {
                               )}
                             </div>
                           </Link>
-                        </div>
+                        )}
+</div>
                       ))}
                     </Carousel>
                   </div>
@@ -528,6 +535,11 @@ export function CategoriesPage() {
                   <Carousel autoplay dotPosition="bottom">
                     {catBanners.map((banner) => (
                       <div key={banner.id}>
+{banner.layout === 'IMAGE_ONLY' ? (
+  <Link to={banner.ctaLinkPrimary || '#'} onClick={(e) => { if (!banner.ctaLinkPrimary) e.preventDefault(); }} className="banner-artwork" style={{ display: 'block' }}>
+    <img src={banner.imageUrl} alt={banner.title} />
+  </Link>
+) : (
                         <div
                           style={{
                             background: banner.backgroundColor || '#ea580c',
@@ -586,7 +598,8 @@ export function CategoriesPage() {
                             </div>
                           )}
                         </div>
-                      </div>
+                      )}
+</div>
                     ))}
                   </Carousel>
                 </div>

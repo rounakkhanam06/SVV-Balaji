@@ -143,6 +143,8 @@ export interface CommerceDashboard {
   today: { orders: number; revenue: number };
   month: {
     from: string;
+    /** End of the selected period (YYYY-MM-DD). */
+    to?: string;
     b2b: { orders: number; revenue: number };
     b2c: { orders: number; revenue: number };
     pos: { sales: number; revenue: number };
@@ -176,8 +178,9 @@ export const reportsApi = {
     return response.data;
   },
 
-  async commerceDashboard(): Promise<CommerceDashboard> {
-    const response = await api.get<CommerceDashboard>('/dashboard/commerce');
+  /** from/to (YYYY-MM-DD, IST) set the period for the revenue figures; default this month. */
+  async commerceDashboard(range?: { from?: string; to?: string }): Promise<CommerceDashboard> {
+    const response = await api.get<CommerceDashboard>('/dashboard/commerce', { params: range });
     return response.data;
   },
 };

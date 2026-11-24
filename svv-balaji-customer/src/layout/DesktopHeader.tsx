@@ -29,9 +29,12 @@ import { useLoyalty } from '../loyalty/useLoyalty';
 
 import { formatInr } from '../utils/money';
 import { useUnreadNotifications } from '../notifications/useUnreadNotifications';
+import { useStorefrontSupport } from '@shared/hooks/useSupportSettings';
 import { LocationPicker } from '../location/LocationPicker';
 import { locationLine, useShopperLocation } from '../location/useShopperLocation';
 
+
+const MENU_ICON = { color: '#78716c' };
 
 export function DesktopHeader() {
   const shopperLocation = useShopperLocation();
@@ -42,7 +45,9 @@ export function DesktopHeader() {
   const loyalty = useLoyalty();
   const unreadNotifications = useUnreadNotifications();
   const [searchQuery, setSearchQuery] = useState('');
-
+  // Helpline from Admin > Helpdesk & Support Settings - the same source as the footer.
+  const support = useStorefrontSupport(role === 'RETAILER' ? 'RETAILER' : 'CUSTOMER');
+  const helpline = support.data?.isPhoneSupportActive ? support.data.tollFreeNumber?.split(' (')[0] : null;
   const isRetailer = role === 'RETAILER';
   const isCustomer = role === 'CUSTOMER';
 
@@ -63,7 +68,7 @@ export function DesktopHeader() {
             <Typography.Text strong style={{ fontSize: 14 }}>
               {retailerProfile?.storeName || 'My Store'}
             </Typography.Text>
-            <Tag color="green" style={{ margin: 0, fontSize: 10, fontWeight: 700 }}>KYC VERIFIED</Tag>
+            <Tag color="green" style={{ margin: 0, fontSize: 10, fontWeight: 600 }}>Verified</Tag>
           </div>
           <Typography.Text type="secondary" style={{ fontSize: 12 }}>
             GST: {retailerProfile?.gstin || '—'}
@@ -77,24 +82,24 @@ export function DesktopHeader() {
     { type: 'divider' },
     {
       key: 'orders',
-      icon: <TruckOutlined style={{ color: '#2563eb' }} />,
-      label: <Link to="/orders">Wholesale Orders &amp; Tracking</Link>,
+      icon: <TruckOutlined style={MENU_ICON} />,
+      label: <Link to="/orders">Orders &amp; invoices</Link>,
     },
     {
       key: 'loyalty',
-      icon: <TrophyOutlined style={{ color: '#d97706' }} />,
-      label: <Link to="/loyalty">Wholesaler Rewards</Link>,
+      icon: <TrophyOutlined style={MENU_ICON} />,
+      label: <Link to="/loyalty">Rewards</Link>,
     },
     {
       key: 'profile',
-      icon: <UserOutlined style={{ color: '#4b5563' }} />,
-      label: <Link to="/profile">Store Dashboard Settings</Link>,
+      icon: <UserOutlined style={MENU_ICON} />,
+      label: <Link to="/profile">Store profile</Link>,
     },
     { type: 'divider' },
     {
       key: 'logout',
       icon: <LogoutOutlined style={{ color: '#dc2626' }} />,
-      label: <span onClick={logout} style={{ color: '#dc2626' }}>Sign Out Account</span>,
+      label: <span onClick={logout} style={{ color: '#dc2626' }}>Sign out</span>,
     },
   ];
 
@@ -121,30 +126,30 @@ export function DesktopHeader() {
     { type: 'divider' },
     {
       key: 'orders',
-      icon: <TruckOutlined style={{ color: '#2563eb' }} />,
-      label: <Link to="/orders">My Orders &amp; Receipts</Link>,
+      icon: <TruckOutlined style={MENU_ICON} />,
+      label: <Link to="/orders">My orders</Link>,
     },
     {
       key: 'loyalty',
-      icon: <TrophyOutlined style={{ color: '#d97706' }} />,
-      label: <Link to="/loyalty">Desi Rewards</Link>,
+      icon: <TrophyOutlined style={MENU_ICON} />,
+      label: <Link to="/loyalty">Rewards</Link>,
     },
     {
       key: 'wishlist',
-      icon: <HeartOutlined style={{ color: '#e11d48' }} />,
-      label: <Link to="/wishlist">Saved Wishlist</Link>,
+      icon: <HeartOutlined style={MENU_ICON} />,
+      label: <Link to="/wishlist">Wishlist</Link>,
     },
     {
       key: 'addresses',
-      icon: <ShopOutlined style={{ color: '#0284c7' }} />,
-      label: <Link to="/addresses">Saved Addresses</Link>,
+      icon: <EnvironmentOutlined style={MENU_ICON} />,
+      label: <Link to="/addresses">Addresses</Link>,
     },
     {
       key: 'partner',
-      icon: <ShopOutlined style={{ color: '#ea580c' }} />,
+      icon: <ShopOutlined style={MENU_ICON} />,
       label: (
-        <Link to="/retailers/register" style={{ color: '#ea580c', fontWeight: 600 }}>
-          Become a Partner (Wholesale) &rarr;
+        <Link to="/retailers/register" style={{ color: '#c2410c', fontWeight: 600 }}>
+          Buy wholesale for your shop
         </Link>
       ),
     },
@@ -152,7 +157,7 @@ export function DesktopHeader() {
     {
       key: 'logout',
       icon: <LogoutOutlined style={{ color: '#dc2626' }} />,
-      label: <span onClick={logout} style={{ color: '#dc2626' }}>Sign Out</span>,
+      label: <span onClick={logout} style={{ color: '#dc2626' }}>Sign out</span>,
     },
   ];
 
@@ -161,11 +166,10 @@ export function DesktopHeader() {
       {/* Top utility announcement bar */}
       <div
         style={{
-          background: isRetailer ? '#047857' : '#0f766e',
-          color: '#ffffff',
+          background: '#065f46',
+          color: '#ecfdf5',
           fontSize: 12,
           padding: '6px 0',
-          borderBottom: '1px solid rgba(0,0,0,0.1)',
         }}
       >
         <div
@@ -182,36 +186,31 @@ export function DesktopHeader() {
           <div className="hdr-top-left" style={{ display: 'flex', alignItems: 'center', gap: 16, overflow: 'hidden', whiteSpace: 'nowrap', minWidth: 0 }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontWeight: 600 }}>
               <SafetyCertificateOutlined style={{ color: '#a7f3d0' }} />
-              100% Farm-Traceable Agro Foods &amp; Staples
-            </span>
-            <span style={{ color: '#6ee7b7' }} className="header-location-pill">|</span>
-            <span style={{ color: '#ecfdf5' }} className="header-location-pill">
-              <TruckOutlined style={{ marginRight: 4 }} /> Same-Day Mill Dispatch
+              Farm-traceable staples, milled direct
             </span>
           </div>
 
-          <div className="hdr-top-right" style={{ display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0 }}>
+          <div className="hdr-top-right" style={{ display: 'flex', alignItems: 'center', gap: 20, flexShrink: 0 }}>
             {!isRetailer && (
               <Link
                 to="/retailers/register"
                 style={{
-                  color: '#fef08a',
+                  color: '#ffffff',
                   textDecoration: 'none',
-                  fontWeight: 600,
+                  fontWeight: 500,
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 5,
                 }}
               >
-                <ShopOutlined /> Become a Partner / Buy Wholesale
+                <ShopOutlined /> Buy wholesale
               </Link>
             )}
             {isRetailer && (
-              <span style={{ color: '#fef08a', fontWeight: 600 }}>
-                🏪 Verified Retailer Partner Mode
+              <span style={{ color: '#ffffff', fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                <ShopOutlined /> Retailer account
               </span>
             )}
-            <span style={{ color: '#6ee7b7' }}>|</span>
             <Link
               to="/trace"
               style={{
@@ -223,18 +222,19 @@ export function DesktopHeader() {
                 gap: 5,
               }}
             >
-              <QrcodeOutlined /> Trace QR Batch
+              <QrcodeOutlined /> Trace a pack
             </Link>
-            <span className="hdr-phone" style={{ color: '#6ee7b7' }}>|</span>
-            <span className="hdr-phone" style={{ color: '#d1fae5', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-              <PhoneOutlined /> <strong>1800-209-DESI</strong>
-            </span>
+            {helpline ? (
+              <a href={`tel:${helpline.replace(/[^0-9+]/g, '')}`} className="hdr-phone" style={{ color: '#ffffff', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                <PhoneOutlined /> {helpline}
+              </a>
+            ) : null}
           </div>
         </div>
       </div>
 
       {/* Main desktop header bar */}
-      <div style={{ padding: '12px 0', borderBottom: '1px solid #f0eee9' }}>
+      <div style={{ padding: '12px 0' }}>
         <div
           className="store-container"
           style={{
@@ -283,8 +283,8 @@ export function DesktopHeader() {
                 alignItems: 'center',
                 gap: 8,
                 padding: '6px 12px',
-                borderRadius: 20,
-                background: '#f8fafc',
+                borderRadius: 10,
+                background: '#ffffff',
                 border: '1px solid #e7e5e4',
               }}
             >
@@ -313,8 +313,6 @@ export function DesktopHeader() {
                     type="primary"
                     htmlType="submit"
                     style={{
-                      background: '#f97316',
-                      borderColor: '#f97316',
                       height: 34,
                       padding: '0 16px',
                       borderRadius: 8,
@@ -327,9 +325,8 @@ export function DesktopHeader() {
                 }
                 style={{
                   borderRadius: 12,
-                  borderColor: '#e2e8f0',
-                  background: '#f8fafc',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                  borderColor: '#e7e5e4',
+                  background: '#fafaf9',
                   paddingRight: 4,
                   height: 42,
                 }}
@@ -353,8 +350,8 @@ export function DesktopHeader() {
                       gap: 8,
                       padding: '6px 12px',
                       borderRadius: 10,
-                      background: '#f8fafc',
-                      border: '1px solid #e2e8f0',
+                      background: '#ffffff',
+                      border: '1px solid #e7e5e4',
                       cursor: 'pointer',
                       height: 42,
                     }}
@@ -365,8 +362,8 @@ export function DesktopHeader() {
                         width: 28,
                         height: 28,
                         borderRadius: '50%',
-                        background: isRetailer ? '#ea580c' : '#f97316',
-                        color: '#ffffff',
+                        background: '#ecfdf5',
+                        color: '#047857',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -396,9 +393,7 @@ export function DesktopHeader() {
                     borderRadius: 10,
                     fontWeight: 600,
                     height: 42,
-                    borderColor: '#f97316',
-                    color: '#f97316',
-                    padding: '0 16px',
+                    padding: '0 18px',
                   }}
                 >
                   Sign In
@@ -410,26 +405,17 @@ export function DesktopHeader() {
             <Link to="/cart" style={{ textDecoration: 'none' }}>
               <div
                 style={{
-                  background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
-                  borderRadius: 12,
+                  background: '#f97316',
+                  borderRadius: 10,
                   display: 'flex',
                   alignItems: 'center',
                   gap: 10,
                   padding: '0 14px 0 10px',
                   height: 42,
-                  boxShadow: '0 3px 10px rgba(234, 88, 12, 0.28)',
                   cursor: 'pointer',
-                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                   userSelect: 'none',
                 }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-1px)';
-                  e.currentTarget.style.boxShadow = '0 6px 16px rgba(234, 88, 12, 0.38)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 3px 10px rgba(234, 88, 12, 0.28)';
-                }}
+                className="hdr-cart"
               >
                 {/* Cart Icon Container with crisp, non-overlapping floating Badge */}
                 <div

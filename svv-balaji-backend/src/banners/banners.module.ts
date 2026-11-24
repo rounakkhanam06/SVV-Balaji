@@ -7,6 +7,7 @@ import {
   Injectable,
   NotFoundException,
   Param,
+  BadRequestException,
   Patch,
   Post,
   Query,
@@ -21,7 +22,7 @@ import {
   ApiTags,
   PartialType,
 } from '@nestjs/swagger';
-import { BannerAudience, BannerPlacement } from '@prisma/client';
+import { BannerAudience, BannerLayout, BannerPlacement } from '@prisma/client';
 import { IsBoolean, IsEnum, IsInt, IsOptional, IsString, Min } from 'class-validator';
 import { PrismaService } from '../prisma/prisma.service';
 import { SetActiveDto } from '../common/dto/set-active.dto';
@@ -30,7 +31,15 @@ import { PermissionsGuard } from '../auth/guards/permissions.guard';
 import { RequirePermission } from '../auth/decorators/require-permission.decorator';
 
 export class CreateBannerDto {
-  @ApiProperty()
+  @ApiPropertyOptional({
+    enum: BannerLayout,
+    description: 'IMAGE_ONLY = one finished 1600x600 artwork, no text drawn by the site. Default TEXT.',
+  })
+  @IsOptional()
+  @IsEnum(BannerLayout)
+  layout?: BannerLayout;
+
+  @ApiProperty({ description: 'Banner name; shown as the headline on TEXT banners, alt text on IMAGE_ONLY.' })
   @IsString()
   title: string;
 
@@ -39,21 +48,24 @@ export class CreateBannerDto {
   @IsString()
   badgeText?: string;
 
-  @ApiProperty()
+  @ApiPropertyOptional({ description: 'Required for TEXT banners.' })
+  @IsOptional()
   @IsString()
-  description: string;
+  description?: string;
 
   @ApiProperty({ description: 'Storefront-facing image URL.' })
   @IsString()
   imageUrl: string;
 
-  @ApiProperty()
+  @ApiPropertyOptional({ description: 'Required for TEXT banners.' })
+  @IsOptional()
   @IsString()
-  ctaTextPrimary: string;
+  ctaTextPrimary?: string;
 
-  @ApiProperty({ description: 'Route the primary button links to, e.g. /products' })
+  @ApiPropertyOptional({ description: 'TEXT: the main button link (required). IMAGE_ONLY: optional link for a tap on the banner.' })
+  @IsOptional()
   @IsString()
-  ctaLinkPrimary: string;
+  ctaLinkPrimary?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -103,15 +115,30 @@ export class UpdateBannerDto extends PartialType(CreateBannerDto) {}
 export class BannersService {
   constructor(private readonly prisma: PrismaService) {}
 
+  /** A TEXT banner draws its words on screen, so it cannot be saved without them. */
+  private assertComplete(b: { layout?: BannerLayout | null; description?: string | null; ctaTextPrimary?: string | null; ctaLinkPrimary?: string | null }) {
+    if ((b.layout ?? BannerLayout.TEXT) !== BannerLayout.TEXT) return;
+    const missing = [
+      !b.description?.trim() && 'description',
+      !b.ctaTextPrimary?.trim() && 'button text',
+      !b.ctaLinkPrimary?.trim() && 'button link',
+    ].filter(Boolean);
+    if (missing.length) {
+      throw new BadRequestException(`A text banner needs ${missing.join(', ')}. Or choose "Full image" and upload a finished banner.`);
+    }
+  }
+
   create(dto: CreateBannerDto) {
+    this.assertComplete(dto);
     return this.prisma.banner.create({
       data: {
+        layout: dto.layout ?? BannerLayout.TEXT,
         title: dto.title,
         badgeText: dto.badgeText,
-        description: dto.description,
+        description: dto.description ?? '',
         imageUrl: dto.imageUrl,
-        ctaTextPrimary: dto.ctaTextPrimary,
-        ctaLinkPrimary: dto.ctaLinkPrimary,
+        ctaTextPrimary: dto.ctaTextPrimary ?? '',
+        ctaLinkPrimary: dto.ctaLinkPrimary ?? '',
         ctaTextSecondary: dto.ctaTextSecondary,
         ctaLinkSecondary: dto.ctaLinkSecondary,
         backgroundColor: dto.backgroundColor ?? '#064e3b',
@@ -140,10 +167,12 @@ export class BannersService {
   async update(id: string, dto: UpdateBannerDto) {
     const banner = await this.prisma.banner.findUnique({ where: { id } });
     if (!banner) throw new NotFoundException('Banner not found');
+    this.assertComplete({ ...banner, ...Object.fromEntries(Object.entries(dto).filter(([, v]) => v !== undefined)) });
 
     return this.prisma.banner.update({
       where: { id },
       data: {
+        layout: dto.layout,
         title: dto.title,
         badgeText: dto.badgeText,
         description: dto.description,

@@ -644,11 +644,17 @@ export class ReportsService {
   // ============================================================ commerce dashboard
 
   /** Live counters for the Customer & Retail dashboard. Today/this month in IST. */
-  async commerceDashboard(user: JwtPayload) {
+  async commerceDashboard(user: JwtPayload, from?: string, to?: string) {
     const branchId = scopedBranchId(user);
     const today = istDate(new Date());
     const todayR = istRange(today, today);
-    const monthR = istRange(`${today.slice(0, 8)}01`, today);
+    const ymd = /^\d{4}-\d{2}-\d{2}$/;
+    if ((from && !ymd.test(from)) || (to && !ymd.test(to))) throw new BadRequestException('from and to must be YYYY-MM-DD');
+    const pFrom = from ?? `${today.slice(0, 8)}01`;
+    const pTo = to ?? today;
+    if (pFrom > pTo) throw new BadRequestException('from must be on or before to');
+    // "month" is the selected period (default: this month so far). Name kept for older clients.
+    const monthR = istRange(pFrom, pTo);
     const ob: Prisma.OrderWhereInput = branchId ? { branchId } : {};
     const sumTotal = (where: Prisma.OrderWhereInput) =>
       this.prisma.order.aggregate({ where: { ...where, ...ob, status: SOLD }, _sum: { total: true }, _count: { _all: true } });
@@ -693,6 +699,7 @@ export class ReportsService {
       today: { orders: todayAll._count._all, revenue: rupees(paise(todayAll._sum.total)) },
       month: {
         from: monthR.from,
+        to: pTo,
         b2b: { orders: monthB2b._count._all, revenue: rupees(paise(monthB2b._sum.total)) },
         b2c: { orders: monthB2c._count._all, revenue: rupees(paise(monthB2c._sum.total)) },
         pos: { sales: monthPos._count._all, revenue: rupees(paise(monthPos._sum.total)) },

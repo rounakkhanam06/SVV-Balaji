@@ -4500,3 +4500,20 @@ Tests: sales/reports/wallet suites 57/57 (2 new cancel cases). Not run: full sui
 
 ## 2026-11-24 — Raunak (agent) — removed mock Franchise Supply Orders page
 - `/franchise-orders`, `/franchises`, `/franchise-orders/:id` routes, the menu entry and `src/pages/franchises/` (localStorage demo data, no backend) deleted from admin. Franchise supply remains future scope; real franchise-outlet LOCAL delivery (Outlets, checkout routing) untouched.
+
+## 2026-11-24 — Raunak (agent) — dashboard period filter + refresh
+- API: `GET /api/v1/dashboard/commerce` takes optional `from`/`to` (YYYY-MM-DD, IST); the `month` block is that period (default this month so far) and now also returns `month.to`. Additive, old callers unchanged.
+- Admin Customer & Retail dashboard redesigned (white KPI cards, cleaner lists) with Today / Yesterday / Last 7 days / This month / Last month / Custom range, Refresh button and "Updated x ago". Revenue card + "so far" box follow the period; today, to-fulfil, returns, low stock stay live.
+
+## 2026-11-24 — Raunak (agent) — customer website visual refinement (desktop)
+- Header: single emerald top bar (no pipes, helpline now from Support Settings instead of hard-coded), emerald Search, neutral account pill/menu icons, flat cart button, plainer menu labels.
+- Home: hero has no white strip under the slide, white/outline CTAs, lighter image frame; right-column widgets are light cards (no orange/navy gradients) and match hero height; trust strip uses one icon style; desktop category tiles show the photo full-bleed like the app; product prices dark (as in the app); removed fake "Limited Time" on schemes; bottom retailer block is a clean card with Store profile / Rewards / Orders; partner block neutral.
+- No logic, API or admin-managed content changed (banners, schemes, Shop-by-Price colours still come from admin).
+
+- Same day, product cards: shared .pc-* classes in customer styles.css used by Home shelves/grids and the category product grid (desktop + mobile). Square image box the photo fills, 5-across desktop shelf with more padding, name (2-line clamp) > pack size > price (19px) + struck MRP + computed % off; hover is a border/shadow change instead of a lift. Footer restores the original white-box logo beside the header wordmark.
+- Same day, mobile home header: logo | two-line who (store name or 'Deliver to') + location (tap opens picker) | round QR trace button; dropped the '24 Mins' / '100% Farm Traceable' chips, flatter border, more spacing before search.
+
+## 2026-11-24 — Raunak (agent) — full-image banners
+- API: `Banner.layout` (`TEXT` default | `IMAGE_ONLY`) on create/update/list; `description`, `ctaTextPrimary`, `ctaLinkPrimary` now optional in the DTO (server still requires them for TEXT banners). Migration `20261124120000_banner_layout` (additive; applied to dev DB 24 Nov). Existing banners are TEXT, unchanged.
+- Admin Banner form: "Banner type" switch; Full image hides text/buttons/colour, asks for a name + one 1600x600 image + optional tap link; preview shows the artwork.
+- Customer: IMAGE_ONLY banners render as the artwork edge-to-edge (8:3) in the home carousel (web + phone) and the categories carousel; tap opens the link if set. Desktop hero slot is now 8:3 for all banners; right-column cards made compact to match.

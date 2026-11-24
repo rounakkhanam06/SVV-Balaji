@@ -3313,15 +3313,27 @@ enum BannerAudience {
 /// it, `targetAudience` narrows it to a channel, `displayOrder` decides slide
 /// order within a placement, and `isActive` is the publish switch - the same
 /// hide-don't-delete pattern as Category/Product.
+/// IMAGE_ONLY: one finished artwork (text baked in) fills the slot on web and
+/// phone, 8:3 (1600 x 600). TEXT: the storefront writes title / description /
+/// buttons over the colour background with the image beside it.
+enum BannerLayout {
+  TEXT
+  IMAGE_ONLY
+}
+
 model Banner {
   id String @id @default(uuid())
 
+  layout           BannerLayout    @default(TEXT)
+  /// Admin's name for the banner; also the image's alt text on IMAGE_ONLY.
   title            String
   badgeText        String?
-  description      String
+  /// Required for TEXT, unused for IMAGE_ONLY (enforced in BannersService).
+  description      String          @default("")
   imageUrl         String
-  ctaTextPrimary   String
-  ctaLinkPrimary   String
+  ctaTextPrimary   String          @default("")
+  /// TEXT: the main button's link. IMAGE_ONLY: where a tap anywhere on the banner goes ("" = not clickable).
+  ctaLinkPrimary   String          @default("")
   ctaTextSecondary String?
   ctaLinkSecondary String?
   backgroundColor  String          @default("#064e3b")

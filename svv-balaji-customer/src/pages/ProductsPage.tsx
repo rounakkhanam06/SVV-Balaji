@@ -396,8 +396,8 @@ export function ProductsPage() {
                     }}
                   >
                     <Link to={`/product-detail/${product.slug}`} style={{ textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column' }}>
-                      <div style={{ position: 'relative', height: 110, background: '#f8f7f5', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 8 }}>
-                        <img src={product.image} alt={product.name} style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain', mixBlendMode: 'multiply' }} />
+                      <div className="pc-media pc-media--sm">
+                        <img src={product.image} alt={product.name} loading="lazy" />
                         {product.badge && (
                           <span
                             style={{
@@ -417,33 +417,27 @@ export function ProductsPage() {
                         )}
                       </div>
 
-                      <div style={{ padding: '8px 8px 0', display: 'flex', flexDirection: 'column', flex: 1 }}>
-                        <Typography.Text strong style={{ display: 'block', fontSize: 12, lineHeight: 1.25, color: '#1c1917', minHeight: 30 }}>
-                          {product.name}
-                        </Typography.Text>
+                      <div className="pc-body">
+                        <span className="pc-name">{product.name}</span>
                         {product.rating && product.reviewCount ? (
                           <div style={{ marginTop: 3 }}>
                             <RatingBadge rating={product.rating} count={product.reviewCount} />
                           </div>
                         ) : null}
-                        <Typography.Text type="secondary" style={{ fontSize: 11, marginTop: 2, display: 'block' }}>
-                          {product.variant || (product as any).weight || '1 pack'}
-                        </Typography.Text>
-
-                        <div style={{ margin: '6px 0 8px', display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                          <Typography.Text strong style={{ fontSize: 14, color: '#065f46' }}>
-                            {product.price !== null ? formatInr(product.price) : 'Price on request'}
-                          </Typography.Text>
-                          {product.mrp && (
-                            <Typography.Text delete type="secondary" style={{ fontSize: 10 }}>
-                              {formatInr(product.mrp)}
-                            </Typography.Text>
-                          )}
-                        </div>
+                        <span className="pc-meta">{product.variant || (product as any).weight || '1 pack'}</span>
+                        <div className="pc-price-row">
+  <span className="pc-price">{product.price !== null ? formatInr(product.price) : 'Price on request'}</span>
+  {product.mrp && product.price !== null && Number(product.mrp) > product.price ? (
+    <>
+      <span className="pc-mrp">{formatInr(product.mrp)}</span>
+      <span className="pc-off">{Math.round((1 - product.price / Number(product.mrp)) * 100)}% off</span>
+    </>
+  ) : null}
+</div>
                       </div>
                     </Link>
 
-                    <div style={{ padding: '0 8px 8px' }}>
+                    <div className="pc-action">
                       {cartLine ? (
                         <div
                           style={{
@@ -676,8 +670,8 @@ export function ProductsPage() {
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-                  gap: 18,
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))',
+                  gap: 20,
                 }}
               >
                 {productsToDisplay.map((product, idx) => {
@@ -698,8 +692,8 @@ export function ProductsPage() {
                       }}
                     >
                       <Link to={`/product-detail/${product.slug}`} style={{ textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column' }}>
-                        <div style={{ position: 'relative', height: 150, background: '#f8f7f5', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 12 }}>
-                          <img src={product.image} alt={product.name} style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain', mixBlendMode: 'multiply' }} />
+                        <div className="pc-media">
+                          <img src={product.image} alt={product.name} loading="lazy" />
                           {product.badge && (
                             <span
                               style={{
@@ -718,33 +712,27 @@ export function ProductsPage() {
                             </span>
                           )}
                         </div>
-                        <div style={{ padding: '14px 14px 0', display: 'flex', flexDirection: 'column', flex: 1 }}>
-                          <Typography.Text strong style={{ display: 'block', fontSize: 13, lineHeight: 1.3, color: '#1c1917' }}>
-                            {product.name}
-                          </Typography.Text>
+                        <div className="pc-body">
+                          <span className="pc-name">{product.name}</span>
                           {product.rating && product.reviewCount ? (
                             <div style={{ marginTop: 3 }}>
                               <RatingBadge rating={product.rating} count={product.reviewCount} />
                             </div>
                           ) : null}
-                          <Typography.Text type="secondary" style={{ fontSize: 12, marginTop: 2, display: 'block' }}>
-                            {product.variant || (product as any).weight || '1 pack'}
-                          </Typography.Text>
-
-                          <div style={{ margin: '8px 0 12px', display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                            <Typography.Text strong style={{ fontSize: 16, color: '#065f46' }}>
-                              {product.price !== null ? formatInr(product.price) : 'Price on request'}
-                            </Typography.Text>
-                            {product.mrp && (
-                              <Typography.Text delete type="secondary" style={{ fontSize: 12 }}>
-                                {formatInr(product.mrp)}
-                              </Typography.Text>
-                            )}
-                          </div>
+                          <span className="pc-meta">{product.variant || (product as any).weight || '1 pack'}</span>
+                          <div className="pc-price-row">
+  <span className="pc-price">{product.price !== null ? formatInr(product.price) : 'Price on request'}</span>
+  {product.mrp && product.price !== null && Number(product.mrp) > product.price ? (
+    <>
+      <span className="pc-mrp">{formatInr(product.mrp)}</span>
+      <span className="pc-off">{Math.round((1 - product.price / Number(product.mrp)) * 100)}% off</span>
+    </>
+  ) : null}
+</div>
                         </div>
                       </Link>
 
-                      <div style={{ padding: '0 14px 14px' }}>
+                      <div className="pc-action">
                         {cartLine ? (
                           <div
                             style={{

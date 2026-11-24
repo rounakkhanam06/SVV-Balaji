@@ -227,8 +227,8 @@ export function ReferralSettingsPage() {
                 width: 36,
                 height: 36,
                 borderRadius: 8,
-                background: type === 'customer' ? '#e0e7ff' : '#fef3c7',
-                color: type === 'customer' ? '#4338ca' : '#b45309',
+                background: type === 'customer' ? '#E6F2EA' : '#fef3c7',
+                color: type === 'customer' ? '#1E5E3A' : '#b45309',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -303,7 +303,7 @@ export function ReferralSettingsPage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span
                     style={{
-                      background: '#4f46e5',
+                      background: '#1E5E3A',
                       color: '#ffffff',
                       fontSize: 11,
                       fontWeight: 700,
@@ -416,8 +416,8 @@ export function ReferralSettingsPage() {
                 onClick={() => void handleSave()}
                 style={{
                   borderRadius: 8,
-                  background: dirty ? '#4f46e5' : undefined,
-                  borderColor: dirty ? '#4f46e5' : undefined,
+                  background: dirty ? '#1E5E3A' : undefined,
+                  borderColor: dirty ? '#1E5E3A' : undefined,
                   boxShadow: dirty ? '0 4px 12px rgba(79, 70, 229, 0.35)' : undefined,
                 }}
               >
@@ -437,11 +437,12 @@ export function ReferralSettingsPage() {
           {/* Executive Overview Banner */}
           <div
             style={{
-              background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%)',
+              background: 'linear-gradient(135deg, #F3F9F5 0%, #E6F2EA 100%)',
+              border: '1px solid #CFE5D7',
               borderRadius: 16,
               padding: '24px 28px',
-              color: '#ffffff',
-              boxShadow: '0 10px 25px -5px rgba(49, 46, 129, 0.3)',
+              color: '#1F2937',
+              boxShadow: '0 2px 8px rgba(30, 94, 58, 0.06)',
               display: 'flex',
               flexWrap: 'wrap',
               alignItems: 'center',
@@ -453,9 +454,9 @@ export function ReferralSettingsPage() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
                 <span
                   style={{
-                    background: draft.isActive ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                    background: draft.isActive ? '#DCFCE7' : '#FEE2E2',
                     border: `1px solid ${draft.isActive ? '#22c55e' : '#ef4444'}`,
-                    color: draft.isActive ? '#4ade80' : '#f87171',
+                    color: draft.isActive ? '#15803D' : '#B91C1C',
                     fontSize: 12,
                     fontWeight: 600,
                     padding: '2px 10px',
@@ -471,19 +472,19 @@ export function ReferralSettingsPage() {
                       height: 8,
                       borderRadius: '50%',
                       background: draft.isActive ? '#22c55e' : '#ef4444',
-                      boxShadow: draft.isActive ? '0 0 8px #22c55e' : 'none',
+                      boxShadow: 'none',
                     }}
                   />
                   {draft.isActive ? 'Program Live & Active' : 'Program Paused'}
                 </span>
-                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>
+                <span style={{ fontSize: 12, color: '#64748B' }}>
                   Auto-synced with Customer App
                 </span>
               </div>
-              <h2 style={{ fontSize: 22, fontWeight: 700, margin: '0 0 6px 0', color: '#ffffff' }}>
+              <h2 style={{ fontSize: 22, fontWeight: 700, margin: '0 0 6px 0', color: '#1E5E3A' }}>
                 Refer & Earn Economics
               </h2>
-              <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.8)', lineHeight: 1.5 }}>
+              <p style={{ margin: 0, fontSize: 13, color: '#475569', lineHeight: 1.5 }}>
                 When an existing user invites a friend, both parties receive reward coins credited according to your rules below.
               </p>
             </div>
@@ -492,54 +493,51 @@ export function ReferralSettingsPage() {
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
               <div
                 style={{
-                  background: 'rgba(255,255,255,0.1)',
-                  backdropFilter: 'blur(8px)',
+                  background: '#FFFFFF',
                   borderRadius: 12,
                   padding: '12px 18px',
-                  border: '1px solid rgba(255,255,255,0.15)',
+                  border: '1px solid #D7EADF',
                   minWidth: 130,
                 }}
               >
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', fontWeight: 600 }}>
+                <div style={{ fontSize: 11, color: '#64748B', textTransform: 'uppercase', fontWeight: 600 }}>
                   Inviter Reward
                 </div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: '#fbbf24', marginTop: 2 }}>
-                  {draft.referrerRewardCoins} <span style={{ fontSize: 13, fontWeight: 500, color: '#fef08a' }}>Coins</span>
+                <div style={{ fontSize: 22, fontWeight: 800, color: '#B45309', marginTop: 2 }}>
+                  {draft.referrerRewardCoins} <span style={{ fontSize: 13, fontWeight: 500, color: '#D97706' }}>Coins</span>
                 </div>
               </div>
 
               <div
                 style={{
-                  background: 'rgba(255,255,255,0.1)',
-                  backdropFilter: 'blur(8px)',
+                  background: '#FFFFFF',
                   borderRadius: 12,
                   padding: '12px 18px',
-                  border: '1px solid rgba(255,255,255,0.15)',
+                  border: '1px solid #D7EADF',
                   minWidth: 130,
                 }}
               >
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', fontWeight: 600 }}>
+                <div style={{ fontSize: 11, color: '#64748B', textTransform: 'uppercase', fontWeight: 600 }}>
                   Friend Reward
                 </div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: '#34d399', marginTop: 2 }}>
-                  {draft.refereeRewardCoins} <span style={{ fontSize: 13, fontWeight: 500, color: '#a7f3d0' }}>Coins</span>
+                <div style={{ fontSize: 22, fontWeight: 800, color: '#1E5E3A', marginTop: 2 }}>
+                  {draft.refereeRewardCoins} <span style={{ fontSize: 13, fontWeight: 500, color: '#16A34A' }}>Coins</span>
                 </div>
               </div>
 
               <div
                 style={{
-                  background: 'rgba(255,255,255,0.1)',
-                  backdropFilter: 'blur(8px)',
+                  background: '#FFFFFF',
                   borderRadius: 12,
                   padding: '12px 18px',
-                  border: '1px solid rgba(255,255,255,0.15)',
+                  border: '1px solid #D7EADF',
                   minWidth: 160,
                 }}
               >
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', fontWeight: 600 }}>
+                <div style={{ fontSize: 11, color: '#64748B', textTransform: 'uppercase', fontWeight: 600 }}>
                   Reward Trigger
                 </div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#ffffff', marginTop: 6, whiteSpace: 'nowrap' }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#1E5E3A', marginTop: 6, whiteSpace: 'nowrap' }}>
                   {getTriggerInfo(draft.rewardTrigger).icon} {getTriggerInfo(draft.rewardTrigger).title}
                 </div>
               </div>
@@ -554,7 +552,7 @@ export function ReferralSettingsPage() {
                 <Card
                   title={
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <GiftOutlined style={{ color: '#4f46e5', fontSize: 18 }} />
+                      <GiftOutlined style={{ color: '#1E5E3A', fontSize: 18 }} />
                       <span style={{ fontWeight: 600, fontSize: 16 }}>1. Coin Allocation Per Referral</span>
                     </div>
                   }
@@ -700,7 +698,7 @@ export function ReferralSettingsPage() {
                             setDraft((d) => (d ? { ...d, rewardTrigger: triggerKey } : d));
                           }}
                           style={{
-                            border: `2px solid ${isSelected ? '#4f46e5' : '#e2e8f0'}`,
+                            border: `2px solid ${isSelected ? '#1E5E3A' : '#e2e8f0'}`,
                             background: isSelected ? '#f5f3ff' : '#ffffff',
                             borderRadius: 12,
                             padding: '14px 16px',
@@ -719,7 +717,7 @@ export function ReferralSettingsPage() {
                                 width: 40,
                                 height: 40,
                                 borderRadius: 8,
-                                background: isSelected ? '#e0e7ff' : '#f1f5f9',
+                                background: isSelected ? '#E6F2EA' : '#f1f5f9',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
@@ -729,7 +727,7 @@ export function ReferralSettingsPage() {
                             </div>
                             <div>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <Typography.Text strong style={{ fontSize: 14, color: isSelected ? '#312e81' : '#1e293b' }}>
+                                <Typography.Text strong style={{ fontSize: 14, color: isSelected ? '#14532D' : '#1e293b' }}>
                                   {info.title}
                                 </Typography.Text>
                                 {info.badge && (
@@ -749,8 +747,8 @@ export function ReferralSettingsPage() {
                               width: 20,
                               height: 20,
                               borderRadius: '50%',
-                              border: `2px solid ${isSelected ? '#4f46e5' : '#cbd5e1'}`,
-                              background: isSelected ? '#4f46e5' : 'transparent',
+                              border: `2px solid ${isSelected ? '#1E5E3A' : '#cbd5e1'}`,
+                              background: isSelected ? '#1E5E3A' : 'transparent',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
@@ -978,7 +976,7 @@ export function ReferralSettingsPage() {
                           <UserOutlined /> Customer (B2C){' '}
                           <Badge
                             count={draft.customerFaqs?.length || 0}
-                            style={{ backgroundColor: activeTab === 'customer' ? '#4f46e5' : '#94a3b8' }}
+                            style={{ backgroundColor: activeTab === 'customer' ? '#1E5E3A' : '#94a3b8' }}
                           />
                         </span>
                       ),
@@ -991,7 +989,7 @@ export function ReferralSettingsPage() {
                           <ShopOutlined /> Retailer (B2B){' '}
                           <Badge
                             count={draft.retailerFaqs?.length || 0}
-                            style={{ backgroundColor: activeTab === 'retailer' ? '#4f46e5' : '#94a3b8' }}
+                            style={{ backgroundColor: activeTab === 'retailer' ? '#1E5E3A' : '#94a3b8' }}
                           />
                         </span>
                       ),
@@ -1020,7 +1018,7 @@ export function ReferralSettingsPage() {
                 alignItems: 'center',
                 gap: 16,
                 zIndex: 1000,
-                border: '1px solid rgba(255,255,255,0.15)',
+                border: '1px solid #D7EADF',
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1048,8 +1046,8 @@ export function ReferralSettingsPage() {
                   onClick={() => void handleSave()}
                   style={{
                     borderRadius: 20,
-                    background: '#4f46e5',
-                    borderColor: '#4f46e5',
+                    background: '#1E5E3A',
+                    borderColor: '#1E5E3A',
                     fontWeight: 600,
                   }}
                 >
@@ -1078,7 +1076,7 @@ export function ReferralSettingsPage() {
             {/* Mock Hero Box */}
             <div
               style={{
-                background: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 60%, #3b82f6 100%)',
+                background: 'linear-gradient(135deg, #1E5E3A 0%, #2F7D4F 100%)',
                 borderRadius: 16,
                 padding: 20,
                 color: '#fff',
@@ -1120,7 +1118,7 @@ export function ReferralSettingsPage() {
                 }}
               >
                 <span>BALAJI-VIP99</span>
-                <span style={{ color: '#2563eb', fontSize: 12, cursor: 'pointer' }}>COPY</span>
+                <span style={{ color: '#1E5E3A', fontSize: 12, cursor: 'pointer' }}>COPY</span>
               </div>
             </div>
 

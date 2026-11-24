@@ -246,15 +246,6 @@ export function PushNotificationsPage() {
         subtitle="Send an instant message to customers, retailers, riders, staff roles or specific people. Signed-in devices get a pop-up with the app logo even when the app is closed; everyone gets it in their in-app notifications."
       />
 
-      {opts && !opts.pushEnabled ? (
-        <Alert
-          type="warning"
-          showIcon
-          message="Push delivery is not configured on the server"
-          description="Messages will still reach every in-app inbox, but no pop-ups will be shown. Add the Firebase service account to the backend (see src/notifications/fcm.service.ts)."
-        />
-      ) : null}
-
       <Row gutter={16} align="top">
         <Col xs={24} xl={15}>
           <Card title="1. Who should receive it?" style={{ borderRadius: 10 }} styles={{ body: { paddingBottom: 8 } }}>

@@ -101,6 +101,9 @@ function highlights(isRetailer: boolean): Array<{ icon: ReactNode; colour: strin
  * & Support Settings, legal links to the policies Super Admin publishes, and
  * the company name from the GST settings used on invoices.
  */
+/** px to slide the header wordmark left so its round 'dt' mark is hidden (image at 26px tall). */
+const WORDMARK_CROP = 36;
+
 export function DesktopFooter() {
   const { role } = useCustomerAuth();
   const isRetailer = role === 'RETAILER';
@@ -156,19 +159,23 @@ export function DesktopFooter() {
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1.5fr', gap: 40 }}>
           {/* Brand */}
           <div>
+            {/* Original white-box logo, then the header's wordmark (its own round mark cropped off so it is not shown twice). */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-              <div style={{ background: '#ffffff', padding: 4, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ background: '#ffffff', padding: 4, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}>
                 <img src="/images/desi-tokri.png" alt="Desi Tokri" style={{ width: 36, height: 36, objectFit: 'contain' }} />
               </div>
-              <div>
-                <span className="brand-title-font" style={{ fontSize: 18, fontWeight: 800, color: '#ffffff', letterSpacing: '1.5px', display: 'block' }}>
-                  Desi Tokri
+              <div style={{ minWidth: 0 }}>
+                <div style={{ overflow: 'hidden', height: 26 }}>
+                  <img
+                    src="/images/desi-tokri-horizontal.png"
+                    alt=""
+                    aria-hidden
+                    style={{ height: 26, width: 'auto', display: 'block', marginLeft: -WORDMARK_CROP }}
+                  />
+                </div>
+                <span style={{ display: 'block', marginTop: 4, fontSize: 11, color: '#d6b98c', fontWeight: 600, letterSpacing: '0.3px' }}>
+                  ({companyName ?? 'SVV Balaji Food & Beverages Pvt. Ltd.'})
                 </span>
-                {companyName ? (
-                  <span className="brand-title-font" style={{ display: 'block', fontSize: 10, color: '#f59e0b', fontWeight: 700, letterSpacing: '1px', marginTop: 2 }}>
-                    By {companyName}
-                  </span>
-                ) : null}
               </div>
             </div>
 

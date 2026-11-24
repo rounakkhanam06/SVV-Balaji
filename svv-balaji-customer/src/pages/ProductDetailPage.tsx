@@ -1,31 +1,4 @@
-import {
-  ArrowLeftOutlined,
-  CheckCircleFilled,
-  CheckCircleOutlined,
-  EnvironmentOutlined,
-  FileProtectOutlined,
-  GiftOutlined,
-  HeartFilled,
-  HeartOutlined,
-  InfoCircleOutlined,
-  MinusOutlined,
-  PlusOutlined,
-  QuestionCircleOutlined,
-  SafetyCertificateFilled,
-  SafetyCertificateOutlined,
-  SearchOutlined,
-  ShareAltOutlined,
-  ShopFilled,
-  ShopOutlined,
-  ShoppingCartOutlined,
-  StarFilled,
-  SyncOutlined,
-  TagFilled,
-  TagOutlined,
-  ThunderboltFilled,
-  TruckFilled,
-  TruckOutlined,
-} from '@ant-design/icons';
+import { ArrowLeftOutlined, CarOutlined, CheckCircleFilled, CheckCircleOutlined, EnvironmentOutlined, FileProtectOutlined, GiftOutlined, HeartFilled, HeartOutlined, InfoCircleOutlined, MinusOutlined, PlusOutlined, QuestionCircleOutlined, SafetyCertificateFilled, SafetyCertificateOutlined, SearchOutlined, ShareAltOutlined, ShopFilled, ShopOutlined, ShoppingCartOutlined, StarFilled, SyncOutlined, TagFilled, TagOutlined, ThunderboltFilled, ThunderboltOutlined, TruckFilled, TruckOutlined } from '@ant-design/icons';
 import { Badge, Button, Carousel, Collapse, Divider, Input, InputNumber, Spin, Switch, Table, Tag, Typography, message } from 'antd';
 import type { StorefrontPriceTier, StorefrontVariant } from '@shared/api/types';
 import { useEffect, useMemo, useState } from 'react';
@@ -308,10 +281,10 @@ export function ProductDetailPage() {
   const purchasable = hasPrice && (availableStock > 0 || allowBackorder);
   const stockLabel =
     availableStock > 0
-      ? `🟢 ${availableStock.toLocaleString()} pcs in Stock`
+      ? `${availableStock.toLocaleString()} pcs in Stock`
       : allowBackorder
-        ? '🟡 Made to order — dispatched on confirmation'
-        : '🔴 Out of stock';
+        ? 'Made to order — dispatched on confirmation'
+        : 'Out of stock';
   const stockColor = availableStock > 0 ? '#16a34a' : allowBackorder ? '#b45309' : '#dc2626';
 
   // Each pack size is priced by the quantity entered for THAT pack - the same
@@ -805,7 +778,7 @@ export function ProductDetailPage() {
 
               {/* Tier-Based Pricing Table */}
               <Typography.Text strong style={{ fontSize: 13, color: '#0f172a', display: 'block', marginBottom: 8 }}>
-                📊 Wholesale Tier-Based Pricing Table
+                Wholesale Tier-Based Pricing Table
               </Typography.Text>
 
               <div style={{ borderRadius: 10, overflow: 'hidden', border: '1px solid #fed7aa' }}>
@@ -853,7 +826,7 @@ export function ProductDetailPage() {
                           <td style={{ padding: '8px 12px', textAlign: 'right' }}>
                             {isActive ? (
                               <Tag color="orange" style={{ margin: 0, fontWeight: 700, fontSize: 10 }}>
-                                ⚡ ACTIVE TIER
+                                ACTIVE TIER
                               </Tag>
                             ) : (
                               <span style={{ color: '#94a3b8', fontSize: 11 }}>Order {tier.min}+ pcs</span>
@@ -912,7 +885,7 @@ export function ProductDetailPage() {
             {/* ========================================================================= */}
             <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: 14, marginBottom: 16 }}>
               <Typography.Text strong style={{ fontSize: 13, color: '#0f172a', display: 'block', marginBottom: 10 }}>
-                📋 MOQ &amp; Order Information
+                MOQ &amp; Order Information
               </Typography.Text>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, fontSize: 12 }}>
                 <div style={{ background: '#fff', padding: '10px 12px', borderRadius: 8, border: '1px solid #e2e8f0' }}>
@@ -949,7 +922,7 @@ export function ProductDetailPage() {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                   <div>
                     <Typography.Text strong style={{ fontSize: 14, color: '#9a3412', display: 'block' }}>
-                      ⚡ Multi-Variant Bulk Order Matrix
+                      Multi-Variant Bulk Order Matrix
                     </Typography.Text>
                     <Typography.Text style={{ fontSize: 11, color: '#c2410c' }}>
                       Select variants → Enter quantities → Add all to cart
@@ -985,7 +958,7 @@ export function ProductDetailPage() {
                               {formatInr(vPrice)}
                             </td>
                             <td style={{ padding: '8px 10px', color: stockColor, fontSize: 11 }}>
-                              {availableStock > 0 ? '🟢 In Stock' : allowBackorder ? '🟡 On order' : '🔴 Out of stock'}
+                              {availableStock > 0 ? 'In Stock' : allowBackorder ? 'On order' : 'Out of stock'}
                             </td>
                             <td style={{ padding: '8px 10px', textAlign: 'right' }}>
                               <InputNumber
@@ -1305,7 +1278,7 @@ export function ProductDetailPage() {
       {/* Delivery & Pincode Check */}
       <div className="pdp-section-card" style={{ background: '#fff', padding: '16px', marginTop: 8 }}>
         <Typography.Text strong style={{ fontSize: 14, display: 'block', marginBottom: 12 }}>
-          {isRetailer ? '🚚 Wholesale Freight & Store Dispatch' : 'Delivery & Services'}
+          {isRetailer ? 'Wholesale Freight & Store Dispatch' : 'Delivery & Services'}
         </Typography.Text>
 
         {deliveryStatus !== 'SUCCESS' && deliveryStatus !== 'ERROR' ? (
@@ -1355,7 +1328,7 @@ export function ProductDetailPage() {
                 </Typography.Text>
                 {deliveryInfo.mode === 'QUICK' ? (
                   <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                    <div style={{ fontSize: 16 }}>⚡</div>
+                    <div style={{ fontSize: 16, color: '#059669' }}><ThunderboltOutlined /></div>
                     <div>
                       <Typography.Text strong style={{ display: 'block', color: '#16a34a', fontSize: 14 }}>
                         Quick Delivery
@@ -1370,7 +1343,7 @@ export function ProductDetailPage() {
                   </div>
                 ) : (
                   <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                    <div style={{ fontSize: 16 }}>🚚</div>
+                    <div style={{ fontSize: 16, color: '#059669' }}><CarOutlined /></div>
                     <div>
                       <Typography.Text strong style={{ display: 'block', color: '#2563eb', fontSize: 14 }}>
                         {deliveryInfo.eta.startsWith('Same day') ? 'Same-day delivery' : 'Standard Delivery'}

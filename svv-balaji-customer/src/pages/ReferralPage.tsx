@@ -205,8 +205,8 @@ export function ReferralPage() {
     }
 
     const shareText = isRetailer
-      ? `Namaste! 🌾 Join SVV Balaji wholesale mandi direct platform. Register your store with my partner referral code *${activeReferralCode}* to get mandi bulk rates, GST billing, and ₹${program.refereeRewardCoins} welcome reward coins! Join here: ${inviteLink}`
-      : `Hey! 🛒 I order fresh, authentic grocery staples & pantry items directly from SVV Balaji / Desi Tokri. Use my referral code *${activeReferralCode}* when signing up to get *₹${program.refereeRewardCoins} worth Reward Coins* on your first purchase! Register here: ${inviteLink}`;
+      ? `Namaste! Join SVV Balaji wholesale mandi direct platform. Register your store with my partner referral code *${activeReferralCode}* to get mandi bulk rates, GST billing, and ₹${program.refereeRewardCoins} welcome reward coins! Join here: ${inviteLink}`
+      : `Hey! I order fresh, authentic grocery staples & pantry items directly from SVV Balaji / Desi Tokri. Use my referral code *${activeReferralCode}* when signing up to get *₹${program.refereeRewardCoins} worth Reward Coins* on your first purchase! Register here: ${inviteLink}`;
 
     const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
     window.open(whatsappUrl, '_blank');
@@ -440,7 +440,7 @@ export function ReferralPage() {
 
                 <div style={{ marginTop: 6 }}>
                   <Typography.Text type="secondary" style={{ fontSize: 11 }}>
-                    {copiedCode ? '✓ Copied to clipboard!' : 'Tap to copy your code'}
+                    {copiedCode ? 'Copied to clipboard!' : 'Tap to copy your code'}
                   </Typography.Text>
                 </div>
               </div>
@@ -877,7 +877,7 @@ export function ReferralPage() {
                             +{program.referrerRewardCoins} Coins
                           </Tag>
                           <Typography.Text style={{ fontSize: 11, color: '#16a34a', display: 'block', marginTop: 2 }}>
-                            Credited ✓
+                            Credited 
                           </Typography.Text>
                         </div>
                       ) : (

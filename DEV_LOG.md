@@ -4517,3 +4517,11 @@ Tests: sales/reports/wallet suites 57/57 (2 new cancel cases). Not run: full sui
 - API: `Banner.layout` (`TEXT` default | `IMAGE_ONLY`) on create/update/list; `description`, `ctaTextPrimary`, `ctaLinkPrimary` now optional in the DTO (server still requires them for TEXT banners). Migration `20261124120000_banner_layout` (additive; applied to dev DB 24 Nov). Existing banners are TEXT, unchanged.
 - Admin Banner form: "Banner type" switch; Full image hides text/buttons/colour, asks for a name + one 1600x600 image + optional tap link; preview shows the artwork.
 - Customer: IMAGE_ONLY banners render as the artwork edge-to-edge (8:3) in the home carousel (web + phone) and the categories carousel; tap opens the link if set. Desktop hero slot is now 8:3 for all banners; right-column cards made compact to match.
+
+## 2026-11-24 — Raunak (agent) — header showed "Current location" instead of the area
+- Cause: `GET storefront/maps/reverse` is signed-in only, so for guests "use my location" always got 401 and the placeholder "Current location" was saved in localStorage for good.
+- API (new, public): `GET /api/v1/storefront/location/reverse?lat&lng` - same answer, cached per ~100 m cell, 60 lookups/hour per IP (X-Forwarded-For first hop); over the limit returns null. Autocomplete / place details stay signed-in only. Old `/storefront/maps/reverse` unchanged.
+- Customer: uses the public route; retries once; never saves the placeholder (asks to search/type instead); a saved "Current location" with coordinates is looked up again once per page load and replaced with the real area.
+
+## 2026-11-24 — Raunak (agent) — no emoji in UI
+- Removed every emoji/dingbat from user-visible text in customer, admin, field and shared (122 lines, ~49 files). Where an emoji acted as an icon it is now an Ant Design icon (profile menu cards, empty states, cart offer boxes, product delivery rows, pinned-address tags, coin balances = GoldOutlined, referral trigger icons, phone/location prefixes). Messages, select options and labels just lost the emoji. Price-tile "emoji" is no longer rendered (storefront tile watermark, deals header) and its admin input is gone; the data field stays. Rule: do not add emoji to UI text.

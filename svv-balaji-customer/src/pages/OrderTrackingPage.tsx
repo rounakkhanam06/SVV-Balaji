@@ -471,7 +471,7 @@ function ItemsCard({ order: o, delivered, focusRating }: { order: OrderDetail; d
       </Typography.Text>
       {delivered ? (
         <Typography.Text type="secondary" style={{ fontSize: 12.5 }}>
-          {pending > 0 ? 'Rate your experience ⭐ — your review helps other shoppers.' : 'Thanks for rating every product in this order!'}
+          {pending > 0 ? 'Rate your experience — your review helps other shoppers.' : 'Thanks for rating every product in this order!'}
         </Typography.Text>
       ) : null}
       {o.items.map((i, idx) => (
@@ -492,7 +492,7 @@ function ItemRow({ orderNumber, item, rateable, last }: { orderNumber: string; i
   const save = useMutation({
     mutationFn: () => checkoutApi.reviewProduct(orderNumber, { productId: item.productId, rating, comment: comment.trim() || undefined }),
     onSuccess: () => {
-      message.success('Thanks for your feedback! ⭐');
+      message.success('Thanks for your feedback!');
       setEditing(false);
       void qc.invalidateQueries({ queryKey: ['storefront', 'orders'] });
     },
@@ -629,7 +629,7 @@ function BillCard({ order: o }: { order: OrderDetail }) {
       ) : null}
       {bill.savings > 0 ? (
         <div style={{ marginTop: 12, background: '#ecfdf5', border: '1px solid #bbf7d0', color: '#15803d', borderRadius: 10, padding: '8px 12px', fontSize: 13, fontWeight: 600 }}>
-          🎉 You saved {formatInr(rupees(bill.savings))} on this order
+          You saved {formatInr(rupees(bill.savings))} on this order
         </div>
       ) : null}
     </Card>

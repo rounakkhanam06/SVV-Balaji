@@ -1,18 +1,4 @@
-import {
-  BarChartOutlined,
-  DeleteOutlined,
-  DollarOutlined,
-  EditOutlined,
-  EyeOutlined,
-  PhoneOutlined,
-  PlusOutlined,
-  QrcodeOutlined,
-  RocketOutlined,
-  SearchOutlined,
-  ShopOutlined,
-  StopOutlined,
-  UserOutlined,
-} from '@ant-design/icons';
+import { BarChartOutlined, DeleteOutlined, DollarOutlined, EditOutlined, EnvironmentOutlined, EyeOutlined, PhoneOutlined, PlusOutlined, QrcodeOutlined, RocketOutlined, SearchOutlined, ShopOutlined, StopOutlined, UserOutlined } from '@ant-design/icons';
 import {
   Alert,
   App as AntApp,
@@ -104,7 +90,7 @@ export function OutletsPage() {
             <Space size={6} wrap>
               <Tag color="cyan" style={{ fontSize: 10 }}>{o.code}</Tag>
               {!o.isActive ? <Tag>Inactive</Tag> : null}
-              <Text type="secondary" style={{ fontSize: 11 }}>📍 {o.city}, {o.state}</Text>
+              <Text type="secondary" style={{ fontSize: 11 }}><EnvironmentOutlined /> {o.city}, {o.state}</Text>
             </Space>
           </Space>
         </Space>
@@ -118,7 +104,7 @@ export function OutletsPage() {
       render: (_, o) => (
         <Space direction="vertical" size={2}>
           <Text strong style={{ fontSize: 12 }}>{o.managerName ?? '—'}</Text>
-          {o.managerPhone ? <Text type="secondary" style={{ fontSize: 11 }}>📞 {o.managerPhone}</Text> : null}
+          {o.managerPhone ? <Text type="secondary" style={{ fontSize: 11 }}><PhoneOutlined /> {o.managerPhone}</Text> : null}
           <Tag color="purple" style={{ fontSize: 10, padding: '0 4px', margin: 0 }}>{o.posTerminalsCount} POS terminal{o.posTerminalsCount === 1 ? '' : 's'}</Tag>
         </Space>
       ),
@@ -156,7 +142,7 @@ export function OutletsPage() {
         !o.lastReconciliation ? (
           <Text type="secondary">No shift closed yet</Text>
         ) : o.lastReconciliation.status === 'BALANCED' ? (
-          <Tag color="success">✔ BALANCED</Tag>
+          <Tag color="success">BALANCED</Tag>
         ) : (
           <Tag color="warning">{formatCurrency(o.lastReconciliation.discrepancy)}</Tag>
         ),

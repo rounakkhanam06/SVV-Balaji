@@ -59,7 +59,7 @@ export function PriceTilesEditor({ value, onChange, categories, products = [] }:
   const add = () =>
     onChange?.([
       ...tiles,
-      { label: 'Starting from', price: 99, subtitle: '', emoji: '🛒', color: COLORS[tiles.length % COLORS.length], categoryId: null, productIds: [] },
+      { label: 'Starting from', price: 99, subtitle: '', color: COLORS[tiles.length % COLORS.length], categoryId: null, productIds: [] },
     ]);
 
   return (
@@ -90,7 +90,6 @@ export function PriceTilesEditor({ value, onChange, categories, products = [] }:
                 minHeight: 110,
               }}
             >
-              <div style={{ position: 'absolute', bottom: -8, right: -6, fontSize: 40, opacity: 0.2 }}>{t.emoji}</div>
               <div>
                 <div style={{ fontSize: 10, opacity: 0.9 }}>{t.label || 'Starting from'}</div>
                 <div style={{ fontSize: 20, fontWeight: 700, lineHeight: 1.1 }}>₹{t.price ?? 0}</div>
@@ -113,13 +112,6 @@ export function PriceTilesEditor({ value, onChange, categories, products = [] }:
                   min={0}
                   value={t.price}
                   onChange={(v) => patch(i, { price: v ?? 0 })}
-                />
-                <Input
-                  style={{ width: '30%' }}
-                  value={t.emoji}
-                  maxLength={8}
-                  placeholder="Emoji"
-                  onChange={(e) => patch(i, { emoji: e.target.value })}
                 />
               </Space.Compact>
 
@@ -204,8 +196,8 @@ export function PriceTilesEditor({ value, onChange, categories, products = [] }:
                     <Space size={6}>
                       <Tag color={t.productIds && t.productIds.length > 0 ? 'blue' : 'warning'} style={{ margin: 0, fontWeight: 600 }}>
                         {t.productIds && t.productIds.length > 0
-                          ? `🛍️ ${t.productIds.length} custom product${t.productIds.length === 1 ? '' : 's'} selected`
-                          : '⚠️ No products selected yet'}
+                          ? `${t.productIds.length} custom product${t.productIds.length === 1 ? '' : 's'} selected`
+                          : 'No products selected yet'}
                       </Tag>
                     </Space>
                     <Button

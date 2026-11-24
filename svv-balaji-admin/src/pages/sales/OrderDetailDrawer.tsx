@@ -202,7 +202,7 @@ export function OrderDetailDrawer({
         }, 150);
         modal.info({
           centered: true,
-          title: '📦 Batch Verification Required',
+          title: 'Batch Verification Required',
           content: (
             <div style={{ marginTop: 8 }}>
               <p style={{ margin: 0, fontSize: 14 }}>

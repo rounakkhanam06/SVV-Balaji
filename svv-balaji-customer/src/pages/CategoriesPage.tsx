@@ -486,7 +486,7 @@ export function CategoriesPage() {
                 </div>
                 <div style={{ flex: 1 }}>
                   <Typography.Text strong style={{ color: selectedCategoryId === 'for-you' ? '#ea580c' : '#1e293b', fontSize: 14 }}>
-                    ⭐ Trending & Popular
+                    Trending & Popular
                   </Typography.Text>
                 </div>
               </div>

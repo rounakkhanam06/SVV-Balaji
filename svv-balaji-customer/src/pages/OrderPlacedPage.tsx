@@ -150,7 +150,7 @@ export function OrderPlacedPage() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ color: '#64748b' }}>Fulfillment</span>
               <Tag color="green" style={{ margin: 0, fontWeight: 600, borderRadius: 8 }}>
-                {order.fulfillment.method === 'LOCAL' ? '⚡ Quick Delivery' : '📦 Standard Courier'}
+                {order.fulfillment.method === 'LOCAL' ? 'Quick Delivery' : 'Standard Courier'}
               </Tag>
             </div>
             <Divider style={{ margin: '10px 0' }} />

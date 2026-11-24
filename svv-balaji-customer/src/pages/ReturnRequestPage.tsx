@@ -1,4 +1,4 @@
-import { ArrowLeftOutlined, CameraOutlined, LoadingOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, CameraOutlined, CloseOutlined, LoadingOutlined } from '@ant-design/icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Alert, Button, Card, Input, InputNumber, Radio, Select, Skeleton, Space, Tag, Typography, Upload, message } from 'antd';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -161,7 +161,7 @@ export function ReturnRequestPage() {
           {media.map((m) => (
             <div key={m.url} style={{ position: 'relative', width: 72, height: 72, borderRadius: 8, overflow: 'hidden', border: '1px solid #e2e8f0' }}>
               {m.mimeType.startsWith('video/') ? <video src={m.url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <img src={m.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
-              <button onClick={() => setMedia((p) => p.filter((x) => x.url !== m.url))} style={{ position: 'absolute', top: 2, right: 2, border: 'none', borderRadius: 10, background: 'rgba(0,0,0,.6)', color: '#fff', cursor: 'pointer', fontSize: 11 }}>✕</button>
+              <button onClick={() => setMedia((p) => p.filter((x) => x.url !== m.url))} style={{ position: 'absolute', top: 2, right: 2, border: 'none', borderRadius: 10, background: 'rgba(0,0,0,.6)', color: '#fff', cursor: 'pointer', fontSize: 11 }} aria-label="Remove"><CloseOutlined /></button>
             </div>
           ))}
           {media.length < e.policy.maxMediaCount ? (

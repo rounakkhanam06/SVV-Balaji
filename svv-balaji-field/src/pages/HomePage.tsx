@@ -248,7 +248,7 @@ export function FieldHomePage() {
                 level={isMobile ? 4 : 2}
                 style={{ color: '#ffffff', margin: '4px 0 0', fontWeight: 700, letterSpacing: '-0.02em' }}
               >
-                {greeting()}, {firstName} 👋
+                {greeting()}, {firstName} 
               </Typography.Title>
 
               <Typography.Text style={{ color: '#94a3b8', fontSize: isMobile ? 13 : 14 }}>

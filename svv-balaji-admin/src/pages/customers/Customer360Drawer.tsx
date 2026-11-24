@@ -1,16 +1,4 @@
-import {
-  AppstoreOutlined,
-  CopyOutlined,
-  CreditCardOutlined,
-  EnvironmentOutlined,
-  GiftOutlined,
-  MailOutlined,
-  PhoneOutlined,
-  ShoppingOutlined,
-  SolutionOutlined,
-  UserOutlined,
-  WhatsAppOutlined,
-} from '@ant-design/icons';
+import { AppstoreOutlined, CopyOutlined, CreditCardOutlined, EnvironmentOutlined, GiftOutlined, GoldOutlined, MailOutlined, PhoneOutlined, ShoppingOutlined, SolutionOutlined, UserOutlined, WhatsAppOutlined } from '@ant-design/icons';
 import {
   App as AntApp,
   Avatar,
@@ -134,7 +122,7 @@ export function Customer360Drawer({
               <Statistic
                 title="Coin Balance"
                 value={customer.coinBalance ?? 0}
-                prefix="🪙"
+                prefix={<GoldOutlined />}
                 valueStyle={{ color: '#389e0d', fontSize: 18 }}
               />
             </Card>
@@ -286,7 +274,7 @@ export function Customer360Drawer({
                         </Space>
                       </Col>
                       <Col span={10}>
-                        <Statistic title="Coins Available" value={customer.coinBalance} prefix="🪙" />
+                        <Statistic title="Coins Available" value={customer.coinBalance} prefix={<GoldOutlined />} />
                       </Col>
                     </Row>
                   </Card>

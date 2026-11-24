@@ -259,7 +259,7 @@ function PendingReviewAnimated({ affiliate }: { affiliate: AffiliateProfile }) {
             </div>
           </div>
           <div style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(6px)', padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600, color: '#fef3c7', border: '1px solid rgba(255,255,255,0.2)' }}>
-            ✦ Reserved For You
+            Reserved For You
           </div>
         </div>
 
@@ -416,7 +416,7 @@ function Intro({ holdDays, cookieDays }: { holdDays: number; cookieDays: number 
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
         <Tag color="gold" style={{ fontWeight: 700, border: 'none', background: '#f59e0b', color: '#111827', borderRadius: 6 }}>
-          ✨ PARTNER &amp; EARN
+          PARTNER &amp; EARN
         </Tag>
         <span style={{ fontSize: 12, color: '#a7f3d0' }}>Desi Tokri Creator Network</span>
       </div>
@@ -619,7 +619,7 @@ function ApplyForm({ terms, previous }: { terms: string | null; previous?: Affil
         email: v.email || undefined,
       });
       qc.setQueryData(QUERY_KEY, res);
-      message.success('🎉 Application submitted successfully! Welcome to Desi Tokri Partners.');
+      message.success('Application submitted successfully! Welcome to Desi Tokri Partners.');
     } catch (e: any) {
       if (e?.errorFields?.length) {
         message.error('Please resolve the highlighted errors in the form before submitting.');
@@ -1025,8 +1025,8 @@ function PayoutDetailsModal({ open, onClose, affiliate }: { open: boolean; onClo
             optionType="button"
             buttonStyle="solid"
             options={[
-              { value: 'UPI', label: '⚡ UPI' },
-              { value: 'BANK', label: '🏛️ Bank transfer' },
+              { value: 'UPI', label: 'UPI' },
+              { value: 'BANK', label: 'Bank transfer' },
             ]}
           />
         </Form.Item>

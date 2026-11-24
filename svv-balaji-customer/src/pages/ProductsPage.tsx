@@ -548,7 +548,7 @@ export function ProductsPage() {
                   <img src="/images/cat_namkeen.jpg" alt="Top Picks" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                 </div>
                 <Typography.Text strong style={{ color: selectedSub === 'top-picks' ? '#ea580c' : '#334155', fontSize: 13 }}>
-                  ⭐ Top Picks
+                  Top Picks
                 </Typography.Text>
               </div>
 

@@ -187,7 +187,7 @@ export function useLiveOrders(enabled: boolean, onOpen: (path: string) => void):
         if (!window.location.pathname.startsWith('/support-tickets')) {
           notification.info({
             key: `ticket-new-${payload?.ticketId || Date.now()}`,
-            message: `💬 Support Ticket: ${ticketNumber}`,
+            message: `Support Ticket: ${ticketNumber}`,
             description: `${subject}${payload?.orderNumber ? ` (Order ${payload.orderNumber})` : ''}`,
             placement: 'bottomRight',
             duration: 8,
@@ -213,7 +213,7 @@ export function useLiveOrders(enabled: boolean, onOpen: (path: string) => void):
           if (!window.location.pathname.startsWith('/support-tickets')) {
             notification.info({
               key: `ticket-msg-${payload.message.id}`,
-              message: '💬 Customer Message (Support)',
+              message: 'Customer Message (Support)',
               description: body.length > 80 ? `${body.slice(0, 80)}...` : body,
               placement: 'bottomRight',
               duration: 8,

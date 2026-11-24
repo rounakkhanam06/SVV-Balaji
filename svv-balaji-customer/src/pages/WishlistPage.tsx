@@ -1,10 +1,4 @@
-import {
-  ArrowLeftOutlined,
-  HeartFilled,
-  MinusOutlined,
-  PlusOutlined,
-  ShoppingOutlined,
-} from '@ant-design/icons';
+import { ArrowLeftOutlined, HeartFilled, HeartOutlined, MinusOutlined, PlusOutlined, ShoppingOutlined } from '@ant-design/icons';
 import { Button, Typography, message } from 'antd';
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -137,7 +131,7 @@ export function WishlistPage() {
           <HeartFilled style={{ fontSize: 72, color: '#f97316', marginBottom: 16, opacity: 0.2 }} />
           <Typography.Title level={4} style={{ marginBottom: 8, color: '#212121' }}>Nothing saved yet</Typography.Title>
           <Typography.Text type="secondary" style={{ textAlign: 'center', fontSize: 14, marginBottom: 28 }}>
-            Tap the ♡ on any product to save it here
+            Tap the <HeartOutlined /> on any product to save it here
           </Typography.Text>
           <Button
             type="primary"

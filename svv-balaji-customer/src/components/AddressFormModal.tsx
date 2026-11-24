@@ -196,7 +196,7 @@ export function AddressFormModal({
             If a store near you can deliver, we route your order there automatically. Without a pin it ships by courier.
           </Typography.Text>
           <Button icon={<AimOutlined />} loading={locating} onClick={locate}>
-            {coords ? 'Location pinned ✓ (update)' : 'Use my current location'}
+            {coords ? 'Location pinned (update)' : 'Use my current location'}
           </Button>
         </div>
         <Form.Item name="isDefault" label="Make this my default address" valuePropName="checked"><Switch /></Form.Item>

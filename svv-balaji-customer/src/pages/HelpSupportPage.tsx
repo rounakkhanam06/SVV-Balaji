@@ -865,7 +865,7 @@ export function HelpSupportPage() {
                     {faq.category && (
                       <div style={{ marginTop: 8 }}>
                         <Tag style={{ fontSize: 10.5, borderRadius: 6, background: '#f8fafc', borderColor: '#e2e8f0' }}>
-                          📁 {faq.category}
+                          {faq.category}
                         </Tag>
                       </div>
                     )}
@@ -974,11 +974,11 @@ export function HelpSupportPage() {
               onChange={(val) => setTicketForm((f) => ({ ...f, category: val }))}
               style={{ width: '100%' }}
               options={[
-                { value: 'ORDER_ISSUE', label: '📦 Order Issue / Missing Items' },
-                { value: 'PAYMENT_REFUND', label: '💳 Payment & Refund Inquiry' },
-                { value: 'DELIVERY_DELAY', label: '🚚 Delivery Tracking Delay' },
-                { value: 'ACCOUNT_GST', label: '🏢 GST Billing & Account Details' },
-                { value: 'OTHER', label: '💬 Other Question' },
+                { value: 'ORDER_ISSUE', label: 'Order Issue / Missing Items' },
+                { value: 'PAYMENT_REFUND', label: 'Payment & Refund Inquiry' },
+                { value: 'DELIVERY_DELAY', label: 'Delivery Tracking Delay' },
+                { value: 'ACCOUNT_GST', label: 'GST Billing & Account Details' },
+                { value: 'OTHER', label: 'Other Question' },
               ]}
             />
           </div>

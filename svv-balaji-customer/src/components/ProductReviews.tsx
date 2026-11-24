@@ -58,7 +58,7 @@ export function ProductReviews({
 
       {!count || !rating ? (
         <div style={{ textAlign: 'center', padding: '12px 8px 4px' }}>
-          <div style={{ fontSize: 30 }}>⭐</div>
+          <div style={{ fontSize: 28, color: '#f59e0b' }}><StarFilled /></div>
           <Typography.Text strong style={{ display: 'block', marginTop: 4 }}>No ratings yet</Typography.Text>
           <Typography.Text type="secondary" style={{ fontSize: 13 }}>
             Bought this? You can rate it from My Orders once it's delivered.

@@ -175,7 +175,7 @@ export function CheckoutPage() {
     cart.clear();
     sessionStorage.removeItem(COUPON_KEY);
     void qc.invalidateQueries({ queryKey: LOYALTY_QUERY_KEY });
-    message.success('Order placed successfully! 🎉');
+    message.success('Order placed successfully!');
     navigate(`/order-placed/${order.orderNumber}`, { replace: true, state: { order } });
   };
 
@@ -358,7 +358,7 @@ export function CheckoutPage() {
           <div style={{ marginBottom: 20, padding: '14px 18px', background: '#fef2f2', borderRadius: 12, border: '1px solid #fecaca', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
             <div>
               <Typography.Text strong style={{ color: '#b91c1c', fontSize: 14, display: 'block' }}>
-                ⚠️ Cart Contains Items Below Retailer Minimum Order Quantity (MOQ)
+                Cart Contains Items Below Retailer Minimum Order Quantity (MOQ)
               </Typography.Text>
               <div style={{ color: '#991b1b', fontSize: 13, marginTop: 4 }}>
                 {violatingLines.map((vl) => `${vl.productName} (Current: ${vl.quantity}, Minimum: ${vl.moqB2B ?? 1} pcs)`).join(' • ')}
@@ -430,7 +430,7 @@ export function CheckoutPage() {
                                 <Tag color={a.label.toUpperCase() === 'HOME' ? 'blue' : a.label.toUpperCase() === 'WORK' ? 'purple' : 'default'} style={{ borderRadius: 4, margin: 0, fontSize: 11, fontWeight: 600 }}>
                                   {a.label}
                                 </Tag>
-                                {a.latitude ? <Tag color="green" style={{ borderRadius: 4, margin: 0, fontSize: 11 }}>📍 Pinned Location</Tag> : null}
+                                {a.latitude ? <Tag color="green" style={{ borderRadius: 4, margin: 0, fontSize: 11 }}><EnvironmentOutlined /> Pinned Location</Tag> : null}
                               </div>
                               <Typography.Text style={{ fontSize: 13, color: '#475569', display: 'block', lineHeight: 1.5 }}>
                                 {[a.line1, a.line2].filter(Boolean).join(', ')}, {a.city}, {a.state} - <strong>{a.pincode}</strong>
@@ -1109,7 +1109,7 @@ function DeliveryChoice({ quote }: { quote: Quote }) {
       <div style={{ flex: 1 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
           <Typography.Text strong style={{ fontSize: 15, color: '#0f172a' }}>
-            {isQuick ? '⚡ Quick Delivery' : 'Standard Delivery'}
+            {isQuick ? 'Quick Delivery' : 'Standard Delivery'}
           </Typography.Text>
           <Typography.Text strong style={{ fontSize: 14, color: feeText === 'FREE' ? '#16a34a' : '#0f172a' }}>
             {feeText}

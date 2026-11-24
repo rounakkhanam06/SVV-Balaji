@@ -565,7 +565,7 @@ export function RetailerDetailPage() {
 
                       <div style={{ marginTop: 12, padding: '10px 14px', background: '#ffffff', borderRadius: 8, border: '1px solid #d9f7be' }}>
                         <Text type="secondary" style={{ fontSize: 12 }}>
-                          ✔ <strong>Tax Invoice Status:</strong> Approved partner receives 100% GST-compliant invoices with HSN codes &amp; Input Tax Credit (ITC) eligibility.
+                          <strong>Tax Invoice Status:</strong> Approved partner receives 100% GST-compliant invoices with HSN codes &amp; Input Tax Credit (ITC) eligibility.
                         </Text>
                       </div>
                     </Card>
@@ -814,13 +814,13 @@ export function RetailerDetailPage() {
                   <div style={{ paddingTop: 12 }}>
                     <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
                       <Col xs={24} sm={8}>
-                        <StatCard icon={<WalletOutlined />} tone="green" label="AVAILABLE BALANCE" value={`🪙 ${walletData?.balance ?? customer?.coinBalance ?? 0}`} />
+                        <StatCard icon={<WalletOutlined />} tone="green" label="AVAILABLE BALANCE" value={`${walletData?.balance ?? customer?.coinBalance ?? 0}`} />
                       </Col>
                       <Col xs={24} sm={8}>
-                        <StatCard icon={<WalletOutlined />} tone="blue" label="TOTAL EARNED" value={`🪙 ${walletData?.totalEarned ?? 0}`} />
+                        <StatCard icon={<WalletOutlined />} tone="blue" label="TOTAL EARNED" value={`${walletData?.totalEarned ?? 0}`} />
                       </Col>
                       <Col xs={24} sm={8}>
-                        <StatCard icon={<WalletOutlined />} tone="red" label="TOTAL USED" value={`🪙 ${walletData?.totalUsed ?? 0}`} />
+                        <StatCard icon={<WalletOutlined />} tone="red" label="TOTAL USED" value={`${walletData?.totalUsed ?? 0}`} />
                       </Col>
                     </Row>
 
@@ -840,7 +840,7 @@ export function RetailerDetailPage() {
                           key: 'amount',
                           render: (val: number) => (
                             <Text strong style={{ color: val >= 0 ? '#389e0d' : '#cf1322' }}>
-                              {val >= 0 ? `+${val}` : val} 🪙
+                              {val >= 0 ? `+${val}` : val} 
                             </Text>
                           ),
                         },

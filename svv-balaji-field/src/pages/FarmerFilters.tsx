@@ -15,9 +15,9 @@ export interface FarmerFilters {
 export const EMPTY_FILTERS: FarmerFilters = {};
 
 export const RATING_OPTIONS = [
-  { value: 80, label: '★ 80 and above' },
-  { value: 60, label: '★ 60 and above' },
-  { value: 40, label: '★ 40 and above' },
+  { value: 80, label: '80 and above' },
+  { value: 60, label: '60 and above' },
+  { value: 40, label: '40 and above' },
   { value: 0, label: 'Any rated farmer' },
 ];
 

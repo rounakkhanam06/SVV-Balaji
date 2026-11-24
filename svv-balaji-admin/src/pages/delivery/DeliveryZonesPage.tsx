@@ -761,7 +761,7 @@ function ZoneDrawer({
                         .filter((w) => w.isActive)
                         .map((w) => ({
                           value: w.id,
-                          label: `${w.name}${w.kind ? ` (${w.kind.toLowerCase()})` : ''}${w.latitude ? ' ✓ Map Ready' : ' ⚠️ No coordinates'}`,
+                          label: `${w.name}${w.kind ? ` (${w.kind.toLowerCase()})` : ''}${w.latitude ? ' Map Ready' : ' No coordinates'}`,
                           disabled: !w.latitude,
                         }))}
                     />

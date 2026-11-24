@@ -1,16 +1,4 @@
-import {
-  ArrowLeftOutlined,
-  CheckCircleFilled,
-  ClockCircleFilled,
-  DeleteOutlined,
-  GiftOutlined,
-  HeartOutlined,
-  MinusOutlined,
-  PlusOutlined,
-  SafetyCertificateOutlined,
-  ShoppingOutlined,
-  TagsOutlined,
-} from '@ant-design/icons';
+import { ArrowLeftOutlined, CheckCircleFilled, ClockCircleFilled, DeleteOutlined, EnvironmentOutlined, GiftOutlined, HeartOutlined, MinusOutlined, PlusOutlined, SafetyCertificateOutlined, ShoppingOutlined, TagsOutlined } from '@ant-design/icons';
 import { Button, Divider, Empty, Input, Modal, Radio, Space, Tag, Typography, message, Skeleton } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -290,7 +278,7 @@ export function CartPage() {
     setAppliedCoupon(found);
     sessionStorage.setItem('applied_coupon_code', found.code);
     const saving = couponsApi.calculateDiscount(found, rawSubtotal);
-    message.success(`🎉 Coupon "${found.code}" applied! You saved ${formatInr(saving)}.`);
+    message.success(`Coupon "${found.code}" applied! You saved ${formatInr(saving)}.`);
     setCouponInput('');
   };
 
@@ -372,7 +360,7 @@ export function CartPage() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                     <Typography.Text strong style={{ fontSize: 14 }}>Delivering to:</Typography.Text>
                     <Tag color="green" style={{ margin: 0, borderRadius: 6, fontWeight: 600 }}>{selectedAddress.label}</Tag>
-                    {selectedAddress.latitude ? <Tag color="blue" style={{ margin: 0, borderRadius: 6, fontSize: 11 }}>📍 Pinned</Tag> : null}
+                    {selectedAddress.latitude ? <Tag color="blue" style={{ margin: 0, borderRadius: 6, fontSize: 11 }}><EnvironmentOutlined /> Pinned</Tag> : null}
                   </div>
                   <Typography.Text style={{ fontSize: 13, color: '#44403c', display: 'block', lineHeight: 1.4 }}>
                     {[selectedAddress.line1, selectedAddress.line2].filter(Boolean).join(', ')}, {selectedAddress.city}, {selectedAddress.state} - <strong>{selectedAddress.pincode}</strong>
@@ -417,7 +405,7 @@ export function CartPage() {
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <span style={{ fontSize: 24, lineHeight: 1 }}>🎉</span>
+                  <span style={{ fontSize: 22, lineHeight: 1, color: '#059669' }}><CheckCircleFilled /></span>
                   <div>
                     <Typography.Text strong style={{ fontSize: 14, color: '#065f46', display: 'block' }}>
                       {appliedSchemeTitle || 'Offer Discount'} Applied!
@@ -449,7 +437,7 @@ export function CartPage() {
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <span style={{ fontSize: 24, lineHeight: 1 }}>🎁</span>
+                  <span style={{ fontSize: 22, lineHeight: 1, color: '#ea580c' }}><GiftOutlined /></span>
                   <div>
                     <Typography.Text strong style={{ fontSize: 13.5, color: '#9a3412', display: 'block' }}>
                       {bogoEvaluation.nudge.scheme.title}: Add {bogoEvaluation.nudge.needed} more to get {bogoEvaluation.nudge.scheme.getQty ?? 1} FREE!
@@ -467,7 +455,7 @@ export function CartPage() {
                     const pid = bogoEvaluation.nudge!.candidateProductId;
                     const existing = cart.lines.find((l) => l.productId === pid);
                     cart.setQuantity(pid, (existing?.quantity || 0) + bogoEvaluation.nudge!.needed);
-                    message.success(`Added ${bogoEvaluation.nudge!.needed} more! Free item applied 🎉`);
+                    message.success(`Added ${bogoEvaluation.nudge!.needed} more! Free item applied`);
                   }}
                 >
                   + Add {bogoEvaluation.nudge.needed} Free
@@ -555,7 +543,7 @@ export function CartPage() {
                             if (!qualifyingScheme) return null;
                             return (
                               <Tag color="orange" style={{ marginTop: 4, borderRadius: 4, fontWeight: 600, fontSize: 11 }}>
-                                🎁 {qualifyingScheme.title} (Buy {qualifyingScheme.buyQty ?? 10} Get {qualifyingScheme.getQty ?? 1} Free)
+                                {qualifyingScheme.title} (Buy {qualifyingScheme.buyQty ?? 10} Get {qualifyingScheme.getQty ?? 1} Free)
                               </Tag>
                             );
                           })()}
@@ -751,7 +739,7 @@ export function CartPage() {
                 {schemeDiscount > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', color: '#059669', fontWeight: 600 }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <span>🎁</span> Offer Scheme ({appliedSchemeTitle || 'BOGO Free Items'})
+                      <GiftOutlined /> Offer Scheme ({appliedSchemeTitle || 'BOGO Free Items'})
                     </span>
                     <span>-{formatInr(schemeDiscount)}</span>
                   </div>
@@ -784,7 +772,7 @@ export function CartPage() {
                 {totalSavings > 0 && (
                   <div style={{ marginTop: 8, padding: '10px 14px', background: '#ecfdf5', borderRadius: 8, border: '1px solid #a7f3d0' }}>
                     <Typography.Text strong style={{ color: '#065f46', fontSize: 13 }}>
-                      You saved {formatInr(totalSavings)} on this order 🎉
+                      You saved {formatInr(totalSavings)} on this order 
                     </Typography.Text>
                   </div>
                 )}
@@ -803,7 +791,7 @@ export function CartPage() {
               {hasMoqViolation && (
                 <div style={{ marginTop: 14, padding: '12px 14px', background: '#fef2f2', borderRadius: 10, border: '1px solid #fecaca' }}>
                   <Typography.Text strong style={{ color: '#b91c1c', fontSize: 13, display: 'block', marginBottom: 4 }}>
-                    ⚠️ Below Minimum Order Quantity (MOQ)
+                    Below Minimum Order Quantity (MOQ)
                   </Typography.Text>
                   <Typography.Text style={{ color: '#991b1b', fontSize: 12, display: 'block' }}>
                     As a verified retailer, each product line must meet its wholesale minimum:
@@ -956,7 +944,7 @@ export function CartPage() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
                     <Typography.Text strong style={{ fontSize: 14, color: '#0f172a' }}>{a.fullName}</Typography.Text>
                     <Tag color="green" style={{ fontSize: 11, margin: 0, fontWeight: 600 }}>{a.label}</Tag>
-                    {a.latitude ? <Tag color="blue" style={{ fontSize: 11, margin: 0 }}>📍 Pinned</Tag> : null}
+                    {a.latitude ? <Tag color="blue" style={{ fontSize: 11, margin: 0 }}><EnvironmentOutlined /> Pinned</Tag> : null}
                   </div>
                   <Typography.Text style={{ fontSize: 13, color: '#475569', display: 'block', lineHeight: 1.4 }}>
                     {[a.line1, a.line2].filter(Boolean).join(', ')}, {a.city}, {a.state} - <strong>{a.pincode}</strong>

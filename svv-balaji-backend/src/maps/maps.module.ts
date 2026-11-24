@@ -1,4 +1,4 @@
-import { BadRequestException, Controller, Get, Global, Module, Param, Query, UseGuards } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Global, Headers, Ip, Module, Param, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CustomerJwtAuthGuard } from '../storefront/guards/customer-jwt-auth.guard';
 import { MapsService } from './maps.service';
@@ -52,10 +52,60 @@ export class StorefrontMapsController {
   }
 }
 
+/**
+ * "Use my location" for the header, which guests use too - so no sign-in.
+ * Two guards keep the Google quota safe instead: answers are cached per
+ * ~100 m cell (pins do not move), and one IP gets at most 60 lookups an hour.
+ * Over the limit it answers null, which the storefront handles like any miss.
+ */
+const REVERSE_PER_HOUR = 60;
+const reverseCache = new Map<string, unknown>();
+const reverseHits = new Map<string, { n: number; since: number }>();
+
+@ApiTags('storefront-maps')
+@Controller('storefront/location')
+export class StorefrontLocationController {
+  constructor(private readonly maps: MapsService) {}
+
+  @Get('reverse')
+  @ApiOperation({ summary: 'Area name for a GPS pin (header "use my location"). Public, cached per ~100 m, 60/hour per IP.' })
+  async reverse(
+    @Ip() socketIp: string,
+    @Headers('x-forwarded-for') forwarded: string | undefined,
+    @Query('lat') lat?: string,
+    @Query('lng') lng?: string,
+  ) {
+    // Behind the host's proxy every request comes from the proxy; the shopper is the first forwarded hop.
+    const ip = forwarded?.split(',')[0]?.trim() || socketIp;
+    const la = coord(lat, -90, 90);
+    const ln = coord(lng, -180, 180);
+    if (la === undefined || ln === undefined) throw new BadRequestException('lat and lng are required');
+
+    const cell = `${la.toFixed(3)},${ln.toFixed(3)}`;
+    if (reverseCache.has(cell)) {
+      const hit = reverseCache.get(cell) as Record<string, unknown> | null;
+      return hit && { ...hit, latitude: la, longitude: ln };
+    }
+
+    const now = Date.now();
+    const seen = reverseHits.get(ip);
+    if (!seen || now - seen.since > 3_600_000) reverseHits.set(ip, { n: 1, since: now });
+    else if (++seen.n > REVERSE_PER_HOUR) return null;
+    if (reverseHits.size > 50_000) reverseHits.clear();
+
+    const g = await this.maps.reverseGeocode(la, ln);
+    if (g) {
+      if (reverseCache.size > 20_000) reverseCache.clear();
+      reverseCache.set(cell, g);
+    }
+    return g;
+  }
+}
+
 /** Global: delivery, checkout and anything else needing roads or addresses inject MapsService directly. */
 @Global()
 @Module({
-  controllers: [StorefrontMapsController],
+  controllers: [StorefrontMapsController, StorefrontLocationController],
   providers: [MapsService],
   exports: [MapsService],
 })

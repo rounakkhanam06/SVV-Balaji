@@ -306,7 +306,7 @@ function SchemeFormDrawer({
               Standard Banner (No Auto Cart Rule)
             </Radio.Button>
             <Radio.Button value="BUY_X_GET_Y" style={{ width: '50%', textAlign: 'center' }}>
-              🎁 Buy X Get Y Free (BOGO / Bulk)
+              Buy X Get Y Free (BOGO / Bulk)
             </Radio.Button>
           </Radio.Group>
         </Form.Item>
@@ -353,7 +353,7 @@ function SchemeFormDrawer({
                   will automatically get <strong>{getQty || 1}</strong> item(s) <strong>FREE (100% discount)</strong> in their cart!
                   {selectedProductIds.length === 0 && (
                     <span style={{ display: 'block', color: '#b91c1c', marginTop: 4 }}>
-                      ⚠️ Notice: Please select eligible products above so the cart engine knows which products qualify for this offer!
+                      Notice: Please select eligible products above so the cart engine knows which products qualify for this offer!
                     </span>
                   )}
                 </span>
@@ -880,7 +880,7 @@ export function SchemesPage() {
           </Text>
           {Array.isArray(record.productIds) && record.productIds.length > 0 ? (
             <Tag color="orange" style={{ margin: 0, fontSize: 10, fontWeight: 600 }}>
-              🛍️ {record.productIds.length} Linked Product{record.productIds.length === 1 ? '' : 's'}
+              {record.productIds.length} Linked Product{record.productIds.length === 1 ? '' : 's'}
             </Tag>
           ) : (
             <Text type="secondary" style={{ fontSize: 11 }}>
@@ -898,7 +898,7 @@ export function SchemesPage() {
         if (record.ruleType === 'BUY_X_GET_Y') {
           return (
             <Tag color="green" style={{ fontWeight: 600, fontSize: 11, padding: '2px 8px', borderRadius: 6 }}>
-              🎁 Buy {record.buyQty ?? 10} Get {record.getQty ?? 1} Free
+              Buy {record.buyQty ?? 10} Get {record.getQty ?? 1} Free
             </Tag>
           );
         }

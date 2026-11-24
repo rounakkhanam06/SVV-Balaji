@@ -236,9 +236,9 @@ export function OrderFulfillmentPanel({ order }: { order: OrderLite }) {
       const res = (await scanAction.mutateAsync(code)) as ScanResult;
       setScanCode('');
       if (res.packed) {
-        message.success('🎉 All allocated batches verified! Order is now PACKED & ready for dispatch.', 5);
+        message.success('All allocated batches verified! Order is now PACKED & ready for dispatch.', 5);
       } else {
-        message.success(`✓ Batch ${res.scanned} verified successfully! (${res.remaining} remaining)`, 4);
+        message.success(`Batch ${res.scanned} verified successfully! (${res.remaining} remaining)`, 4);
       }
     } catch (e) {
       const err = apiErrorMessage(e, 'Could not verify batch label');
@@ -253,7 +253,7 @@ export function OrderFulfillmentPanel({ order }: { order: OrderLite }) {
       for (const row of unscanned) {
         await scanAction.mutateAsync(row.fgBatchNumber);
       }
-      message.success('🎉 All allocated batches verified successfully! Order is now PACKED.', 5);
+      message.success('All allocated batches verified successfully! Order is now PACKED.', 5);
     } catch (e) {
       message.error(apiErrorMessage(e, 'Could not verify batches'), 6);
     }
@@ -305,7 +305,7 @@ export function OrderFulfillmentPanel({ order }: { order: OrderLite }) {
                 loading={scanAction.isPending}
                 style={{ borderRadius: 6, backgroundColor: '#16a34a', borderColor: '#16a34a', fontWeight: 600 }}
               >
-                ✓ Verify All Batches
+                Verify All Batches
               </Button>
             ) : null}
           </div>
@@ -386,7 +386,7 @@ export function OrderFulfillmentPanel({ order }: { order: OrderLite }) {
                 width: 150,
                 align: 'center',
                 render: (v: boolean) => (
-                  v ? <Tag color="green" style={{ margin: 0, padding: '2px 10px', fontWeight: 600, borderRadius: 6 }}>✓ Scanned</Tag>
+                  v ? <Tag color="green" style={{ margin: 0, padding: '2px 10px', fontWeight: 600, borderRadius: 6 }}>Scanned</Tag>
                     : <Tag color="orange" style={{ margin: 0, padding: '2px 10px', fontWeight: 600, borderRadius: 6 }}>Pending Verification</Tag>
                 ),
               },

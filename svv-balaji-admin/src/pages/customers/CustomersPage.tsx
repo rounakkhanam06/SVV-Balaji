@@ -1,14 +1,4 @@
-import {
-  CopyOutlined,
-  CreditCardOutlined,
-  EditOutlined,
-  EyeOutlined,
-  MoreOutlined,
-  PlusOutlined,
-  UserOutlined,
-  UsergroupAddOutlined,
-  WhatsAppOutlined,
-} from '@ant-design/icons';
+import { CopyOutlined, CreditCardOutlined, EditOutlined, EyeOutlined, GoldOutlined, MoreOutlined, PlusOutlined, UserOutlined, UsergroupAddOutlined, WhatsAppOutlined } from '@ant-design/icons';
 import {
   App as AntApp,
   Avatar,
@@ -212,7 +202,7 @@ export function CustomersPage() {
             </Tooltip>
           </Space>
           <Tag color="green" style={{ fontSize: 10, margin: 0, padding: '0 4px', fontWeight: 500, width: 'fit-content' }}>
-            🪙 {customer.coinBalance ?? 0} Coins
+            <GoldOutlined /> {customer.coinBalance ?? 0} Coins
           </Tag>
         </Space>
       ),
@@ -326,7 +316,7 @@ export function CustomersPage() {
               <Statistic
                 title="Reward Coins Balance"
                 value={metrics.coinsTotal}
-                prefix="🪙"
+                prefix={<GoldOutlined />}
                 valueStyle={{ color: '#d46b08', fontSize: 20, fontWeight: 600 }}
               />
             </Card>

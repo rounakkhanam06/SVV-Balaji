@@ -1,4 +1,4 @@
-import { ArrowLeftOutlined, RollbackOutlined, SwapOutlined, CheckCircleFilled, FilterOutlined, SearchOutlined, ClockCircleFilled, CloseCircleFilled, CustomerServiceOutlined, RightOutlined, StarFilled, SyncOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, CheckCircleFilled, ClockCircleFilled, CloseCircleFilled, CustomerServiceOutlined, FilterOutlined, RightOutlined, RollbackOutlined, SearchOutlined, ShoppingOutlined, StarFilled, SwapOutlined, SyncOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
 import { Badge, Button, Drawer, Skeleton, Typography } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
@@ -36,7 +36,7 @@ function EmptyOrders({
         marginTop: 8,
       }}
     >
-      <div style={{ fontSize: 56, lineHeight: 1, margin: '20px 0 12px' }}>🛍️</div>
+      <div style={{ fontSize: 48, lineHeight: 1, margin: '20px 0 12px', color: '#a8a29e' }}><ShoppingOutlined /></div>
       <Typography.Title level={4} style={{ margin: '0 0 8px', color: '#0f172a', fontWeight: 700, lineHeight: 1.35 }}>
         {title}
       </Typography.Title>
@@ -194,7 +194,7 @@ function OrderCard({
               {l.imageUrl ? (
                 <img src={l.imageUrl} alt={l.name ?? ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               ) : (
-                <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', fontSize: 22 }}>🛍️</div>
+                <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', fontSize: 22, color: '#a8a29e' }}><ShoppingOutlined /></div>
               )}
               {l.quantity > 1 ? (
                 <span
@@ -501,7 +501,7 @@ export function OrdersPage() {
         {role === 'GUEST' ? (
           <EmptyOrders
             accent={accent}
-            title="Your orders live here 📦"
+            title="Your orders live here"
             message="Sign in to track deliveries, reorder your favourites and see every rupee you've saved."
             cta="Sign in with OTP"
             onCta={() => navigate('/login')}
@@ -513,7 +513,7 @@ export function OrdersPage() {
         ) : (orders.data ?? []).length === 0 ? (
           <EmptyOrders
             accent={accent}
-            title={isRetailer ? 'No bulk orders yet 🧺' : 'No orders yet — your basket is feeling lonely! 🛒'}
+            title={isRetailer ? 'No bulk orders yet' : 'No orders yet — your basket is feeling lonely!'}
             message={
               isRetailer
                 ? 'Stock up your shelves with wholesale rates, GST billing and credit terms. Your first bulk order is just a few taps away.'
@@ -521,8 +521,8 @@ export function OrdersPage() {
             }
             perks={
               isRetailer
-                ? ['🏷️ Wholesale prices', '🧾 GST invoices', '🎁 Reward coins']
-                : ['🌾 Farm fresh', '🚚 Doorstep delivery', '🎁 Earn reward points']
+                ? ['Wholesale prices', 'GST invoices', 'Reward coins']
+                : ['Farm fresh', 'Doorstep delivery', 'Earn reward points']
             }
             cta={isRetailer ? 'Browse wholesale catalogue' : 'Start shopping'}
             onCta={() => navigate('/')}
@@ -603,7 +603,7 @@ export function OrdersPage() {
 
             {visible.length === 0 ? (
               <div style={{ background: '#fff', borderRadius: 16, padding: '28px 16px', textAlign: 'center', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
-                <div style={{ fontSize: 40, lineHeight: 1 }}>🔍</div>
+                <div style={{ fontSize: 36, lineHeight: 1, color: '#a8a29e' }}><SearchOutlined /></div>
                 <Typography.Text strong style={{ fontSize: 15.5, display: 'block', marginTop: 8 }}>
                   No orders match
                 </Typography.Text>

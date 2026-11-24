@@ -220,7 +220,7 @@ export function CustomerAccountReviewDrawer({
 
           <div style={{ marginTop: 12, padding: '10px 14px', background: '#ffffff', borderRadius: 8, border: '1px solid #d9f7be' }}>
             <Text type="secondary" style={{ fontSize: 12 }}>
-              ✔ <strong>Tax Invoice Status:</strong> Approved partner will receive 100% GST-compliant invoices with HSN codes & Input Tax Credit (ITC) eligibility.
+              <strong>Tax Invoice Status:</strong> Approved partner will receive 100% GST-compliant invoices with HSN codes & Input Tax Credit (ITC) eligibility.
             </Text>
           </div>
         </Card>

@@ -152,7 +152,7 @@ export function OrderItemCards({ data, manualOverride }: { data: any; manualOver
                       {allocs.map((a) => (
                         <Tooltip key={a.id} title="Open the farm-origin trace for this batch">
                           <Tag color="geekblue" style={{ cursor: 'pointer', fontWeight: 600, fontSize: 11, margin: 0 }} onClick={() => window.open(`/trace?batch=${a.fgBatch.fgBatchNumber}`, '_blank')}>
-                            <SafetyCertificateOutlined /> {a.fgBatch.fgBatchNumber} × {a.quantity}{a.scannedAt ? ' ✓' : ''}
+                            <SafetyCertificateOutlined /> {a.fgBatch.fgBatchNumber} × {a.quantity}{a.scannedAt ? '' : ''}
                           </Tag>
                         </Tooltip>
                       ))}

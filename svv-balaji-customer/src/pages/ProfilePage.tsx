@@ -1,30 +1,5 @@
 import { legalPath } from '../api/legal';
-import {
-  BellOutlined,
-  CreditCardOutlined,
-  DeleteOutlined,
-  FileProtectOutlined,
-  GiftOutlined,
-  HeartOutlined,
-  HistoryOutlined,
-  InfoCircleOutlined,
-  LockOutlined,
-  LogoutOutlined,
-  QuestionCircleOutlined,
-  RightOutlined,
-  SafetyCertificateOutlined,
-  SettingOutlined,
-  ShopOutlined,
-  ShoppingOutlined,
-  SyncOutlined,
-  TrophyOutlined,
-  UserOutlined,
-  WalletOutlined,
-  ShareAltOutlined,
-  CameraOutlined,
-  UploadOutlined,
-  EditOutlined,
-} from '@ant-design/icons';
+import { BellOutlined, CameraOutlined, CreditCardOutlined, CustomerServiceOutlined, DeleteOutlined, EditOutlined, EnvironmentOutlined, FileProtectOutlined, GiftOutlined, HeartOutlined, HistoryOutlined, InboxOutlined, InfoCircleOutlined, LockOutlined, LogoutOutlined, QuestionCircleOutlined, RightOutlined, SafetyCertificateOutlined, SettingOutlined, ShareAltOutlined, ShopOutlined, ShoppingOutlined, SyncOutlined, TrophyOutlined, UploadOutlined, UserOutlined, WalletOutlined } from '@ant-design/icons';
 import { Avatar, Badge, Breadcrumb, Button, Card, Divider, Input, Modal, Switch, Tabs, Tag, Typography, message, Skeleton } from 'antd';
 import { useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -32,6 +7,9 @@ import { useCustomerAuth, type UserRole } from '../auth/CustomerAuthContext';
 import { useLoyalty } from '../loyalty/useLoyalty';
 import { useAccountStats } from '../hooks/useAccountStats';
 import { useUnreadNotifications } from '../notifications/useUnreadNotifications';
+
+/** Icon in front of each account menu card title. */
+const PF_ICO = { color: '#059669', marginRight: 8, fontSize: 16 } as const;
 
 export function ProfilePage() {
   const navigate = useNavigate();
@@ -529,7 +507,7 @@ export function ProfilePage() {
                     boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
                   }}
                 >
-                  KYC ✓
+                  KYC verified
                 </Tag>
               )}
             </div>
@@ -611,7 +589,7 @@ export function ProfilePage() {
                         backdropFilter: 'blur(4px)',
                       }}
                     >
-                      👤 Personal Customer Account
+                      Personal Customer Account
                     </span>
                   </div>
                 </>
@@ -968,7 +946,7 @@ export function ProfilePage() {
                       color="green"
                       style={{ position: 'absolute', bottom: -2, right: -4, borderRadius: 10, fontSize: 11, padding: '1px 7px', fontWeight: 700, border: '2px solid #fff' }}
                     >
-                      KYC ✓
+                      KYC verified
                     </Tag>
                   )}
                 </div>
@@ -1006,7 +984,7 @@ export function ProfilePage() {
                 <Typography.Text style={{ color: '#64748b', fontSize: 13, display: 'block' }}>
                   {isRetailer
                     ? `Prop: ${retailerProfile?.ownerName || '—'}`
-                    : '👤 Personal Customer Account'}
+                    : 'Personal Customer Account'}
                 </Typography.Text>
 
                 {isRetailer ? (
@@ -1072,7 +1050,7 @@ export function ProfilePage() {
                   }}
                 >
                   <Typography.Text strong style={{ color: '#9a3412', display: 'block', fontSize: 15, marginBottom: 4 }}>
-                    🏪 Own a Grocery Store?
+                    <ShopOutlined style={PF_ICO} /> Own a Grocery Store?
                   </Typography.Text>
                   <Typography.Text style={{ color: '#c2410c', fontSize: 12, display: 'block', marginBottom: 14 }}>
                     Upgrade to a B2B Partner Account for wholesale mandi bulk pricing.
@@ -1186,7 +1164,7 @@ export function ProfilePage() {
                             >
                               <div>
                                 <Typography.Text strong style={{ fontSize: 15, display: 'block' }}>
-                                  📦 Order Tracking & Invoices
+                                  <InboxOutlined style={PF_ICO} /> Order Tracking & Invoices
                                 </Typography.Text>
                                 <Typography.Text style={{ fontSize: 12, color: '#64748b' }}>
                                   Check live delivery status and past order receipts
@@ -1212,7 +1190,7 @@ export function ProfilePage() {
                             >
                               <div>
                                 <Typography.Text strong style={{ fontSize: 15, display: 'block' }}>
-                                  🏡 Saved Delivery Addresses
+                                  <EnvironmentOutlined style={PF_ICO} /> Saved Delivery Addresses
                                 </Typography.Text>
                                 <Typography.Text style={{ fontSize: 12, color: '#64748b' }}>
                                   Manage home and store delivery destinations
@@ -1238,7 +1216,7 @@ export function ProfilePage() {
                             >
                               <div>
                                 <Typography.Text strong style={{ fontSize: 15, display: 'block' }}>
-                                  ❤️ Saved Wishlist & Favorites
+                                  <HeartOutlined style={PF_ICO} /> Saved Wishlist & Favorites
                                 </Typography.Text>
                                 <Typography.Text style={{ fontSize: 12, color: '#64748b' }}>
                                   Quick access to your curated staple items
@@ -1265,7 +1243,7 @@ export function ProfilePage() {
                               <div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                   <Typography.Text strong style={{ fontSize: 15, display: 'block', color: '#a21caf' }}>
-                                    🎁 Refer & Earn Rewards
+                                    <GiftOutlined style={PF_ICO} /> Refer & Earn Rewards
                                   </Typography.Text>
                                   <Tag color="purple" style={{ borderRadius: 8, fontSize: 10, fontWeight: 700 }}>
                                     Earn 100 Coins
@@ -1295,7 +1273,7 @@ export function ProfilePage() {
                             >
                               <div>
                                 <Typography.Text strong style={{ fontSize: 15, display: 'block', color: '#1d4ed8' }}>
-                                  🎧 Help & Customer Support
+                                  <CustomerServiceOutlined style={PF_ICO} /> Help & Customer Support
                                 </Typography.Text>
                                 <Typography.Text style={{ fontSize: 12, color: '#1e40af' }}>
                                   Toll-free helpline, WhatsApp desk, live order help & FAQs
@@ -1322,7 +1300,7 @@ export function ProfilePage() {
                               <div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                   <Typography.Text strong style={{ fontSize: 15, display: 'block', color: '#15803d' }}>
-                                    🔔 Notifications & Updates
+                                    <BellOutlined style={PF_ICO} /> Notifications & Updates
                                   </Typography.Text>
                                   {unreadNotifications > 0 && (
                                     <Tag color="error" style={{ borderRadius: 8, fontSize: 10, fontWeight: 700 }}>
@@ -1576,7 +1554,7 @@ export function ProfilePage() {
                 style={{ borderRadius: 8, background: '#f8fafc', color: '#64748b' }}
               />
               <Typography.Text type="secondary" style={{ fontSize: 11, display: 'block', marginTop: 4 }}>
-                🔒 Mobile number is verified via OTP and cannot be edited directly.
+                <LockOutlined /> Mobile number is verified via OTP and cannot be edited directly.
               </Typography.Text>
             </div>
 

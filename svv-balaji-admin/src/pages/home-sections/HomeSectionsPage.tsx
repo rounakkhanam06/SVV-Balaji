@@ -224,9 +224,9 @@ function HomeSectionFormDrawer({ open, section, saving, onClose, onSave }: HomeS
             <Form.Item name="targetAudience" label="Target Audience">
               <Select
                 options={[
-                  { value: 'ALL', label: '🌐 All (B2C + B2B)' },
-                  { value: 'B2C', label: '🛒 Retail customers' },
-                  { value: 'B2B', label: '🏪 Retailer partners' },
+                  { value: 'ALL', label: 'All (B2C + B2B)' },
+                  { value: 'B2C', label: 'Retail customers' },
+                  { value: 'B2B', label: 'Retailer partners' },
                 ]}
               />
             </Form.Item>

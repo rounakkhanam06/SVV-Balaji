@@ -333,7 +333,7 @@ export function CustomerAccountsPage() {
             {metrics.pending > 0 ? (
               <Badge count={metrics.pending}>
                 <Tag color="gold" style={{ fontSize: 13, padding: '4px 12px', borderRadius: 16, fontWeight: 700 }}>
-                  ⏳ {metrics.pending} Awaiting Super Admin Review
+                  {metrics.pending} Awaiting Super Admin Review
                 </Tag>
               </Badge>
             ) : (
@@ -399,13 +399,13 @@ export function CustomerAccountsPage() {
               size="middle"
             >
               <Radio.Button value="PENDING_APPROVAL">
-                ⏳ Awaiting Approval ({allAccounts.filter((a) => a.status === 'PENDING_APPROVAL').length})
+                Awaiting Approval ({allAccounts.filter((a) => a.status === 'PENDING_APPROVAL').length})
               </Radio.Button>
               <Radio.Button value="ACTIVE">
-                ✅ Active Retailers ({allAccounts.filter((a) => a.status === 'ACTIVE').length})
+                Active Retailers ({allAccounts.filter((a) => a.status === 'ACTIVE').length})
               </Radio.Button>
               <Radio.Button value="REJECTED">
-                ❌ Rejected ({allAccounts.filter((a) => a.status === 'REJECTED').length})
+                Rejected ({allAccounts.filter((a) => a.status === 'REJECTED').length})
               </Radio.Button>
               <Radio.Button value="ALL">
                 All Accounts ({allAccounts.length})

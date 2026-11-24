@@ -34,7 +34,6 @@ export function DealProductsPage() {
   const title = searchParams.get('title') || 'Featured Deals';
   const subtitle = searchParams.get('subtitle');
   const price = searchParams.get('price');
-  const emoji = searchParams.get('emoji') || '🔥';
   const color = searchParams.get('color') || 'orange';
 
   const productIds = useMemo(() => {
@@ -129,9 +128,6 @@ export function DealProductsPage() {
             boxShadow: '0 8px 24px rgba(0,0,0,0.1)',
           }}
         >
-          <div style={{ position: 'absolute', bottom: -10, right: 10, fontSize: 80, opacity: 0.25, userSelect: 'none' }}>
-            {emoji}
-          </div>
           <div style={{ position: 'relative', zIndex: 1, maxWidth: '80%' }}>
             <div
               style={{
@@ -150,7 +146,7 @@ export function DealProductsPage() {
               <span>SPECIAL OFFER DEALS</span>
             </div>
             <Typography.Title level={3} style={{ color: '#ffffff', margin: '0 0 4px', fontWeight: 800 }}>
-              {emoji} {title}
+              {title}
             </Typography.Title>
             {subtitle ? (
               <Typography.Text style={{ color: 'rgba(255,255,255,0.95)', fontSize: 15, fontWeight: 600, display: 'block' }}>

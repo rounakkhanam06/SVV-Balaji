@@ -214,7 +214,7 @@ export function HomePage() {
           <div style={{ display: 'grid', gridTemplateColumns: '2.1fr 1fr', gap: 20, alignItems: 'stretch' }}>
             {/* Left: Large Desktop Promo Carousel */}
             <div className="hero-slot">
-              <Carousel autoplay effect="fade" dotPosition="bottom">
+              <Carousel autoplay autoplaySpeed={2500} effect="fade" dotPosition="bottom">
                 {heroSlides.map((slide) => (
                   <div key={slide.id}>
                     {slide.layout === 'IMAGE_ONLY' ? (
@@ -498,7 +498,7 @@ export function HomePage() {
         {/* MOBILE HERO CAROUSEL                                                    */}
         {/* ======================================================================= */}
         <div className="mobile-only home-mobile-carousel" style={{ borderRadius: 14, overflow: 'hidden' }}>
-          <Carousel autoplay dotPosition="bottom">
+          <Carousel autoplay autoplaySpeed={2500} dotPosition="bottom">
             {heroSlides.map((slide) => (
               <div key={slide.id}>
                 {slide.layout === 'IMAGE_ONLY' ? (
@@ -1006,7 +1006,7 @@ function ManagedSection({ section, isRetailer }: { section: StorefrontHomeSectio
                   color: '#ffffff',
                 }}
               >
-                <div style={{ position: 'absolute', bottom: -10, right: -10, fontSize: 54, opacity: 0.2 }}>{tile.emoji}</div>
+                
                 <Typography.Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.9)', display: 'block', marginBottom: 2 }}>{tile.label}</Typography.Text>
                 <Typography.Text strong style={{ fontSize: 24, color: '#fff', display: 'block', lineHeight: 1.1 }}>{formatInr(tile.price)}</Typography.Text>
                 <Typography.Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.9)', display: 'block', marginTop: 6, lineHeight: 1.25 }}>{tile.subtitle}</Typography.Text>

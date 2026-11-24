@@ -202,7 +202,7 @@ export function generateOrderInvoiceDocument(o: OrderDetail): string {
 
     <div class="foot">
       <div style="font-weight: 700; font-size: 13.5px; color: #065f46; margin-bottom: 5px;">
-        Thank you for shopping with Desi Tokri! ❤️
+        Thank you for shopping with Desi Tokri! 
       </div>
       <div>This is an official computer-generated order invoice and receipt. No physical signature is required.</div>
     </div>

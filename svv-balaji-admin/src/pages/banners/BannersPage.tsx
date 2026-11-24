@@ -182,6 +182,17 @@ function BannerFormDrawer({
           />
         </Form.Item>
 
+        <Alert
+          type="info"
+          showIcon
+          style={{ marginBottom: 12, borderRadius: 10 }}
+          message={textMode ? 'Image size: 800 × 800 px (square)' : 'Banner size: 1600 × 600 px (8:3)'}
+          description={
+            textMode
+              ? 'Shown beside the text on a coloured background. JPG or WebP, under 300 KB. A product or farmer photo on a plain background works best.'
+              : 'The same image is used on the website and the phone app. JPG or WebP, under 500 KB. Keep all text, prices and logos inside the middle 1200 × 450 px - the outer edge can be trimmed slightly on small screens. Do not upload a different size: it will be cropped to fit.'
+          }
+        />
         <Form.Item
           name="imageUrl"
           label="Banner Illustration / Image"
@@ -210,9 +221,9 @@ function BannerFormDrawer({
             >
               <Select
                 options={[
-                  { value: 'HOMEPAGE', label: '🏠 Customer Homepage Top Carousel' },
-                  { value: 'CATEGORIES_PAGE', label: '🏷️ Categories Page Top Hero Banner (/categories)' },
-                  { value: 'PRODUCTS_PAGE', label: '📦 Products Catalog Banner (/products)' },
+                  { value: 'HOMEPAGE', label: 'Customer Homepage Top Carousel' },
+                  { value: 'CATEGORIES_PAGE', label: 'Categories Page Top Hero Banner (/categories)' },
+                  { value: 'PRODUCTS_PAGE', label: 'Products Catalog Banner (/products)' },
                 ]}
               />
             </Form.Item>
@@ -278,12 +289,12 @@ function BannerFormDrawer({
             <Form.Item name="backgroundColor" label="Theme Background Color">
               <Select
                 options={[
-                  { value: '#064e3b', label: '🌲 Emerald Mandi Green' },
-                  { value: '#1e3a8a', label: '🟦 Deep Navy Wholesale' },
-                  { value: '#ea580c', label: '🟧 Harvest Orange' },
-                  { value: '#7c2d12', label: '🍁 Spice Amber' },
-                  { value: '#334155', label: '🪨 Slate Metallic' },
-                  { value: '#581c87', label: '🔮 Premium Purple' },
+                  { value: '#064e3b', label: 'Emerald Mandi Green' },
+                  { value: '#1e3a8a', label: 'Deep Navy Wholesale' },
+                  { value: '#ea580c', label: 'Harvest Orange' },
+                  { value: '#7c2d12', label: 'Spice Amber' },
+                  { value: '#334155', label: 'Slate Metallic' },
+                  { value: '#581c87', label: 'Premium Purple' },
                 ]}
               />
             </Form.Item>
@@ -432,7 +443,7 @@ export function BannersPage() {
         const p = record.placement || 'HOMEPAGE';
         return (
           <Tag color={p === 'CATEGORIES_PAGE' ? 'orange' : p === 'PRODUCTS_PAGE' ? 'green' : 'blue'}>
-            {p === 'CATEGORIES_PAGE' ? '🏷️ Categories Page' : p === 'PRODUCTS_PAGE' ? '📦 Products Page' : '🏠 Homepage'}
+            {p === 'CATEGORIES_PAGE' ? 'Categories Page' : p === 'PRODUCTS_PAGE' ? 'Products Page' : 'Homepage'}
           </Tag>
         );
       },
@@ -638,7 +649,7 @@ export function BannersPage() {
                     textTransform: 'uppercase',
                   }}
                 >
-                  <span>✔</span> {currentPreview.badgeText}
+                  <span></span> {currentPreview.badgeText}
                 </div>
               )}
 

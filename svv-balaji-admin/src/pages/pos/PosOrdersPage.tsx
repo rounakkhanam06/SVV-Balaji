@@ -1,4 +1,4 @@
-import { ClockCircleOutlined, EyeOutlined, FileTextOutlined, PrinterOutlined, ReloadOutlined, RollbackOutlined, SearchOutlined, ShoppingCartOutlined, UserOutlined } from '@ant-design/icons';
+import { ClockCircleOutlined, EyeOutlined, FileTextOutlined, PhoneOutlined, PrinterOutlined, ReloadOutlined, RollbackOutlined, SearchOutlined, ShoppingCartOutlined, UserOutlined } from '@ant-design/icons';
 import {
   Alert,
   App as AntApp,
@@ -93,7 +93,7 @@ export function PosOrdersPage() {
       render: (_, s) => (
         <Space direction="vertical" size={2}>
           <Text strong>{s.customerName}</Text>
-          {s.customerPhone ? <Text type="secondary" style={{ fontSize: 11 }}>📱 {s.customerPhone}</Text> : null}
+          {s.customerPhone ? <Text type="secondary" style={{ fontSize: 11 }}><PhoneOutlined /> {s.customerPhone}</Text> : null}
           {s.customerGstin ? <Tag color="volcano" style={{ fontSize: 10 }}>GST: {s.customerGstin}</Tag> : null}
         </Space>
       ),

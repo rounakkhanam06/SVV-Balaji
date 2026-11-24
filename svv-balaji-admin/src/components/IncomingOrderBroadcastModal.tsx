@@ -1,21 +1,4 @@
-import {
-  BellFilled,
-  CheckCircleOutlined,
-  ClockCircleOutlined,
-  CloseCircleOutlined,
-  CloseOutlined,
-  CopyOutlined,
-  EnvironmentOutlined,
-  ExportOutlined,
-  EyeOutlined,
-  LeftOutlined,
-  MutedOutlined,
-  RightOutlined,
-  ShopOutlined,
-  SoundOutlined,
-  UserOutlined,
-  WarningOutlined,
-} from '@ant-design/icons';
+import { BellFilled, CheckCircleOutlined, ClockCircleOutlined, CloseCircleOutlined, CloseOutlined, CopyOutlined, EnvironmentOutlined, ExportOutlined, EyeOutlined, LeftOutlined, MutedOutlined, PhoneOutlined, RightOutlined, ShopOutlined, SoundOutlined, UserOutlined, WarningOutlined } from '@ant-design/icons';
 import {
   App as AntApp,
   Badge,
@@ -353,7 +336,7 @@ export function IncomingOrderBroadcastModal() {
                   color={order.fulfillmentMethod === 'LOCAL' ? 'green' : 'blue'}
                   style={{ fontWeight: 600, borderRadius: 6 }}
                 >
-                  {order.fulfillmentMethod === 'LOCAL' ? '⚡ LOCAL DELIVERY' : '📦 SHIPROCKET'}
+                  {order.fulfillmentMethod === 'LOCAL' ? 'LOCAL DELIVERY' : 'SHIPROCKET'}
                 </Tag>
               )}
             </Space>
@@ -742,7 +725,7 @@ function OrderPreviewModal({
             <Descriptions.Item label="Customer">
               <Text strong>{order.customer?.name || order.customerId}</Text>
               {order.customer?.phone && (
-                <div style={{ fontSize: 12, color: '#64748b' }}>📞 {order.customer.phone}</div>
+                <div style={{ fontSize: 12, color: '#64748b' }}><PhoneOutlined /> {order.customer.phone}</div>
               )}
             </Descriptions.Item>
             <Descriptions.Item label="Placed At">

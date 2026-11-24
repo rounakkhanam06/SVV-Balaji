@@ -56,7 +56,7 @@ function openPrintWindow(title: string, htmlContent: string): boolean {
       <body>
         <div class="no-print-bar">
           <span style="font-size: 13px; color: #64748b;">Order summary — not a tax invoice</span>
-          <button class="btn-print" onclick="window.print()">🖨️ Print / Save as PDF</button>
+          <button class="btn-print" onclick="window.print()">Print / Save as PDF</button>
         </div>
         <div class="invoice-box">
           ${htmlContent}
@@ -186,7 +186,7 @@ export function downloadOrderBill(order: ExtendedOrder | Order | any) {
     </div>
 
     <div class="footer">
-      <div style="font-weight: 700; font-size: 13px; color: #065f46; margin-bottom: 4px;">Thank you for shopping with Desi Tokri! ❤️</div>
+      <div style="font-weight: 700; font-size: 13px; color: #065f46; margin-bottom: 4px;">Thank you for shopping with Desi Tokri!</div>
       <div style="margin-top: 4px;">Order summary only — not a tax invoice. The GST invoice is issued when the order is dispatched.</div>
     </div>
   `;

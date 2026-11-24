@@ -33,7 +33,7 @@ export function UnderReviewPage() {
       try {
         if (!localStorage.getItem(notifiedKey)) {
           localStorage.setItem(notifiedKey, '1');
-          message.success('🎉 Your retailer account has been approved by Super Admin!');
+          message.success('Your retailer account has been approved by Super Admin!');
         }
       } catch {
         // ignore storage error

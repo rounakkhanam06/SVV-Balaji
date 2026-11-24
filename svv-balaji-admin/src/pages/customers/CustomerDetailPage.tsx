@@ -1,18 +1,4 @@
-import {
-  ArrowLeftOutlined,
-  CopyOutlined,
-  CreditCardOutlined,
-  EditOutlined,
-  EnvironmentOutlined,
-  EyeOutlined,
-  GiftOutlined,
-  MailOutlined,
-  PhoneOutlined,
-  ShoppingOutlined,
-  StarOutlined,
-  WalletOutlined,
-  WhatsAppOutlined,
-} from '@ant-design/icons';
+import { ArrowLeftOutlined, CopyOutlined, CreditCardOutlined, EditOutlined, EnvironmentOutlined, EyeOutlined, GiftOutlined, GoldOutlined, MailOutlined, PhoneOutlined, ShoppingOutlined, StarOutlined, WalletOutlined, WhatsAppOutlined } from '@ant-design/icons';
 import {
   App as AntApp,
   Avatar,
@@ -381,11 +367,11 @@ export function CustomerDetailPage() {
                     icon={<GiftOutlined style={{ fontSize: 18 }} />}
                     tone="amber"
                     label="WALLET BALANCE"
-                    value={`🪙 ${walletData?.balance ?? customer.coinBalance ?? 0}`}
+                    value={`${walletData?.balance ?? customer.coinBalance ?? 0}`}
                   />
                 </Col>
                 <Col xs={12} sm={6}>
-                  <StatCard icon={<StarOutlined style={{ fontSize: 18 }} />} tone="pink" label="AVG RATING" value={customer.stats?.averageRating != null ? `${customer.stats.averageRating} ★` : EM_DASH} />
+                  <StatCard icon={<StarOutlined style={{ fontSize: 18 }} />} tone="pink" label="AVG RATING" value={customer.stats?.averageRating != null ? `${customer.stats.averageRating}` : EM_DASH} />
                 </Col>
               </Row>
 
@@ -487,7 +473,7 @@ export function CustomerDetailPage() {
                                 <Statistic
                                   title="Available Balance"
                                   value={walletData?.balance ?? customer.coinBalance ?? 0}
-                                  prefix="🪙"
+                                  prefix={<GoldOutlined />}
                                   valueStyle={{ color: '#389e0d', fontSize: 18, fontWeight: 600 }}
                                 />
                               </Card>
@@ -497,7 +483,7 @@ export function CustomerDetailPage() {
                                 <Statistic
                                   title="Total Coins Earned"
                                   value={walletData?.totalEarned ?? 0}
-                                  prefix="🪙"
+                                  prefix={<GoldOutlined />}
                                   valueStyle={{ color: '#1d39c4', fontSize: 18, fontWeight: 600 }}
                                 />
                               </Card>
@@ -507,7 +493,7 @@ export function CustomerDetailPage() {
                                 <Statistic
                                   title="Total Coins Used / Redeemed"
                                   value={walletData?.totalUsed ?? 0}
-                                  prefix="🪙"
+                                  prefix={<GoldOutlined />}
                                   valueStyle={{ color: '#cf1322', fontSize: 18, fontWeight: 600 }}
                                 />
                               </Card>
@@ -555,7 +541,7 @@ export function CustomerDetailPage() {
                                 key: 'coins',
                                 render: (_, row) => (
                                   <Text style={{ fontWeight: 600, color: row.amount >= 0 ? '#389e0d' : '#cf1322' }}>
-                                    {row.amount >= 0 ? `+${row.amount}` : row.amount} 🪙
+                                    {row.amount >= 0 ? `+${row.amount}` : row.amount} 
                                   </Text>
                                 ),
                               },
@@ -563,7 +549,7 @@ export function CustomerDetailPage() {
                                 title: 'Balance After',
                                 dataIndex: 'balanceAfter',
                                 key: 'balanceAfter',
-                                render: (val) => <Text code style={{ fontWeight: 500 }}>🪙 {val}</Text>,
+                                render: (val) => <Text code style={{ fontWeight: 500 }}><GoldOutlined /> {val}</Text>,
                               },
                             ]}
                           />

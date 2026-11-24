@@ -209,7 +209,7 @@ export function WarehouseFormModal({ open, warehouse, onClose }: WarehouseFormMo
             onClick={() => void handleAutoDetectCoords(true)}
             style={{ padding: 0, height: 'auto' }}
           >
-            ⚡ Auto-Detect GPS Coordinates
+            Auto-Detect GPS Coordinates
           </Button>
         </div>
 

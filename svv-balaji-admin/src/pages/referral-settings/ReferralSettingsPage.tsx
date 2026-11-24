@@ -1,22 +1,5 @@
-import {
-  ArrowDownOutlined,
-  ArrowUpOutlined,
-  CheckCircleOutlined,
-  DeleteOutlined,
-  EyeOutlined,
-  GiftOutlined,
-  InfoCircleOutlined,
-  PlusOutlined,
-  QuestionCircleOutlined,
-  ReloadOutlined,
-  SafetyCertificateOutlined,
-  SaveOutlined,
-  SettingOutlined,
-  ShopOutlined,
-  ThunderboltOutlined,
-  UserAddOutlined,
-  UserOutlined,
-} from '@ant-design/icons';
+import type { ReactNode } from 'react';
+import { ArrowDownOutlined, ArrowUpOutlined, CheckCircleOutlined, DeleteOutlined, EyeOutlined, GiftOutlined, InboxOutlined, InfoCircleOutlined, PlusOutlined, QuestionCircleOutlined, ReloadOutlined, SafetyCertificateOutlined, SaveOutlined, SettingOutlined, ShopOutlined, ThunderboltOutlined, UserAddOutlined, UserOutlined } from '@ant-design/icons';
 import {
   App as AntApp,
   Badge,
@@ -62,29 +45,29 @@ interface Draft {
 
 const TRIGGER_DETAILS: Record<
   ReferralRewardTrigger,
-  { title: string; desc: string; icon: string; badge?: string }
+  { title: string; desc: string; icon: ReactNode; badge?: string }
 > = {
   FIRST_DELIVERY: {
     title: 'First Order Delivery',
     desc: 'Coins are credited only when the friend’s first order is successfully delivered. Safest against return fraud.',
-    icon: '📦',
+    icon: <InboxOutlined />,
     badge: 'Recommended',
   },
   REGISTRATION: {
     title: 'Instant Registration (Signup)',
     desc: 'Coins are awarded immediately upon registration & mobile signup, before any order is placed.',
-    icon: '👤',
+    icon: <UserAddOutlined />,
   },
 };
 
-function getTriggerInfo(trigger?: ReferralRewardTrigger) {
+function getTriggerInfo(trigger?: ReferralRewardTrigger): { title: string; desc: string; icon: ReactNode; badge?: string } {
   if (trigger && TRIGGER_DETAILS[trigger]) {
     return TRIGGER_DETAILS[trigger];
   }
   return {
     title: trigger ? REFERRAL_REWARD_TRIGGER_LABELS[trigger] || trigger : 'First Delivery',
     desc: 'Coins are credited automatically when condition is met.',
-    icon: '⚡',
+    icon: <ThunderboltOutlined />,
   };
 }
 
@@ -578,7 +561,7 @@ export function ReferralSettingsPage() {
                       >
                         <div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                            <span style={{ fontSize: 16 }}>👤</span>
+                            <UserOutlined style={{ fontSize: 16, color: '#1E5E3A' }} />
                             <Typography.Text strong style={{ fontSize: 14, color: '#1e293b' }}>
                               Referrer (Inviter)
                             </Typography.Text>
@@ -593,7 +576,7 @@ export function ReferralSettingsPage() {
                             min={0}
                             step={10}
                             precision={0}
-                            addonAfter={<span style={{ fontWeight: 600, color: '#d97706' }}>🪙 Coins</span>}
+                            addonAfter={<span style={{ fontWeight: 600, color: '#d97706' }}>Coins</span>}
                             style={{ width: '100%' }}
                             disabled={!canManage}
                             value={draft.referrerRewardCoins}
@@ -620,7 +603,7 @@ export function ReferralSettingsPage() {
                       >
                         <div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                            <span style={{ fontSize: 16 }}>🎉</span>
+                            <UserAddOutlined style={{ fontSize: 16, color: '#1E5E3A' }} />
                             <Typography.Text strong style={{ fontSize: 14, color: '#1e293b' }}>
                               Referee (Friend / New User)
                             </Typography.Text>
@@ -635,7 +618,7 @@ export function ReferralSettingsPage() {
                             min={0}
                             step={10}
                             precision={0}
-                            addonAfter={<span style={{ fontWeight: 600, color: '#059669' }}>🪙 Coins</span>}
+                            addonAfter={<span style={{ fontWeight: 600, color: '#059669' }}>Coins</span>}
                             style={{ width: '100%' }}
                             disabled={!canManage}
                             value={draft.refereeRewardCoins}

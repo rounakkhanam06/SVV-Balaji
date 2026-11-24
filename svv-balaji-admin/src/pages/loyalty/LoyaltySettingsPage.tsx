@@ -381,7 +381,7 @@ export function LoyaltySettingsPage() {
                     </div>
                   </div>
                   <Tag color="green" style={{ fontSize: 14, fontWeight: 700, padding: '4px 10px', borderRadius: 8 }}>
-                    +{simB2CPoints} Points (🪙 Coins)
+                    +{simB2CPoints} Points (Coins)
                   </Tag>
                 </div>
               </Col>
@@ -410,7 +410,7 @@ export function LoyaltySettingsPage() {
                     </div>
                   </div>
                   <Tag color="blue" style={{ fontSize: 14, fontWeight: 700, padding: '4px 10px', borderRadius: 8 }}>
-                    +{simB2BPoints} Points (🪙 Coins)
+                    +{simB2BPoints} Points (Coins)
                   </Tag>
                 </div>
               </Col>

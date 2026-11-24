@@ -268,7 +268,7 @@ export const checkoutApi = {
   placeAddress: (placeId: string, session: string) =>
     api.get<GeoAddress | null>(`/storefront/maps/place/${encodeURIComponent(placeId)}`, { params: { session } }).then((r) => r.data),
   reverseGeocode: (latitude: number, longitude: number) =>
-    api.get<GeoAddress | null>('/storefront/maps/reverse', { params: { lat: latitude, lng: longitude } }).then((r) => r.data),
+    api.get<GeoAddress | null>('/storefront/location/reverse', { params: { lat: latitude, lng: longitude } }).then((r) => r.data),
   /** Product page pincode check (no sign-in): the same routing checkout uses, decided on the pincode area. */
   deliveryCheck: (pincode: string, productId?: string, quantity?: number, b2b?: boolean) =>
     api

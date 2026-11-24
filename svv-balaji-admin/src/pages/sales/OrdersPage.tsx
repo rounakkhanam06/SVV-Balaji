@@ -305,7 +305,7 @@ export function OrdersPage() {
                 color={record.fulfillmentMethod === 'LOCAL' ? 'green' : 'blue'}
                 style={{ fontSize: 10, margin: 0, padding: '0 6px', borderRadius: 4, lineHeight: '18px', whiteSpace: 'nowrap' }}
               >
-                {record.fulfillmentMethod === 'LOCAL' ? '⚡ Local Delivery' : '📦 Shiprocket'}
+                {record.fulfillmentMethod === 'LOCAL' ? 'Local Delivery' : 'Shiprocket'}
               </Tag>
             </div>
           ) : null}
@@ -442,7 +442,7 @@ export function OrdersPage() {
                 style={{ marginBottom: 0 }}
                 items={[
                   { key: 'all', label: `All Orders (${metrics.total})` },
-                  { key: 'pos', label: `🏪 POS Counter Bills (${enrichedOrders.filter((o) => o.orderSource === 'POS_COUNTER').length})` },
+                  { key: 'pos', label: `POS Counter Bills (${enrichedOrders.filter((o) => o.orderSource === 'POS_COUNTER').length})` },
                   { key: 'pending', label: `Pending Allocation (${metrics.pendingCount})` },
                   { key: 'packed', label: 'Packed' },
                   { key: 'dispatched', label: `In Transit (${metrics.inTransitCount})` },

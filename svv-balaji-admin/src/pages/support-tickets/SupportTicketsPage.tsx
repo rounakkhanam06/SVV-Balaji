@@ -497,12 +497,12 @@ function ResolutionDrawer({
       <Modal
         title={
           actionType === 'REFUND_APPROVED'
-            ? '💳 Approve Refund / Credit Note'
+            ? 'Approve Refund / Credit Note'
             : actionType === 'REPLACEMENT_DISPATCHED'
-            ? '🚚 Dispatch Replacement Order'
+            ? 'Dispatch Replacement Order'
             : actionType === 'REVERSE_PICKUP'
-            ? '🔄 Assign Reverse Pickup'
-            : '❌ Reject Complaint'
+            ? 'Assign Reverse Pickup'
+            : 'Reject Complaint'
         }
         open={Boolean(actionType)}
         onOk={handleConfirmAction}
@@ -682,7 +682,7 @@ export function SupportTicketsPage() {
         // Customer replied to a ticket that is not the currently open one
         notification.info({
           key: `ticket-msg-${payload.message.id}`,
-          message: '💬 Support Message',
+          message: 'Support Message',
           description: payload.message.body.length > 80 ? `${payload.message.body.slice(0, 80)}...` : payload.message.body,
           placement: 'bottomRight',
           duration: 6,
@@ -695,7 +695,7 @@ export function SupportTicketsPage() {
       playMessageSound();
       notification.info({
         key: `ticket-new-${payload.ticketId}`,
-        message: `💬 New Support Ticket: ${payload.ticketNumber}`,
+        message: `New Support Ticket: ${payload.ticketNumber}`,
         description: payload.subject,
         placement: 'bottomRight',
         duration: 8,
@@ -1069,7 +1069,7 @@ function InboxItem({
             </Tag>
           ) : (t.category === 'ORDER_ISSUE' || t.category === 'PAYMENT_REFUND') && t.status !== 'RESOLVED' && t.status !== 'CLOSED' ? (
             <Tag color="volcano" style={{ fontSize: 9.5, margin: 0, padding: '0 4px', lineHeight: '15px', borderRadius: 4 }}>
-              🔴 Needs Action
+              Needs Action
             </Tag>
           ) : null}
         </div>

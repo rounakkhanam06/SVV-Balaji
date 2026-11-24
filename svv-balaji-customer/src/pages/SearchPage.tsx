@@ -258,7 +258,7 @@ export function SearchPage() {
             ) : (
               <>
                 <div style={{ background: '#fff', borderRadius: 16, padding: '24px 16px', textAlign: 'center', marginBottom: 12, boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
-                  <div style={{ fontSize: 40, lineHeight: 1 }}>🔍</div>
+                  <div style={{ fontSize: 36, lineHeight: 1, color: '#a8a29e' }}><SearchOutlined /></div>
                   <Typography.Text strong style={{ fontSize: 16, display: 'block', marginTop: 8 }}>
                     No results for “{query}”
                   </Typography.Text>

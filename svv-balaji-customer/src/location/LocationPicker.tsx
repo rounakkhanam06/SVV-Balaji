@@ -2,17 +2,12 @@ import { AimOutlined, EnvironmentOutlined, HomeOutlined, SearchOutlined } from '
 import { App as AntApp, Button, Divider, Input, Modal, Spin, Typography } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { checkoutApi, type GeoAddress } from '../api/checkout';
+import { checkoutApi } from '../api/checkout';
 import { useCustomerAuth } from '../auth/CustomerAuthContext';
-import { setShopperLocation, type ShopperLocation } from './useShopperLocation';
+import { fromGeo, resolveCoordinates, setShopperLocation, type ShopperLocation } from './useShopperLocation';
 
 const newSession = () => (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
 
-function fromGeo(g: GeoAddress, source: ShopperLocation['source'], fallbackTitle: string): ShopperLocation {
-  const title = g.line2 || g.line1?.split(',')[0] || g.city || fallbackTitle;
-  const subtitle = [g.city, g.state, g.pincode].filter(Boolean).join(', ') || g.formatted;
-  return { title, subtitle, pincode: g.pincode, latitude: g.latitude, longitude: g.longitude, source };
-}
 
 /**
  * "Where are you?" sheet: current location (asks the browser), a saved
@@ -71,9 +66,14 @@ export function LocationPicker({ open, onClose }: { open: boolean; onClose: () =
       async (pos) => {
         const latitude = +pos.coords.latitude.toFixed(6);
         const longitude = +pos.coords.longitude.toFixed(6);
-        const g = await checkoutApi.reverseGeocode(latitude, longitude).catch(() => null);
+        const g = await resolveCoordinates(latitude, longitude);
         setLocating(false);
-        done(g ? fromGeo({ ...g, latitude, longitude }, 'GPS', 'Current location') : { title: 'Current location', subtitle: null, pincode: null, latitude, longitude, source: 'GPS' });
+        if (!g) {
+          // Never save a nameless placeholder - it would sit in the header for good.
+          message.warning('We found you but could not read the address. Search for your area or type it below.');
+          return;
+        }
+        done(fromGeo(g, 'GPS', 'Your location'));
       },
       (err) => {
         setLocating(false);

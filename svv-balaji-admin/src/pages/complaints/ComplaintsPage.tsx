@@ -1,26 +1,4 @@
-import {
-  AlertOutlined,
-  CheckCircleOutlined,
-  ClockCircleOutlined,
-  CloseCircleOutlined,
-  ExclamationCircleOutlined,
-  EyeOutlined,
-  FileProtectOutlined,
-  FilterOutlined,
-  PictureOutlined,
-  PlusOutlined,
-  ReloadOutlined,
-  RocketOutlined,
-  SafetyCertificateOutlined,
-  SearchOutlined,
-  ShoppingOutlined,
-  SyncOutlined,
-  UserOutlined,
-  WarningOutlined,
-  SwapOutlined,
-  BarcodeOutlined,
-  DollarOutlined,
-} from '@ant-design/icons';
+import { AlertOutlined, BankOutlined, BarcodeOutlined, CheckCircleOutlined, ClockCircleOutlined, CloseCircleOutlined, DollarOutlined, ExclamationCircleOutlined, EyeOutlined, FileProtectOutlined, FilterOutlined, PictureOutlined, PlusOutlined, ReloadOutlined, RocketOutlined, SafetyCertificateOutlined, SearchOutlined, ShoppingOutlined, SwapOutlined, SyncOutlined, UserOutlined, WarningOutlined } from '@ant-design/icons';
 import {
   Alert,
   App as AntApp,
@@ -477,12 +455,12 @@ function ComplaintInspectionDrawer({
       <Modal
         title={
           actionModalType === 'REFUND'
-            ? '💳 Issue Refund / Credit Note'
+            ? 'Issue Refund / Credit Note'
             : actionModalType === 'REPLACEMENT'
-            ? '🚚 Dispatch Replacement Item Order'
+            ? 'Dispatch Replacement Item Order'
             : actionModalType === 'REVERSE_PICKUP'
-            ? '🔄 Assign Reverse Pickup Logistics'
-            : '❌ Reject Complaint Ticket'
+            ? 'Assign Reverse Pickup Logistics'
+            : 'Reject Complaint Ticket'
         }
         open={Boolean(actionModalType)}
         onOk={handleConfirmAction}
@@ -642,7 +620,7 @@ export function ComplaintsPage() {
             </Text>
             {record.companyName && (
               <Text type="secondary" style={{ fontSize: 11, fontWeight: 600 }}>
-                🏢 {record.companyName}
+                <BankOutlined /> {record.companyName}
               </Text>
             )}
             <Text type="secondary" style={{ fontSize: 11 }}>
@@ -814,10 +792,10 @@ export function ComplaintsPage() {
               size="middle"
             >
               <Radio.Button value="B2C">
-                🛒 B2C Customer Complaints ({complaints.filter((c) => c.channel === 'B2C').length})
+                B2C Customer Complaints ({complaints.filter((c) => c.channel === 'B2C').length})
               </Radio.Button>
               <Radio.Button value="B2B">
-                🏬 B2B Retailer & Franchise Disputes ({complaints.filter((c) => c.channel === 'B2B').length})
+                B2B Retailer & Franchise Disputes ({complaints.filter((c) => c.channel === 'B2B').length})
               </Radio.Button>
               <Radio.Button value="ALL">
                 All Channels ({complaints.length})

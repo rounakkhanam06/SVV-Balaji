@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react';
+import { checkoutApi, type GeoAddress } from '../api/checkout';
 
 /**
  * Where the shopper says they are, for the header ("📍 Arera Colony, Bhopal").
@@ -42,7 +43,41 @@ export function setShopperLocation(next: ShopperLocation | null) {
   listeners.forEach((l) => l());
 }
 
+/** Our header fields from a geocoded address. */
+export function fromGeo(g: GeoAddress, source: ShopperLocation['source'], fallbackTitle: string): ShopperLocation {
+  const title = g.line2 || g.line1?.split(',')[0] || g.city || fallbackTitle;
+  const subtitle = [g.city, g.state, g.pincode].filter(Boolean).join(', ') || g.formatted;
+  return { title, subtitle, pincode: g.pincode, latitude: g.latitude, longitude: g.longitude, source };
+}
+
+/** Address for a GPS fix, with one retry - the first call can lose a race with a cold API. */
+export async function resolveCoordinates(latitude: number, longitude: number): Promise<GeoAddress | null> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const g = await checkoutApi.reverseGeocode(latitude, longitude).catch(() => null);
+    if (g && (g.line2 || g.line1 || g.city)) return { ...g, latitude, longitude };
+  }
+  return null;
+}
+
+/**
+ * Locations saved while the address lookup was failing kept the placeholder
+ * "Current location" forever. Once per page load, look the saved pin up again
+ * and replace the placeholder with the real area name.
+ */
+let healAttempted = false;
+function healPlaceholder() {
+  if (healAttempted) return;
+  healAttempted = true;
+  const l = current;
+  if (!l || l.title !== 'Current location' || l.latitude == null || l.longitude == null) return;
+  void resolveCoordinates(l.latitude, l.longitude).then((g) => {
+    // Only if the shopper has not picked something else meanwhile.
+    if (g && current === l) setShopperLocation(fromGeo(g, l.source, l.title));
+  });
+}
+
 export function useShopperLocation() {
+  healPlaceholder();
   return useSyncExternalStore(
     (l) => {
       listeners.add(l);

@@ -4493,3 +4493,7 @@ Tests: sales/reports/wallet suites 57/57 (2 new cancel cases). Not run: full sui
 
 ## 2026-11-24 — Raunak (agent) — product View drawer
 - Admin Product List: new eye icon in Actions opens a read-only drawer (`ProductViewDrawer.tsx`) with images, basics, live B2C/B2B prices, pack sizes, ordering/stock, specs, details, FAQs. Visible to anyone who can open the list. Uses existing `GET /products/:id`; no API change.
+
+## 2026-11-24 — Raunak (agent) — admin white screen on navigation after a deploy
+- Cause: open tab requests an old code-split chunk removed by a new Vercel deploy; `vercel.json` rewrote the 404 to index.html, the import failed, and with no error boundary React unmounted the app (white until refresh).
+- Fix: `PageErrorBoundary` around the route Outlet (chunk error -> reload once/min; other errors -> message inside the layout, cleared on navigation); `vite:preloadError` listener in `main.tsx`; `vercel.json` no longer rewrites `/assets/*`, index.html `no-cache`, assets immutable. Needs an admin redeploy.

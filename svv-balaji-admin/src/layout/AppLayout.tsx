@@ -15,6 +15,7 @@ import { App as AntApp, Avatar, Badge, Button, Drawer, Dropdown, Grid, Input, La
 import type { MenuProps } from 'antd';
 import { useQuery } from '@tanstack/react-query';
 import { Suspense, useEffect, useMemo, useState } from 'react';
+import { PageErrorBoundary } from '../components/PageErrorBoundary';
 import { deliveryApi } from '@shared/api/delivery';
 import { DELIVERY_KEYS } from '@shared/hooks/useDelivery';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
@@ -590,7 +591,9 @@ export function AppLayout() {
               </div>
             }
           >
-            <Outlet />
+            <PageErrorBoundary resetKey={location.pathname}>
+              <Outlet />
+            </PageErrorBoundary>
           </Suspense>
         </Content>
       </Layout>

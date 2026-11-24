@@ -159,16 +159,18 @@ export function ProductListsPage() {
       render: (_, record) => {
         const image = record.images?.[0];
         return (
-          <Space align="start" size={12}>
+          // Flex with a fixed, non-shrinking thumbnail: a long name used to squeeze
+          // the image and run over it.
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
             <Avatar
               shape="square"
               size={48}
-              src={image}
+              src={image ? <img src={image} alt="" style={{ objectFit: 'cover', width: '100%', height: '100%' }} /> : undefined}
               icon={!image ? <PictureOutlined /> : undefined}
-              style={{ backgroundColor: '#f5f5f5', color: '#8c8c8c' }}
+              style={{ backgroundColor: '#f5f5f5', color: '#8c8c8c', flex: '0 0 48px' }}
             />
-            <Space direction="vertical" size={2}>
-              <Text strong type={record.isActive ? undefined : 'secondary'}>
+            <Space direction="vertical" size={2} style={{ minWidth: 0, flex: 1 }}>
+              <Text strong type={record.isActive ? undefined : 'secondary'} style={{ wordBreak: 'break-word' }}>
                 {record.name}
               </Text>
               <Space size={4} wrap>
@@ -183,7 +185,7 @@ export function ProductListsPage() {
                 ) : null}
               </Space>
             </Space>
-          </Space>
+          </div>
         );
       },
     },
@@ -274,27 +276,35 @@ export function ProductListsPage() {
     {
       title: 'Status',
       key: 'isActive',
-      width: 120,
+      width: 130,
       render: (_, record) =>
-        record.isActive ? <Badge status="success" text="Active" /> : <Badge status="error" text="Discontinued" />,
+        <span style={{ whiteSpace: 'nowrap' }}>
+          {record.isActive ? <Badge status="success" text="Active" /> : <Badge status="error" text="Discontinued" />}
+        </span>,
     },
     {
       title: 'Actions',
       key: 'actions',
-      width: 160,
+      width: 168,
       fixed: 'right',
+      align: 'center',
       render: (_, record) => (
-        <Space size={2}>
-          <Tooltip title="View product">
-            <Button type="text" icon={<EyeOutlined />} onClick={() => setViewId(record.id)} />
+        // A plain no-wrap row: <Space> put both buttons inside <Can> into one
+        // item, which wrapped and stacked them in the narrow fixed column.
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2, whiteSpace: 'nowrap' }}>
+          <Tooltip title="View">
+            <Button type="text" size="small" icon={<EyeOutlined />} onClick={() => setViewId(record.id)} />
           </Tooltip>
           <Can do="PRODUCT_MANAGE">
-            <Tooltip title="Edit product">
-              <Button type="text" icon={<EditOutlined />} onClick={() => navigate(`/products/edit/${record.id}`)} />
+            <Tooltip title="Edit">
+              <Button type="text" size="small" icon={<EditOutlined />} onClick={() => navigate(`/products/edit/${record.id}`)} />
             </Tooltip>
+          </Can>
+          <Can do="PRODUCT_MANAGE">
             <Tooltip title={record.isActive ? 'Discontinue' : 'Reactivate'}>
               <Button
                 type="text"
+                size="small"
                 icon={
                   record.isActive ? (
                     <StopOutlined style={{ color: '#fa8c16' }} />
@@ -315,11 +325,11 @@ export function ProductListsPage() {
               okButtonProps={{ danger: true }}
             >
               <Tooltip title="Delete">
-                <Button danger type="text" icon={<DeleteOutlined />} />
+                <Button danger type="text" size="small" icon={<DeleteOutlined />} />
               </Tooltip>
             </Popconfirm>
           </Can>
-        </Space>
+        </div>
       ),
     },
   ];
@@ -437,7 +447,7 @@ export function ProductListsPage() {
             loading={productsQuery.isLoading}
             pagination={{ pageSize: 10, showSizeChanger: true }}
             size="middle"
-            scroll={{ x: 1150 }}
+            scroll={{ x: 1260 }}
             locale={{
               emptyText: productsQuery.isError
                 ? apiErrorMessage(productsQuery.error, 'Could not load products')

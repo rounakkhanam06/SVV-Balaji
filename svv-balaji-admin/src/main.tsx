@@ -11,6 +11,13 @@ import { AuthProvider } from './auth/AuthProvider';
 import { PushBridge } from './notifications/PushBridge';
 import { theme } from './theme';
 import './styles.css';
+import { reloadForNewBuild } from './components/PageErrorBoundary';
+
+// Vite fires this when a code-split chunk (or its CSS) fails to load - almost
+// always because a new deploy replaced it. Reload once to pick up the new build.
+window.addEventListener('vite:preloadError', (event) => {
+  if (reloadForNewBuild()) event.preventDefault();
+});
 
 /**
  * A 401 is already handled by the API client, which refreshes the token and

@@ -679,16 +679,6 @@ export const NAV_SECTIONS: NavSection[] = [
         workstream: 'WS2.5',
         zone: 'commerce',
       },
-      {
-        key: 'franchise-orders',
-        path: '/franchise-orders',
-        label: 'Franchise Supply Orders',
-        permission: 'ORDER_VIEW',
-        description: 'Franchise store stock fulfillment logs, bulk supplies, transit trucks, and credit ledger.',
-        endpoints: [],
-        workstream: 'WS2.5',
-        zone: 'commerce',
-      },
     ],
   },
   {

@@ -4497,3 +4497,6 @@ Tests: sales/reports/wallet suites 57/57 (2 new cancel cases). Not run: full sui
 ## 2026-11-24 — Raunak (agent) — admin white screen on navigation after a deploy
 - Cause: open tab requests an old code-split chunk removed by a new Vercel deploy; `vercel.json` rewrote the 404 to index.html, the import failed, and with no error boundary React unmounted the app (white until refresh).
 - Fix: `PageErrorBoundary` around the route Outlet (chunk error -> reload once/min; other errors -> message inside the layout, cleared on navigation); `vite:preloadError` listener in `main.tsx`; `vercel.json` no longer rewrites `/assets/*`, index.html `no-cache`, assets immutable. Needs an admin redeploy.
+
+## 2026-11-24 — Raunak (agent) — removed mock Franchise Supply Orders page
+- `/franchise-orders`, `/franchises`, `/franchise-orders/:id` routes, the menu entry and `src/pages/franchises/` (localStorage demo data, no backend) deleted from admin. Franchise supply remains future scope; real franchise-outlet LOCAL delivery (Outlets, checkout routing) untouched.

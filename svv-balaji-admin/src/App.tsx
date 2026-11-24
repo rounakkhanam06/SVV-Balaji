@@ -273,16 +273,6 @@ const EarningsFinancePage = lazy(() =>
     default: m.EarningsFinancePage,
   })),
 );
-const FranchiseOrdersPage = lazy(() =>
-  import('./pages/franchises/FranchiseOrdersPage').then((m) => ({
-    default: m.FranchiseOrdersPage,
-  })),
-);
-const FranchiseOrderDetailPage = lazy(() =>
-  import('./pages/franchises/FranchiseOrderDetailPage').then((m) => ({
-    default: m.FranchiseOrderDetailPage,
-  })),
-);
 const RolesPermissionsPage = lazy(() =>
   import('./pages/settings/RolesPermissionsPage').then((m) => ({
     default: m.RolesPermissionsPage,
@@ -402,8 +392,6 @@ const SCREENS: Record<string, ReactElement> = {
   '/price-lists': <PriceListsPage />,
   '/b2c-orders': <OrdersPage />,
   '/b2b-orders': <B2BOrdersPage />,
-  '/franchise-orders': <FranchiseOrdersPage />,
-  '/franchises': <FranchiseOrdersPage />,
   '/support-tickets': <SupportTicketsPage />,
   '/complaints': <Navigate to="/support-tickets" replace />,
   '/b2b-accounts': <CustomerAccountsPage />,
@@ -477,7 +465,6 @@ export function App() {
           <Route path="/customers/:id" element={<CustomerDetailPage />} />
           <Route path="/b2b-customers/:id" element={<RetailerDetailPage />} />
           <Route path="/b2b-accounts/:id" element={<RetailerApprovalPage />} />
-          <Route path="/franchise-orders/:id" element={<FranchiseOrderDetailPage />} />
           <Route element={<RequirePermission permission={PERMISSIONS.SEED_STOCK_VIEW} />}>
             <Route path="/seed-stock/:id" element={<SeedStockLedgerPage />} />
           </Route>

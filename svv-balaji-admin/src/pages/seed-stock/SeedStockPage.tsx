@@ -208,7 +208,7 @@ export function SeedStockPage() {
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       <PageHeader
         title="Seed Stock"
-        subtitle="Certified seed and agri-inputs held at each branch (FRD 10.2). Handouts logged in Seed Distribution — from here or the field app — are deducted automatically."
+        subtitle="Certified seed and agri-inputs held at each branch. Handouts logged in Seed Distribution — from here or the field app — are deducted automatically."
         actions={
           canManage ? (
             <Button type="primary" icon={<PlusOutlined />} onClick={() => setReceiveOpen(true)}>

@@ -297,8 +297,7 @@ export class ReportsService {
       margin: {
         available: false,
         reason:
-          'Gross margin needs a cost per product. Production batches carry no cost today - see FRD34 reporting gaps note, ' +
-          'question 1 (production cost), which is with the client.',
+          'Gross margin needs a cost per product. Record production costs on production batches to see it.',
       },
     };
   }

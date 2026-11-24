@@ -262,7 +262,7 @@ function OverviewTab({ farmer }: { farmer: FarmerDetail }) {
       </Descriptions>
 
       <div>
-        <Typography.Title level={5} style={{ marginTop: 0 }}>Performance (FRD 7.6)</Typography.Title>
+        <Typography.Title level={5} style={{ marginTop: 0 }}>Performance</Typography.Title>
         {performance.isLoading ? (
           <Skeleton active paragraph={{ rows: 3 }} />
         ) : !p ? (
@@ -461,7 +461,7 @@ function VisitsTabContent({ farmer, onReport }: { farmer: FarmerDetail; onReport
         <PlannedVisitsPanel query={{ farmerId: farmer.id }} showFarmer={false} emptyText="No visits planned for this farmer" />
       </div>
       <div>
-        <Typography.Title level={5}>Logged visits (FRD 12.6)</Typography.Title>
+        <Typography.Title level={5}>Logged visits</Typography.Title>
         {farmer.fieldVisits.length === 0 ? (
           <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Never visited" />
         ) : (

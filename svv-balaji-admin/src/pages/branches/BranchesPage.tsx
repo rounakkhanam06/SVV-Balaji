@@ -155,7 +155,7 @@ export function BranchesPage() {
     <Card>
       <PageHeader
         title="Branches"
-        subtitle="Operating locations. Every farmer, warehouse and user belongs to one (FRD Section 6)."
+        subtitle="Operating locations. Every farmer, warehouse and user belongs to one."
         actions={
           <>
           <Can do="BRANCH_PERFORMANCE">

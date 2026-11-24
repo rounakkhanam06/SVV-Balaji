@@ -359,7 +359,7 @@ export class FarmerPerformanceService {
       score: null,
       sampleSize: 0,
       explanation:
-        'Not captured — complaint management (FRD 32) is not built. This component is ' +
+        'Not captured — complaint management is not built. This component is ' +
         'excluded from the rating rather than scored as clean.',
     };
   }

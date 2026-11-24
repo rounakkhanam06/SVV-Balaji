@@ -209,7 +209,7 @@ export function PriceListsPage() {
     <Card>
       <PageHeader
         title="Price lists"
-        subtitle="Dated per-channel rates (FRD Section 25). A rate is never edited in place — changing it closes the current rule and opens a new one, so an invoice raised in June still resolves to June's price years later."
+        subtitle="Dated per-channel rates. A rate is never edited in place — changing it closes the current rule and opens a new one, so an invoice raised in June still resolves to June's price years later."
         actions={
           <Can do="PRICE_CREATE">
             <Button type="primary" onClick={() => setFormOpen(true)}>

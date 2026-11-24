@@ -345,7 +345,7 @@ export function FarmersPage() {
         subtitle={
           pendingCount > 0 && canApprove
             ? `${pendingCount} awaiting verification. Approval issues the traceability code that the whole farm-to-fork chain hangs on.`
-            : 'Registry, verification and traceability codes (FRD Sections 7–8).'
+            : 'Registry, verification and traceability codes.'
         }
         actions={
           <Can do="FARMER_CREATE">

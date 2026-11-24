@@ -242,7 +242,7 @@ export function CollectionsPage() {
         subtitle={
           unpaid > 0
             ? `${unpaid} collection${unpaid === 1 ? '' : 's'} not yet paid in full. Each collection mints its raw material batch in the same transaction — that link is where traceability starts.`
-            : 'Receiving approved harvests (FRD Section 14). Each collection mints its raw material batch in the same transaction.'
+            : 'Receiving approved harvests. Each collection mints its raw material batch in the same transaction.'
         }
         actions={
           <Can do="COLLECTION_CREATE">

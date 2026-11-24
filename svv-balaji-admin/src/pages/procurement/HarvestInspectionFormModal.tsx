@@ -251,7 +251,7 @@ export function HarvestInspectionFormModal({
         </Row>
 
         <Divider orientation="left" plain>
-          Quality checklist (FRD 13.2)
+          Quality checklist
         </Divider>
 
         <Row gutter={16}>
@@ -296,7 +296,7 @@ export function HarvestInspectionFormModal({
         </Row>
 
         <Divider orientation="left" plain>
-          Decision (FRD 13.4)
+          Decision
         </Divider>
 
         <Form.Item name="result" label="Result" rules={[required('Result')]}>

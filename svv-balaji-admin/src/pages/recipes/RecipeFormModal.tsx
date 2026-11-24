@@ -422,7 +422,7 @@ export function RecipeFormModal({ open, onClose }: RecipeFormModalProps) {
         </Form.List>
 
         <Divider orientation="left" plain>
-          Production formula (FRD 19.3)
+          Production formula
         </Divider>
 
         <Row gutter={16}>

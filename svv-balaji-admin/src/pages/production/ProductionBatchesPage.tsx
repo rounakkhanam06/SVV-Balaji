@@ -323,7 +323,7 @@ export function ProductionBatchesPage() {
     <Card>
       <PageHeader
         title="Production batches"
-        subtitle="Manufacturing runs (FRD Section 20). Starting a run consumes raw material and pins the recipe version — those consumption rows are what let a finished pack name the farmers behind it."
+        subtitle="Manufacturing runs. Starting a run consumes raw material and pins the recipe version — those consumption rows are what let a finished pack name the farmers behind it."
         actions={
           <Space>
           <ConsumptionToleranceSetting />

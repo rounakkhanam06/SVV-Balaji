@@ -131,7 +131,7 @@ export function StockMovementsPage() {
     <Card>
       <PageHeader
         title="Movement ledger"
-        subtitle="Every inventory change, append-only (FRD 17.3 / 17.5). Nothing here can be edited or deleted — a wrong movement is corrected by another movement, which is what keeps a discrepancy investigable later."
+        subtitle="Every inventory change, append-only. Nothing here can be edited or deleted — a wrong movement is corrected by another movement, which is what keeps a discrepancy investigable later."
       />
 
       <DataTable<StockMovement>

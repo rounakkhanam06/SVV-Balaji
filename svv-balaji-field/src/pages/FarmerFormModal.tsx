@@ -204,7 +204,7 @@ export function FarmerFormModal({ open, farmer, onClose }: FarmerFormModalProps)
             <Form.Item
               name="familyDetails"
               label="Family details"
-              extra="FRD 7.1 — e.g. 4 dependants, two sons farm with him. Advisory: it does not block approval."
+              extra="e.g. 4 dependants, two sons farm with him. Advisory: it does not block approval."
               rules={[{ max: 2000, message: 'Keep family details under 2000 characters' }]}
             >
               <Input.TextArea rows={2} placeholder="Optional" maxLength={2000} style={{ borderRadius: 8 }} />

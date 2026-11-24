@@ -40,7 +40,7 @@ export function OnboardingApprovalsTab() {
           type="info"
           showIcon
           message="Approval is Super Admin only"
-          description="You can register farmers and complete their details here, but the final approval — which issues the traceability code — has to come from a Super Admin (FRD 5.1). Get each record complete and it becomes a one-tap job for them."
+          description="You can register farmers and complete their details here, but the final approval — which issues the traceability code — has to come from a Super Admin. Get each record complete and it becomes a one-tap job for them."
         />
       ) : rows.length > 0 ? (
         <Alert

@@ -201,7 +201,7 @@ export function AgreementsPage() {
     <Card>
       <PageHeader
         title="Agreements"
-        subtitle="Pre-season rate, quality and quantity agreements (FRD Section 9). The rate here is what a collection falls back to when none is entered at weighing."
+        subtitle="Pre-season rate, quality and quantity agreements. The rate here is what a collection falls back to when none is entered at weighing."
         actions={
           <Can do="AGREEMENT_CREATE">
             <Button type="primary" icon={<PlusOutlined />} onClick={() => setFormOpen(true)}>

@@ -125,7 +125,7 @@ export function SeedDistributionPage() {
     <Card>
       <PageHeader
         title="Seed & input distribution"
-        subtitle="Certified seed and crop inputs issued to farmers (FRD Section 10). Recorded by the Agriculture Expert after handing stock over at the farm."
+        subtitle="Certified seed and crop inputs issued to farmers. Recorded by the Agriculture Expert after handing stock over at the farm."
         actions={
           <Can do="SEED_DISTRIBUTION_CREATE">
             <Button type="primary" icon={<PlusOutlined />} onClick={() => setFormOpen(true)}>

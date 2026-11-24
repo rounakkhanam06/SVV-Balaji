@@ -145,7 +145,7 @@ export function TrainingPage() {
     <Card>
       <PageHeader
         title="Training"
-        subtitle="Sessions, attendance and materials (FRD Section 11). Staff-facing: the executive runs the session at the farm and records it here afterwards — there is no farmer login."
+        subtitle="Sessions, attendance and materials. Staff-facing: the executive runs the session at the farm and records it here afterwards — there is no farmer login."
         actions={
           <Can do="TRAINING_CREATE">
             <Button type="primary" icon={<PlusOutlined />} onClick={() => setFormOpen(true)}>

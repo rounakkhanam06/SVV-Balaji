@@ -153,7 +153,7 @@ export function FieldVisitsPage() {
     <Card>
       <PageHeader
         title="Field visits"
-        subtitle="Crop monitoring — what was observed and what was advised (FRD Section 12). The same records are captured offline by the Agriculture Expert app and sync here."
+        subtitle="Crop monitoring — what was observed and what was advised. The same records are captured offline by the Agriculture Expert app and sync here."
         actions={
           <Can do="FIELD_VISIT_CREATE">
             <Button type="primary" icon={<PlusOutlined />} onClick={() => setFormOpen(true)}>

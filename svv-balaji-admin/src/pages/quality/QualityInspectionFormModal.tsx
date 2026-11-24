@@ -132,7 +132,7 @@ export function QualityInspectionFormModal({ open, onClose }: QualityInspectionF
             </Form.Item>
 
             <Divider orientation="left" plain>
-              Parameters (FRD 21.1)
+              Parameters
             </Divider>
             <Row gutter={16}>
               <Col xs={12} md={8}>
@@ -193,7 +193,7 @@ export function QualityInspectionFormModal({ open, onClose }: QualityInspectionF
             </Form.Item>
 
             <Divider orientation="left" plain>
-              Parameters (FRD 21.2)
+              Parameters
             </Divider>
             <Row gutter={16}>
               <Col xs={12} md={8}>
@@ -245,7 +245,7 @@ export function QualityInspectionFormModal({ open, onClose }: QualityInspectionF
             </Form.Item>
 
             <Divider orientation="left" plain>
-              Parameters (FRD 21.3)
+              Parameters
             </Divider>
             <Row gutter={16}>
               <Col xs={12} md={8}>
@@ -282,7 +282,7 @@ export function QualityInspectionFormModal({ open, onClose }: QualityInspectionF
         ) : null}
 
         <Divider orientation="left" plain>
-          Decision (FRD 21.4)
+          Decision
         </Divider>
 
         <Form.Item name="result" label="Result" rules={[required('Result')]}>

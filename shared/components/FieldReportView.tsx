@@ -203,7 +203,7 @@ export function FieldReportDocument({ report: r }: { report: FieldReport }) {
         ) : null}
       </Section>
 
-      <Section title="Crop observations (FRD 12.2)">
+      <Section title="Crop observations">
         <div style={S.grid}>
           <Field label="Crop">{text(r.visit.cropName)}</Field>
           <Field label="Growth stage">{text(r.visit.cropGrowthStage)}</Field>
@@ -218,7 +218,7 @@ export function FieldReportDocument({ report: r }: { report: FieldReport }) {
         ) : null}
       </Section>
 
-      <Section title="Recommendations given (FRD 12.3)">
+      <Section title="Recommendations given">
         <div style={S.grid}>
           <Field label="Fertiliser">{text(r.recommendations.fertilizer)}</Field>
           <Field label="Irrigation">{text(r.recommendations.irrigation)}</Field>

@@ -264,7 +264,7 @@ export function ProductionBatchFormModal({ open, onClose }: ProductionBatchFormM
         </Row>
 
         <Divider orientation="left" plain>
-          Raw material consumed (FRD 20.5)
+          Raw material consumed
         </Divider>
 
         {recipe && multigrain ? (
@@ -377,7 +377,7 @@ export function ProductionBatchFormModal({ open, onClose }: ProductionBatchFormM
         ) : null}
 
         <Divider orientation="left" plain>
-          Machine & operator (FRD 20.6)
+          Machine & operator
         </Divider>
 
         <Row gutter={16}>

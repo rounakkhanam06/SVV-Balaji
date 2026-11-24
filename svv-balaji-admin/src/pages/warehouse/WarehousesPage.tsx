@@ -127,7 +127,7 @@ export function WarehousesPage() {
     <Card>
       <PageHeader
         title="Warehouses"
-        subtitle="Storage locations (FRD Section 16). A collection can book its batch straight into a warehouse on receipt — until one exists here, batches are created unstored."
+        subtitle="Storage locations. A collection can book its batch straight into a warehouse on receipt — until one exists here, batches are created unstored."
         actions={
           <Can do="WAREHOUSE_CREATE">
             <Button type="primary" icon={<PlusOutlined />} onClick={() => setFormOpen(true)}>

@@ -292,7 +292,7 @@ export function FieldFarmersTab() {
 
                   {farmer.qualityRating !== null ? (
                     <span
-                      title="Quality rating (FRD 7.6)"
+                      title="Quality rating"
                       style={{
                         display: 'inline-flex',
                         alignItems: 'center',

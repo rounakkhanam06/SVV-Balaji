@@ -191,7 +191,7 @@ export function BatchesPage() {
     <Card>
       <PageHeader
         title="Raw material batches"
-        subtitle="Every batch minted at collection (FRD Section 15). Click a batch number to walk it back to the farmer, the inspection that approved it, and its full stock history."
+        subtitle="Every batch minted at collection. Click a batch number to walk it back to the farmer, the inspection that approved it, and its full stock history."
       />
 
       <Space direction="vertical" size={12} style={{ width: '100%' }}>

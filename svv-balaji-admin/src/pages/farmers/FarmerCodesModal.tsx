@@ -80,7 +80,7 @@ export function FarmerCodesModal({ farmer, onClose }: FarmerCodesModalProps) {
           type="info"
           showIcon
           message="No traceability code yet"
-          description="Codes are issued when the farmer is approved (FRD 8.1). Approve them first."
+          description="Codes are issued when the farmer is approved. Approve them first."
         />
       ) : codes.isLoading ? (
         <div style={{ display: 'grid', placeItems: 'center', padding: 32 }}>

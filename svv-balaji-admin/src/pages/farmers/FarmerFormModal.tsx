@@ -201,7 +201,7 @@ export function FarmerFormModal({ open, farmer, onClose }: FarmerFormModalProps)
             <Form.Item
               name="familyDetails"
               label="Family details"
-              extra="FRD 7.1 — e.g. 4 dependants, two sons farm with him. Advisory: it does not block approval."
+              extra="e.g. 4 dependants, two sons farm with him. Advisory: it does not block approval."
             >
               <Input.TextArea
                 rows={2}

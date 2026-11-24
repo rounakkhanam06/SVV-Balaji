@@ -184,7 +184,7 @@ export function FinishedGoodsPage() {
     <Card>
       <PageHeader
         title="Finished goods"
-        subtitle="Packed batches (FRD Sections 22–23). The batch number here is what the consumer QR code on the packaging resolves to."
+        subtitle="Packed batches. The batch number here is what the consumer QR code on the packaging resolves to."
         actions={
           <Can do="PACKAGING_CREATE">
             <Button type="primary" onClick={() => setFormOpen(true)}>

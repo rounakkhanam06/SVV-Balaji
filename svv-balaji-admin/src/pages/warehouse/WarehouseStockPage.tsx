@@ -159,7 +159,7 @@ export function WarehouseStockPage() {
     <Card>
       <PageHeader
         title="Warehouse stock"
-        subtitle="Batch-wise on-hand stock (FRD 16.7 / 17.1). Every movement writes a ledger row in the same transaction as the balance change, so the two can never drift apart."
+        subtitle="Batch-wise on-hand stock. Every movement writes a ledger row in the same transaction as the balance change, so the two can never drift apart."
         actions={
           <Can do="STOCK_MUTATE">
             <Button

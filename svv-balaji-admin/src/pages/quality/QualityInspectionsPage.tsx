@@ -112,7 +112,7 @@ export function QualityInspectionsPage() {
     <Card>
       <PageHeader
         title="Quality inspections"
-        subtitle="Three stages: raw material, in process, finished goods (FRD Section 21)."
+        subtitle="Three stages: raw material, in process, finished goods."
         actions={
           <Can do="QUALITY_INSPECT">
             <Button type="primary" icon={<PlusOutlined />} onClick={() => setFormOpen(true)}>

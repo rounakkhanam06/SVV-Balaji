@@ -126,7 +126,7 @@ export function BranchPerformanceDrawer({
             </Descriptions>
           </Card>
 
-          <Card size="small" title="Operational efficiency (FRD 6.4)">
+          <Card size="small" title="Operational efficiency">
             <Row gutter={16} style={{ marginBottom: 12 }}>
               <Col xs={24}>
                 <Statistic
@@ -158,7 +158,7 @@ export function BranchPerformanceDrawer({
               hint="Orders delivered on or before the promised date. Only measurable for orders shipped since delivery timestamps were added on 19 Aug."
             />
             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-              The FRD names operational efficiency without defining it. It is the mean of whichever
+              Operational efficiency is the mean of whichever
               of these three have data — a component with no input is excluded, not scored zero.
             </Typography.Text>
           </Card>

@@ -167,7 +167,7 @@ export function RecipesPage() {
     <Card>
       <PageHeader
         title="Recipes"
-        subtitle="Versioned formulas with an approval gate (FRD Section 19). Production refuses an unapproved recipe, and a run pins the version it used — so an approved recipe is never edited, only superseded by a new version."
+        subtitle="Versioned formulas with an approval gate. Production refuses an unapproved recipe, and a run pins the version it used — so an approved recipe is never edited, only superseded by a new version."
         actions={
           <Can do="RECIPE_CREATE">
             <Button type="primary" icon={<PlusOutlined />} onClick={() => setFormOpen(true)}>

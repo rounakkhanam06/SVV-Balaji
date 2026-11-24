@@ -82,7 +82,7 @@ export const REQUIRED_FOR_APPROVAL: RequiredField[] = [
     key: 'cropDetails',
     label: 'Crop details',
     group: 'Farm',
-    reason: 'FRD 7.4 filters farmers by crop; with this blank the farmer is invisible to that search.',
+    reason: 'Farmer search filters by crop; with this blank the farmer is invisible to that search.',
   },
   {
     key: 'bankAccountName',

@@ -164,7 +164,7 @@ export function FarmerPerformancePanel({ farmerId }: { farmerId: string }) {
         />
       ) : null}
 
-      <Card size="small" title="FRD 7.6 parameters">
+      <Card size="small" title="Performance parameters">
         <ComponentRow title="Crop quality" weight="50%" component={data.cropQuality} />
         <ComponentRow
           title="Delivery timeliness"

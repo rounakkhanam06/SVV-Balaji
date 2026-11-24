@@ -298,7 +298,7 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
         key: 'farmers.approve',
         label: 'Approve a farmer',
         description:
-          'The gate that issues the SVV-YYYY-NNNNNN traceability code (FRD 5.1). The code is ' +
+          'The gate that issues the SVV-YYYY-NNNNNN traceability code. The code is ' +
           'permanent and never reissued, so this is the narrowest permission in farm sourcing ' +
           '- Super Admin only by default.',
         defaultRoles: [],
@@ -656,7 +656,7 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
         label: 'View harvest inspections',
         description:
           'The pre-harvest quality checklist and its result. Branch Manager for procurement and ' +
-          'quality monitoring (FRD 5.2); Agriculture Expert read-only, to follow their farmers ' +
+          'quality monitoring; Agriculture Expert read-only, to follow their farmers ' +
           'harvest gate from the field app.',
         defaultRoles: [PM, QA, BM, AE],
       },
@@ -666,8 +666,8 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
         description:
           'Only against an approved farmer holding a traceability code. This is the gate: only ' +
           'an APPROVED inspection can be collected from, so whoever holds this decides what ' +
-          'enters the supply chain. FRD 5.3/13.4 give it to the Procurement Manager and 5.6 to ' +
-          'the QA Manager. Deliberately not the Agriculture Expert (FRD 5.4): the person who ' +
+          'enters the supply chain. It belongs to the Procurement Manager and ' +
+          'the QA Manager. Deliberately not the Agriculture Expert: the person who ' +
           'advises a farmer should not also grade the same farmer\'s crop (audit M19).',
         defaultRoles: [PM, QA],
       },
@@ -1288,7 +1288,7 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
         label: 'Create a staff account',
         description:
           'Whoever holds this can choose the new account\'s role, so it is effectively the ' +
-          'power to grant any access this system has. Granted to Branch Manager for FRD 5.2 ' +
+          'power to grant any access this system has. Granted to Branch Manager for ' +
           '"Branch Staff Management", and bounded in UsersService: anyone who is not a Super ' +
           'Admin may only create accounts at their own branch, and only in roles below their ' +
           'own - never a peer, never a Super Admin. Without that bound this key would be a ' +
@@ -1309,8 +1309,8 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
         label: 'Delete a staff account',
         description:
           'Only while the account has never acted on anything. Deliberately NOT granted to ' +
-          'Branch Manager: FRD 5.2 asks for staff management, which deactivation already ' +
-          'satisfies, and deletion is the one action here with no audit trail left behind.',
+          'Branch Manager: staff management is covered by deactivation, ' +
+          'and deletion is the one action here with no audit trail left behind.',
         defaultRoles: [],
       },
     ],
@@ -1345,7 +1345,7 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
         key: 'branches.assignManager',
         label: 'Assign a branch manager',
         description:
-          'FRD 6.2. Names who is accountable for a branch. Super Admin only: a branch manager ' +
+          'Names who is accountable for a branch. Super Admin only: a branch manager ' +
           'appointing their own successor is not an appointment.',
         defaultRoles: [],
       },
@@ -1353,7 +1353,7 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
         key: 'branches.performance',
         label: 'View branch performance and reports',
         description:
-          'FRD 6.4/6.5. A Branch Manager sees their own branch; a Super Admin sees every branch ' +
+          'A Branch Manager sees their own branch; a Super Admin sees every branch ' +
           'side by side. The scoping is enforced in the controller, not by this key.',
         defaultRoles: [BM],
       },

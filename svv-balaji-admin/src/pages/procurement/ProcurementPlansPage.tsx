@@ -210,7 +210,7 @@ export function ProcurementPlansPage() {
     <Card>
       <PageHeader
         title="Procurement plans"
-        subtitle="What to buy, from where, and when (FRD 13.1). Harvest inspections can be booked against a plan so the intake is measurable against it."
+        subtitle="What to buy, from where, and when. Harvest inspections can be booked against a plan so the intake is measurable against it."
         actions={
           <Can do="PROCUREMENT_PLAN_CREATE">
             <Button type="primary" icon={<PlusOutlined />} onClick={() => setFormOpen(true)}>

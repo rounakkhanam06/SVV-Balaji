@@ -70,7 +70,7 @@ export function OnboardingHomePage() {
       <Card styles={{ body: { padding: isMobile ? 14 : 24 } }}>
         <PageHeader
           title={`Good day, ${firstName}`}
-          subtitle="Register farmers, complete their details, and get them approved — approval is what issues the traceability code (FRD 7–9)."
+          subtitle="Register farmers, complete their details, and get them approved — approval is what issues the traceability code."
         />
 
         <Row gutter={[12, 12]}>

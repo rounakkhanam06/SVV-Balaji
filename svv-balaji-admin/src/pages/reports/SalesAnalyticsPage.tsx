@@ -1057,7 +1057,7 @@ function SalesBody({
                   COGS Pending
                 </Tag>
               }
-              hint={<span title={d.margin.reason}>Needs product cost mapping (FRD34)</span>}
+              hint={<span title={d.margin.reason}>Needs product cost mapping</span>}
               onClick={() => {
                 const advisoryEl = document.getElementById('margin-advisory-section');
                 if (advisoryEl) {
@@ -1735,7 +1735,7 @@ function SalesBody({
             Gross Margin Calculation Status
           </div>
           <div style={{ fontSize: 12, color: '#334155', lineHeight: 1.5 }}>
-            {d.margin.reason} Production batch costs are currently being finalized with the client team (FRD34 reporting roadmap).
+            {d.margin.reason} Production batch costs are currently being finalized with the client team.
             Once item-level landed purchase and manufacturing costs are posted, automatic gross profit margins and COGS analytics will appear here.
           </div>
         </div>

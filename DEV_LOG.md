@@ -4487,3 +4487,6 @@ Tests: sales/reports/wallet suites 57/57 (2 new cancel cases). Not run: full sui
 **Admin:** production form shows expected/allowed range live, warns and asks for a reason when outside; list shows "Needs approval" tag; detail drawer has Approve / Reject; "Limit ±x%" popover on Production batches page for Super Admin.
 **Tests:** new `src/production/consumption-limit.spec.ts` (9); production + auth suites 75/75 pass; admin `tsc` clean. Traceability chain untouched (consumption rows unchanged).
 **Deploy:** migration `20261124100000_consumption_limit` (additive) + `prisma generate` + API restart + admin build. Applied to the dev (Neon) DB 24 Nov.
+
+## 2026-11-24 — Raunak (agent) — removed "FRD" references from user-visible text
+- Admin, field app, shared components and user-facing backend strings (permission descriptions on the Roles screen, report/completeness reasons): page subtitles, headings, tooltips no longer cite FRD section numbers. Code comments and Swagger docs keep them (developer-only). No behaviour change. Rule going forward: don't put FRD references in UI text.

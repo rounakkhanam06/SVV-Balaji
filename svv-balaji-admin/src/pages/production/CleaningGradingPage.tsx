@@ -85,7 +85,7 @@ function CleaningFormModal({ open, onClose }: { open: boolean; onClose: () => vo
           />
         </Form.Item>
 
-        <Typography.Text strong>Cleaning activities (FRD 18.1)</Typography.Text>
+        <Typography.Text strong>Cleaning activities</Typography.Text>
         <Row gutter={8} style={{ marginTop: 8, marginBottom: 16 }}>
           {ACTIVITIES.map(([name, label]) => (
             <Col xs={12} key={name}>
@@ -96,7 +96,7 @@ function CleaningFormModal({ open, onClose }: { open: boolean; onClose: () => vo
           ))}
         </Row>
 
-        <Typography.Text strong>Grading parameters (FRD 18.2)</Typography.Text>
+        <Typography.Text strong>Grading parameters</Typography.Text>
         <Row gutter={16} style={{ marginTop: 8 }}>
           <Col xs={12} md={8}>
             <Form.Item name="grainSize" label="Grain size">
@@ -160,7 +160,7 @@ function CleaningFormModal({ open, onClose }: { open: boolean; onClose: () => vo
 
         <Typography.Paragraph type="secondary" style={{ marginBottom: 12 }}>
           QA sign-off is a separate step: after saving, a QA user (not the operator who recorded it) clicks
-          <b> Verify</b> on the record in the list. Production only accepts verified material (FRD 18.3).
+          <b> Verify</b> on the record in the list. Production only accepts verified material.
         </Typography.Paragraph>
 
         <Form.Item name="remarks" label="Remarks">
@@ -306,7 +306,7 @@ export function CleaningGradingPage() {
     <Card>
       <PageHeader
         title="Cleaning & grading"
-        subtitle="What was removed and how the material graded, before it enters production (FRD Section 18). Wastage recorded here is what makes a yield reconciliation possible later."
+        subtitle="What was removed and how the material graded, before it enters production. Wastage recorded here is what makes a yield reconciliation possible later."
         actions={
           <Can do="CLEANING_GRADING_CREATE">
             <Button type="primary" icon={<PlusOutlined />} onClick={() => setFormOpen(true)}>

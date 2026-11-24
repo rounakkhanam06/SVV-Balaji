@@ -77,7 +77,7 @@ export function TracePage() {
           description={
             <>
               Check the number, or confirm the batch has been packed. Finished-goods batches are
-              created by the packaging step (FRD 22) — until production and packaging have been run,
+              created by the packaging step — until production and packaging have been run,
               there is nothing here to trace.
             </>
           }

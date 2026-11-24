@@ -62,7 +62,7 @@ export function FarmerCodeCell({ code }: { code: string | null }) {
   }
 
   return (
-    <Tooltip title="Issued automatically when the farmer is approved (FRD 8.1)">
+    <Tooltip title="Issued automatically when the farmer is approved">
       <Tag
         style={{
           borderRadius: 12,

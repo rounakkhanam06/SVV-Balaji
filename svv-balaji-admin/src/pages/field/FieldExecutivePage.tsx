@@ -111,7 +111,7 @@ export function FieldExecutivePage() {
       <Card styles={{ body: { padding: isMobile ? 14 : 24 } }}>
         <PageHeader
           title={`Good day, ${firstName}`}
-          subtitle="Write up the farms you visited, the seed you handed out and the sessions you ran (FRD Sections 10–12)."
+          subtitle="Write up the farms you visited, the seed you handed out and the sessions you ran."
         />
 
         <Row gutter={[12, 12]}>

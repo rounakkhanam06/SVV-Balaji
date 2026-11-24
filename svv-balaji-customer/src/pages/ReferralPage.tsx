@@ -7,6 +7,7 @@ import {
   CrownFilled,
   GiftOutlined,
   InfoCircleOutlined,
+  LinkOutlined,
   QuestionCircleOutlined,
   RightOutlined,
   ShareAltOutlined,
@@ -167,9 +168,6 @@ export function ReferralPage() {
 
   const brandPrimary = isRetailer ? '#059669' : '#ea580c';
   const brandDark = isRetailer ? '#065f46' : '#c2410c';
-  const brandBgGradient = isRetailer
-    ? 'linear-gradient(135deg, #065f46 0%, #047857 50%, #0d9488 100%)'
-    : 'linear-gradient(135deg, #ea580c 0%, #f97316 50%, #fb923c 100%)';
 
   const triggerInfo =
     TRIGGER_DESCRIPTIONS[program.rewardTrigger] || TRIGGER_DESCRIPTIONS.FIRST_DELIVERY;
@@ -236,77 +234,56 @@ export function ReferralPage() {
   const successfulCount = summary?.successfulReferrals ?? 0;
   const coinsEarned = summary?.totalCoinsEarned ?? (successfulCount * program.referrerRewardCoins);
 
-  return (
-    <div style={{ minHeight: '100vh', background: '#f8fafc', paddingBottom: 80 }}>
-      {/* ========================================================================= */}
-      {/* 📱 HEADER NAVIGATION                                                      */}
-      {/* ========================================================================= */}
-      <header
-        className="mobile-flex"
-        style={{
-          background: '#ffffff',
-          padding: '14px 20px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          borderBottom: '1px solid #e2e8f0',
-          position: 'sticky',
-          top: 0,
-          zIndex: 100,
-          boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button
-            onClick={() => navigate(-1)}
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: 4,
-              color: '#334155',
-            }}
-            aria-label="Back"
-          >
-            <ArrowLeftOutlined style={{ fontSize: 18 }} />
-          </button>
-          <div>
-            <Typography.Text strong style={{ fontSize: 17, color: '#0f172a' }}>
-              Refer & Earn
-            </Typography.Text>
-            <Typography.Text type="secondary" style={{ fontSize: 11.5, display: 'block', lineHeight: 1.1 }}>
-              {isRetailer ? 'Invite Store Partners' : 'Invite Friends & Family'}
-            </Typography.Text>
-          </div>
-        </div>
+  const accentTint = isRetailer ? '#ecfdf5' : '#fff7ed';
+  const heroBg = isRetailer ? '#eef7f1' : '#fdf1e8';
+  const faqs =
+    (isRetailer ? program.retailerFaqs : program.customerFaqs) || [
+      {
+        question: 'Where do I find my reward coins once earned?',
+        answer: 'All referral reward coins are directly credited to your Desi Rewards balance. You can view your points and past earnings breakdown anytime under Desi Rewards in your profile.',
+      },
+      {
+        question: 'How much are referral coins worth?',
+        answer: '1 Desi Coin = ₹1 INR. You can apply your coins during checkout to deduct the amount from your eligible orders.',
+      },
+      {
+        question: 'When does my reward get credited?',
+        answer: `Per our active program policy (${triggerInfo.label}), rewards are credited automatically ${triggerInfo.condition.toLowerCase()}`,
+      },
+      {
+        question: 'How many coins will my friend and I get?',
+        answer: `You receive ${program.referrerRewardCoins} Coins (₹${program.referrerRewardCoins}) and your friend receives ${program.refereeRewardCoins} Coins (₹${program.refereeRewardCoins})!`,
+      },
+      {
+        question: 'Can I refer myself using multiple phone numbers?',
+        answer: 'Self-referrals (matching phone number or registered email address) are blocked by our audit system to prevent misuse.',
+      },
+    ];
 
-        <Link
-          to="/loyalty"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            background: isRetailer ? '#ecfdf5' : '#fff7ed',
-            padding: '6px 12px',
-            borderRadius: 20,
-            textDecoration: 'none',
-            border: `1px solid ${isRetailer ? '#a7f3d0' : '#fed7aa'}`,
-          }}
-        >
-          <TrophyOutlined style={{ color: brandPrimary, fontSize: 14 }} />
-          <Typography.Text strong style={{ color: brandPrimary, fontSize: 12.5 }}>
-            {loyalty.points.toLocaleString('en-IN')} Coins
-          </Typography.Text>
+  const steps = [
+    { title: 'Share your code or link', text: 'Send it to friends, relatives or fellow shop owners on WhatsApp or SMS.' },
+    { title: 'Friend signs up', text: 'They enter your code in the referral box while registering.' },
+    {
+      title: 'Both of you earn',
+      text: `You get ${program.referrerRewardCoins} coins, they get ${program.refereeRewardCoins} coins, ${triggerInfo.condition.toLowerCase()}`,
+    },
+  ];
+
+  return (
+    <div className="ref-page">
+      {/* Phone header: back, title, coin balance */}
+      <header className="mobile-flex ref-topbar">
+        <button type="button" onClick={() => navigate(-1)} className="ref-icon-btn" aria-label="Back">
+          <ArrowLeftOutlined />
+        </button>
+        <span className="ref-topbar-title">Refer &amp; Earn</span>
+        <Link to="/loyalty" className="ref-coins" style={{ color: brandPrimary }}>
+          <WalletOutlined /> {loyalty.points.toLocaleString('en-IN')}
         </Link>
       </header>
 
-      {/* Main Container */}
-      <div className="referral-container">
-        {/* Desktop Breadcrumb */}
-        <div className="desktop-only" style={{ marginBottom: 16 }}>
+      <div className="ref-wrap">
+        <div className="desktop-only" style={{ marginBottom: 14 }}>
           <Breadcrumb
             items={[
               { title: <Link to="/">Home</Link> },
@@ -316,651 +293,190 @@ export function ReferralPage() {
           />
         </div>
 
-        {/* ========================================================================= */}
-        {/* 🎁 HERO BANNER                                                            */}
-        {/* ========================================================================= */}
-        <div
-          className="referral-hero-card"
-          style={{
-            background: brandBgGradient,
-            boxShadow: `0 10px 25px -5px ${isRetailer ? 'rgba(5, 150, 105, 0.35)' : 'rgba(234, 88, 12, 0.35)'}`,
-          }}
-        >
-          {/* Ambient decorative elements */}
-          <div
-            style={{
-              position: 'absolute',
-              top: -40,
-              right: -40,
-              width: 140,
-              height: 140,
-              borderRadius: '50%',
-              background: 'rgba(255, 255, 255, 0.1)',
-            }}
-          />
-          <div
-            style={{
-              position: 'absolute',
-              bottom: -20,
-              left: -20,
-              width: 90,
-              height: 90,
-              borderRadius: '50%',
-              background: 'rgba(255, 255, 255, 0.08)',
-            }}
-          />
+        {/* Hero: illustration, one headline, one line of what both sides get */}
+        <section className="ref-hero" style={{ background: heroBg }}>
+          <InviteIllustration accent={brandPrimary} />
+          <h1 className="ref-title">{isRetailer ? 'Invite store partners!' : 'Invite friends!'}</h1>
+          <p className="ref-sub">
+            You get <strong>{program.referrerRewardCoins} coins</strong>, they get{' '}
+            <strong>{program.refereeRewardCoins} coins</strong>
+            <br />
+            <span className="ref-sub-muted">{triggerInfo.condition}</span>
+          </p>
 
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            <div className="referral-hero-badge">
-              <GiftOutlined style={{ fontSize: 12, color: '#fef08a' }} />
-              <span>{isRetailer ? 'B2B WHOLESALE REFERRAL' : 'DESI TOKRI REFERRAL'}</span>
-            </div>
-
-            <Typography.Title level={2} className="referral-hero-title">
-              Earn {program.referrerRewardCoins} Coins for Every Friend!
-            </Typography.Title>
-
-            <Typography.Text className="referral-hero-text">
-              Share your unique referral code. When friends join, you get{' '}
-              <strong style={{ color: '#fef08a' }}>{program.referrerRewardCoins} Coins (₹{program.referrerRewardCoins})</strong> and they get{' '}
-              <strong style={{ color: '#fef08a' }}>{program.refereeRewardCoins} Coins (₹{program.refereeRewardCoins})</strong>.
-            </Typography.Text>
-
-            {/* Program Trigger Pill */}
-            <div className="referral-hero-milestone">
-              <ClockCircleFilled style={{ color: '#fef08a', fontSize: 12 }} />
-              <span>
-                Reward: <strong>{triggerInfo.label}</strong> ({triggerInfo.condition})
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* ========================================================================= */}
-        {/* 🎟️ REFERRAL CODE & SHARING ACTION CARD                                     */}
-        {/* ========================================================================= */}
-        <Card bordered={false} className="referral-action-card">
           {isGuest ? (
-            <div style={{ textAlign: 'center', padding: '16px 8px' }}>
-              <Avatar size={52} icon={<UserAddOutlined />} style={{ background: '#fff7ed', color: '#ea580c', marginBottom: 10 }} />
-              <Typography.Title level={4} style={{ margin: '0 0 6px', fontWeight: 700, fontSize: 16 }}>
-                Sign in to Get Your Referral Code
-              </Typography.Title>
-              <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 14 }}>
-                Log in with your registered mobile OTP to unlock your personalized shareable invite link and track your earnings.
-              </Typography.Text>
-              <Button
-                type="primary"
-                size="middle"
-                style={{
-                  background: brandPrimary,
-                  borderColor: brandPrimary,
-                  borderRadius: 10,
-                  fontWeight: 700,
-                  padding: '0 24px',
-                }}
-                onClick={() => navigate('/login')}
-              >
-                Sign In / Register Now &rarr;
-              </Button>
-            </div>
+            <Button type="primary" size="large" block className="ref-primary" style={{ background: brandPrimary, borderColor: brandPrimary }} onClick={() => navigate('/login')}>
+              Sign in to get your code
+            </Button>
           ) : (
-            <div>
-              <div style={{ textAlign: 'center', marginBottom: 14 }}>
-                <Typography.Text type="secondary" style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.8, display: 'block', marginBottom: 6 }}>
-                  YOUR EXCLUSIVE REFERRAL CODE
-                </Typography.Text>
-
+            <>
+              <button type="button" className="ref-code" onClick={handleCopyCode} aria-label="Copy referral code">
+                <span className="ref-code-label">Your code</span>
                 {activeReferralCode ? (
-                  <div
-                    className="referral-code-pill"
-                    style={{
-                      background: isRetailer ? '#f0fdf4' : '#fff7ed',
-                      border: `2px dashed ${isRetailer ? '#10b981' : '#f97316'}`,
-                    }}
-                    onClick={handleCopyCode}
-                  >
-                    <Typography.Text
-                      className="referral-code-text"
-                      style={{
-                        color: brandDark,
-                      }}
-                    >
-                      {activeReferralCode}
-                    </Typography.Text>
-                    <Button
-                      type="text"
-                      icon={copiedCode ? <CheckOutlined style={{ color: '#16a34a' }} /> : <CopyOutlined style={{ color: brandPrimary }} />}
-                      style={{ padding: 0 }}
-                    />
-                  </div>
+                  <span className="ref-code-value" style={{ color: brandDark }}>{activeReferralCode}</span>
                 ) : (
-                  <Skeleton.Button active style={{ width: 180, height: 42, borderRadius: 12 }} />
+                  <Skeleton.Button active size="small" style={{ width: 120 }} />
                 )}
+                <span className="ref-code-copy" style={{ color: copiedCode ? '#16a34a' : brandPrimary }}>
+                  {copiedCode ? <CheckOutlined /> : <CopyOutlined />} {copiedCode ? 'Copied' : 'Copy'}
+                </span>
+              </button>
 
-                <div style={{ marginTop: 6 }}>
-                  <Typography.Text type="secondary" style={{ fontSize: 11 }}>
-                    {copiedCode ? 'Copied to clipboard!' : 'Tap to copy your code'}
-                  </Typography.Text>
-                </div>
-              </div>
-
-              {/* Action Buttons Grid */}
-              <div className="referral-share-actions">
-                <Button
-                  type="primary"
-                  className="referral-share-btn"
-                  icon={<WhatsAppOutlined style={{ fontSize: 17 }} />}
-                  style={{
-                    background: '#25D366',
-                    borderColor: '#25D366',
-                  }}
-                  onClick={handleWhatsAppShare}
-                  block
-                >
-                  Share via WhatsApp
+              <Button type="primary" size="large" block className="ref-primary ref-wa" icon={<WhatsAppOutlined />} onClick={handleWhatsAppShare}>
+                Invite on WhatsApp
+              </Button>
+              <div className="ref-secondary">
+                <Button block icon={copiedLink ? <CheckOutlined /> : <LinkOutlined />} onClick={handleCopyLink}>
+                  {copiedLink ? 'Link copied' : 'Copy link'}
                 </Button>
-
-                <div className="referral-share-subactions">
-                  <Button
-                    className="referral-sub-btn"
-                    icon={copiedLink ? <CheckOutlined style={{ color: '#16a34a' }} /> : <CopyOutlined />}
-                    style={{
-                      borderColor: copiedLink ? '#16a34a' : '#cbd5e1',
-                    }}
-                    onClick={handleCopyLink}
-                    block
-                  >
-                    {copiedLink ? 'Link Copied!' : 'Copy Invite Link'}
+                {typeof navigator !== 'undefined' && 'share' in navigator ? (
+                  <Button block icon={<ShareAltOutlined />} onClick={handleNativeShare}>
+                    More
                   </Button>
-
-                  {typeof navigator !== 'undefined' && 'share' in navigator ? (
-                    <Button
-                      className="referral-sub-btn"
-                      icon={<ShareAltOutlined />}
-                      onClick={handleNativeShare}
-                      block
-                    >
-                      More Sharing Options
-                    </Button>
-                  ) : (
-                    <Button
-                      className="referral-sub-btn"
-                      icon={<CopyOutlined />}
-                      onClick={handleCopyCode}
-                      block
-                    >
-                      Copy Code
-                    </Button>
-                  )}
-                </div>
+                ) : null}
               </div>
-            </div>
+            </>
           )}
-        </Card>
+        </section>
 
-        {/* ========================================================================= */}
-        {/* 🎫 APPLIED REFERRAL CODE — who referred you, or the option to add one     */}
-        {/* ========================================================================= */}
-        {!isGuest && !summaryLoading && (
-          <Card
-            bordered={false}
-            style={{
-              borderRadius: 16,
-              border: '1px solid #e2e8f0',
-              marginBottom: 24,
-              boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
-            }}
-            bodyStyle={{ padding: '18px 20px' }}
-          >
-            {summary?.appliedReferral ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <Avatar size={40} icon={<CheckCircleFilled />} style={{ background: '#ecfdf5', color: '#059669', flexShrink: 0 }} />
-                <div style={{ flex: 1 }}>
-                  <Typography.Text strong style={{ fontSize: 14, color: '#0f172a', display: 'block' }}>
-                    You were referred by {summary.appliedReferral.referrerName}
-                  </Typography.Text>
-                  <Typography.Text type="secondary" style={{ fontSize: 12.5 }}>
-                    Code applied: <strong style={{ fontFamily: 'monospace' }}>{summary.appliedReferral.code}</strong>
-                  </Typography.Text>
-                </div>
-                {summary.appliedReferral.status === 'QUALIFIED' ? (
-                  <Tag color="green" style={{ fontWeight: 700, margin: 0 }}>
-                    +{program.refereeRewardCoins} Coins Credited
-                  </Tag>
-                ) : (
-                  <Tag color="gold" style={{ fontWeight: 600, margin: 0 }}>
-                    Pending Reward
-                  </Tag>
-                )}
+        {/* Stats: one quiet row */}
+        {!isGuest ? (
+          <section className="ref-card ref-stats">
+            {[
+              { label: 'Invited', value: totalFriendsCount },
+              { label: 'Qualified', value: successfulCount },
+              { label: 'Coins earned', value: coinsEarned.toLocaleString('en-IN') },
+            ].map((s) => (
+              <div key={s.label} className="ref-stat">
+                <div className="ref-stat-value">{summaryLoading ? <Spin size="small" /> : s.value}</div>
+                <div className="ref-stat-label">{s.label}</div>
               </div>
-            ) : summary?.canApplyReferralCode ? (
-              <div>
-                <Typography.Text strong style={{ fontSize: 14, color: '#0f172a', display: 'block', marginBottom: 4 }}>
-                  Have a friend's referral code?
-                </Typography.Text>
-                <Typography.Text type="secondary" style={{ fontSize: 12.5, display: 'block', marginBottom: 12 }}>
-                  Apply it now to get {program.refereeRewardCoins} welcome coins. This only works before your first order.
-                </Typography.Text>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <Input
-                    value={applyCodeInput}
-                    onChange={(e) => setApplyCodeInput(e.target.value.toUpperCase())}
-                    placeholder="Enter referral code"
-                    style={{ borderRadius: 10, height: 42, fontFamily: 'monospace', letterSpacing: 1 }}
-                    onPressEnter={handleApplyReferralCode}
-                  />
-                  <Button
-                    type="primary"
-                    loading={applyingCode}
-                    onClick={handleApplyReferralCode}
-                    style={{ background: brandPrimary, borderColor: brandPrimary, borderRadius: 10, height: 42, fontWeight: 700 }}
-                  >
-                    Apply
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <Avatar size={36} icon={<InfoCircleOutlined />} style={{ background: '#f1f5f9', color: '#64748b', flexShrink: 0 }} />
-                <Typography.Text type="secondary" style={{ fontSize: 12.5 }}>
-                  No referral code was applied to your account, and it's no longer available since you've already placed an order.
-                </Typography.Text>
-              </div>
-            )}
-          </Card>
-        )}
+            ))}
+          </section>
+        ) : null}
 
-        {/* ========================================================================= */}
-        {/* 📊 REFERRAL PERFORMANCE STATS (FOR LOGGED IN USERS)                       */}
-        {/* ========================================================================= */}
-        {!isGuest && (
-          <div style={{ marginBottom: 24 }}>
-            <Typography.Title level={4} style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', marginBottom: 12 }}>
-              Your Referral Statistics
-            </Typography.Title>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12 }}>
-              {/* Total Invited */}
-              <div
-                style={{
-                  background: '#ffffff',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: 14,
-                  padding: '16px',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                  <Avatar size={30} icon={<TeamOutlined />} style={{ background: '#eff6ff', color: '#2563eb' }} />
-                  <Typography.Text type="secondary" style={{ fontSize: 12, fontWeight: 600 }}>
-                    TOTAL INVITED
-                  </Typography.Text>
-                </div>
-                <Typography.Text strong style={{ fontSize: 22, color: '#0f172a', display: 'block' }}>
-                  {summaryLoading ? <Spin size="small" /> : totalFriendsCount}
-                </Typography.Text>
-                <Typography.Text type="secondary" style={{ fontSize: 11.5 }}>
-                  Friends joined with your code
-                </Typography.Text>
+        {/* Referred by / apply a code */}
+        {!isGuest && !summaryLoading ? (
+          summary?.appliedReferral ? (
+            <section className="ref-card ref-row">
+              <CheckCircleFilled style={{ color: '#059669', fontSize: 20 }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="ref-row-title">Referred by {summary.appliedReferral.referrerName}</div>
+                <div className="ref-row-sub">Code {summary.appliedReferral.code}</div>
               </div>
-
-              {/* Successful Referrals */}
-              <div
-                style={{
-                  background: '#ffffff',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: 14,
-                  padding: '16px',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                  <Avatar size={30} icon={<CheckCircleFilled />} style={{ background: '#ecfdf5', color: '#059669' }} />
-                  <Typography.Text type="secondary" style={{ fontSize: 12, fontWeight: 600 }}>
-                    QUALIFIED
-                  </Typography.Text>
-                </div>
-                <Typography.Text strong style={{ fontSize: 22, color: '#059669', display: 'block' }}>
-                  {summaryLoading ? <Spin size="small" /> : successfulCount}
-                </Typography.Text>
-                <Typography.Text type="secondary" style={{ fontSize: 11.5 }}>
-                  Rewards credited to wallet
-                </Typography.Text>
-              </div>
-
-              {/* Total Coins Earned */}
-              <div
-                style={{
-                  background: '#ffffff',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: 14,
-                  padding: '16px',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                  <Avatar size={30} icon={<CrownFilled />} style={{ background: '#fffbeb', color: '#d97706' }} />
-                  <Typography.Text type="secondary" style={{ fontSize: 12, fontWeight: 600 }}>
-                    COINS EARNED
-                  </Typography.Text>
-                </div>
-                <Typography.Text strong style={{ fontSize: 22, color: '#d97706', display: 'block' }}>
-                  {summaryLoading ? <Spin size="small" /> : coinsEarned.toLocaleString('en-IN')}
-                </Typography.Text>
-                <Typography.Text type="secondary" style={{ fontSize: 11.5 }}>
-                  Worth ₹{coinsEarned.toLocaleString('en-IN')} on orders
-                </Typography.Text>
-              </div>
-
-              {/* Wallet / Loyalty Balance */}
-              <div
-                style={{
-                  background: '#ffffff',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: 14,
-                  padding: '16px',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                  <Avatar size={30} icon={<WalletOutlined />} style={{ background: '#fdf4ff', color: '#a21caf' }} />
-                  <Typography.Text type="secondary" style={{ fontSize: 12, fontWeight: 600 }}>
-                    ACTIVE BALANCE
-                  </Typography.Text>
-                </div>
-                <Typography.Text strong style={{ fontSize: 22, color: '#0f172a', display: 'block' }}>
-                  {loyalty.points.toLocaleString('en-IN')} pts
-                </Typography.Text>
-                <Link to="/loyalty" style={{ fontSize: 11.5, color: brandPrimary, fontWeight: 600 }}>
-                  View coin ledger &rarr;
-                </Link>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ========================================================================= */}
-        {/* 🔄 HOW IT WORKS (3-STEP FLOW)                                              */}
-        {/* ========================================================================= */}
-        <Card
-          bordered={false}
-          style={{
-            borderRadius: 16,
-            border: '1px solid #e2e8f0',
-            marginBottom: 24,
-            boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
-          }}
-          bodyStyle={{ padding: '20px' }}
-        >
-          <Typography.Title level={4} style={{ fontSize: 16, fontWeight: 700, margin: '0 0 16px', color: '#0f172a' }}>
-            How Refer & Earn Works
-          </Typography.Title>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
-            {/* Step 1 */}
-            <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-              <div
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: '50%',
-                  background: isRetailer ? '#ecfdf5' : '#fff7ed',
-                  color: brandPrimary,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: 800,
-                  fontSize: 15,
-                  flexShrink: 0,
-                  border: `1.5px solid ${isRetailer ? '#a7f3d0' : '#fed7aa'}`,
-                }}
-              >
-                1
-              </div>
-              <div>
-                <Typography.Text strong style={{ fontSize: 14, color: '#1e293b', display: 'block', marginBottom: 2 }}>
-                  Share Your Code or Link
-                </Typography.Text>
-                <Typography.Text type="secondary" style={{ fontSize: 12.5, lineHeight: 1.4, display: 'block' }}>
-                  Send your referral code or direct invite link to friends, relatives, or fellow shop owners via WhatsApp or SMS.
-                </Typography.Text>
-              </div>
-            </div>
-
-            {/* Step 2 */}
-            <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-              <div
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: '50%',
-                  background: isRetailer ? '#ecfdf5' : '#fff7ed',
-                  color: brandPrimary,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: 800,
-                  fontSize: 15,
-                  flexShrink: 0,
-                  border: `1.5px solid ${isRetailer ? '#a7f3d0' : '#fed7aa'}`,
-                }}
-              >
-                2
-              </div>
-              <div>
-                <Typography.Text strong style={{ fontSize: 14, color: '#1e293b', display: 'block', marginBottom: 2 }}>
-                  Friend Signs Up
-                </Typography.Text>
-                <Typography.Text type="secondary" style={{ fontSize: 12.5, lineHeight: 1.4, display: 'block' }}>
-                  Your friend registers their account and enters your code in the optional referral box during sign-up.
-                </Typography.Text>
-              </div>
-            </div>
-
-            {/* Step 3 */}
-            <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-              <div
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: '50%',
-                  background: isRetailer ? '#ecfdf5' : '#fff7ed',
-                  color: brandPrimary,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: 800,
-                  fontSize: 15,
-                  flexShrink: 0,
-                  border: `1.5px solid ${isRetailer ? '#a7f3d0' : '#fed7aa'}`,
-                }}
-              >
-                3
-              </div>
-              <div>
-                <Typography.Text strong style={{ fontSize: 14, color: '#1e293b', display: 'block', marginBottom: 2 }}>
-                  Both Earn Rewards!
-                </Typography.Text>
-                <Typography.Text type="secondary" style={{ fontSize: 12.5, lineHeight: 1.4, display: 'block' }}>
-                  You receive <strong>{program.referrerRewardCoins} Coins</strong> and your friend receives <strong>{program.refereeRewardCoins} Coins</strong> automatically {triggerInfo.condition.toLowerCase()}
-                </Typography.Text>
-              </div>
-            </div>
-          </div>
-        </Card>
-
-        {/* ========================================================================= */}
-        {/* 👥 REFERRAL ACTIVITY LIST                                                  */}
-        {/* ========================================================================= */}
-        {!isGuest && (
-          <Card
-            bordered={false}
-            style={{
-              borderRadius: 16,
-              border: '1px solid #e2e8f0',
-              marginBottom: 24,
-              boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
-            }}
-            bodyStyle={{ padding: '20px' }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-              <Typography.Title level={4} style={{ fontSize: 16, fontWeight: 700, margin: 0, color: '#0f172a' }}>
-                Invited Friends & Progress
-              </Typography.Title>
-              {summary?.referrals && summary.referrals.length > 0 && (
-                <Tag color="orange" style={{ fontWeight: 600, borderRadius: 10 }}>
-                  {summary.referrals.length} Joined
-                </Tag>
+              {summary.appliedReferral.status === 'QUALIFIED' ? (
+                <Tag color="green" style={{ margin: 0 }}>+{program.refereeRewardCoins} coins</Tag>
+              ) : (
+                <Tag color="gold" style={{ margin: 0 }}>Pending</Tag>
               )}
-            </div>
-
-            {summaryLoading ? (
-              <Skeleton active paragraph={{ rows: 3 }} />
-            ) : !summary?.referrals || summary.referrals.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '24px 12px' }}>
-                <Avatar size={48} icon={<TeamOutlined />} style={{ background: '#f1f5f9', color: '#94a3b8', marginBottom: 10 }} />
-                <Typography.Text strong style={{ fontSize: 14, color: '#475569', display: 'block' }}>
-                  No referrals yet
-                </Typography.Text>
-                <Typography.Text type="secondary" style={{ fontSize: 12.5, display: 'block', maxWidth: 360, margin: '4px auto 14px' }}>
-                  Share your code with friends to start earning Desi Reward Coins on every successful sign-up.
-                </Typography.Text>
-                <Button
-                  type="primary"
-                  icon={<WhatsAppOutlined />}
-                  style={{ background: '#25D366', borderColor: '#25D366', borderRadius: 8, fontWeight: 600 }}
-                  onClick={handleWhatsAppShare}
-                >
-                  Invite Your First Friend
+            </section>
+          ) : summary?.canApplyReferralCode ? (
+            <section className="ref-card">
+              <div className="ref-row-title">Have a friend&apos;s code?</div>
+              <div className="ref-row-sub" style={{ marginBottom: 10 }}>
+                Apply it before your first order to get {program.refereeRewardCoins} welcome coins.
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <Input
+                  value={applyCodeInput}
+                  onChange={(e) => setApplyCodeInput(e.target.value.toUpperCase())}
+                  placeholder="Enter code"
+                  style={{ height: 42, borderRadius: 10, fontFamily: 'monospace', letterSpacing: 1 }}
+                  onPressEnter={handleApplyReferralCode}
+                />
+                <Button type="primary" loading={applyingCode} onClick={handleApplyReferralCode} style={{ height: 42, borderRadius: 10, background: brandPrimary, borderColor: brandPrimary, fontWeight: 600 }}>
+                  Apply
                 </Button>
               </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {summary.referrals.map((item) => (
-                  <div
-                    key={item.id}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '12px 14px',
-                      background: '#f8fafc',
-                      borderRadius: 12,
-                      border: '1px solid #e2e8f0',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <Avatar
-                        style={{
-                          background: item.status === 'QUALIFIED' ? '#ecfdf5' : '#fffbeb',
-                          color: item.status === 'QUALIFIED' ? '#059669' : '#d97706',
-                          fontWeight: 700,
-                        }}
-                      >
-                        {item.refereeName[0] || 'F'}
-                      </Avatar>
-                      <div>
-                        <Typography.Text strong style={{ fontSize: 13.5, color: '#1e293b', display: 'block' }}>
-                          {item.refereeName}
-                        </Typography.Text>
-                        <Typography.Text type="secondary" style={{ fontSize: 11.5 }}>
-                          Joined on {new Date(item.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                        </Typography.Text>
-                      </div>
-                    </div>
+            </section>
+          ) : null
+        ) : null}
 
-                    <div style={{ textAlign: 'right' }}>
-                      {item.status === 'QUALIFIED' ? (
-                        <div>
-                          <Tag color="green" style={{ fontWeight: 700, margin: 0 }}>
-                            +{program.referrerRewardCoins} Coins
-                          </Tag>
-                          <Typography.Text style={{ fontSize: 11, color: '#16a34a', display: 'block', marginTop: 2 }}>
-                            Credited 
-                          </Typography.Text>
-                        </div>
-                      ) : (
-                        <div>
-                          <Tag color="gold" style={{ fontWeight: 600, margin: 0 }}>
-                            Pending
-                          </Tag>
-                          <Typography.Text type="secondary" style={{ fontSize: 11, display: 'block', marginTop: 2 }}>
-                            Awaiting milestone
-                          </Typography.Text>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
+        {/* How it works */}
+        <section className="ref-card">
+          <div className="ref-h2">How it works</div>
+          {steps.map((s, i) => (
+            <div key={s.title} className="ref-step">
+              <span className="ref-step-dot" style={{ background: accentTint, color: brandPrimary }}>{i + 1}</span>
+              <div>
+                <div className="ref-row-title">{s.title}</div>
+                <div className="ref-row-sub">{s.text}</div>
               </div>
-            )}
-          </Card>
-        )}
+            </div>
+          ))}
+        </section>
 
-        {/* ========================================================================= */}
-        {/* ❓ FREQUENTLY ASKED QUESTIONS & PROGRAM RULES (DYNAMIC FROM ADMIN)        */}
-        {/* ========================================================================= */}
-        <Card
-          bordered={false}
-          style={{
-            borderRadius: 16,
-            border: '1px solid #e2e8f0',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
-          }}
-          bodyStyle={{ padding: '20px' }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-            <Typography.Title level={4} style={{ fontSize: 16, fontWeight: 700, margin: 0, color: '#0f172a' }}>
-              Referral Program FAQs
-            </Typography.Title>
-            <Tag color={isRetailer ? 'green' : 'orange'} style={{ borderRadius: 10, fontWeight: 600 }}>
-              {isRetailer ? 'B2B Partner FAQs' : 'Customer FAQs'}
-            </Tag>
-          </div>
+        {/* Friends who joined */}
+        {!isGuest && summary?.referrals && summary.referrals.length > 0 ? (
+          <section className="ref-card">
+            <div className="ref-h2">Invited friends</div>
+            {summary.referrals.map((item) => (
+              <div key={item.id} className="ref-friend">
+                <Avatar style={{ background: accentTint, color: brandPrimary, fontWeight: 600 }}>{item.refereeName[0] || 'F'}</Avatar>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="ref-row-title">{item.refereeName}</div>
+                  <div className="ref-row-sub">
+                    Joined {new Date(item.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </div>
+                </div>
+                {item.status === 'QUALIFIED' ? (
+                  <Tag color="green" style={{ margin: 0 }}>+{program.referrerRewardCoins} coins</Tag>
+                ) : (
+                  <Tag style={{ margin: 0 }}>Pending</Tag>
+                )}
+              </div>
+            ))}
+          </section>
+        ) : null}
 
+        {/* FAQs (from Admin > Referral settings) */}
+        <section className="ref-card">
+          <div className="ref-h2">Questions</div>
           {programLoading ? (
-            <Skeleton active paragraph={{ rows: 4 }} />
+            <Skeleton active paragraph={{ rows: 3 }} />
           ) : (
             <Collapse
               ghost
               expandIconPosition="end"
-              items={(
-                (isRetailer ? program.retailerFaqs : program.customerFaqs) || [
-                  {
-                    question: 'Where do I find my reward coins once earned?',
-                    answer: 'All referral reward coins are directly credited to your Desi Rewards balance. You can view your points and past earnings breakdown anytime under Desi Rewards in your profile.',
-                  },
-                  {
-                    question: 'How much are referral coins worth?',
-                    answer: '1 Desi Coin = ₹1 INR. You can apply your coins during checkout to deduct the amount from your eligible orders.',
-                  },
-                  {
-                    question: 'When does my reward get credited?',
-                    answer: `Per our active program policy (${triggerInfo.label}), rewards are credited automatically ${triggerInfo.condition.toLowerCase()}`,
-                  },
-                  {
-                    question: 'How many coins will my friend and I get?',
-                    answer: `You receive ${program.referrerRewardCoins} Coins (₹${program.referrerRewardCoins}) and your friend receives ${program.refereeRewardCoins} Coins (₹${program.refereeRewardCoins})!`,
-                  },
-                  {
-                    question: 'Can I refer myself using multiple phone numbers?',
-                    answer: 'Self-referrals (matching phone number or registered email address) are blocked by our audit system to prevent misuse.',
-                  },
-                ]
-              ).map((faq, index) => ({
+              items={faqs.map((faq, index) => ({
                 key: String(index + 1),
-                label: <span style={{ fontWeight: 600, color: '#1e293b' }}>{faq.question}</span>,
-                children: (
-                  <Typography.Text type="secondary" style={{ fontSize: 13, lineHeight: 1.6 }}>
-                    {faq.answer}
-                  </Typography.Text>
-                ),
+                label: <span style={{ fontWeight: 600, color: '#1c1917' }}>{faq.question}</span>,
+                children: <Typography.Text type="secondary" style={{ fontSize: 13, lineHeight: 1.6 }}>{faq.answer}</Typography.Text>,
               }))}
             />
           )}
-        </Card>
+        </section>
       </div>
     </div>
+  );
+}
+
+/**
+ * Two people linked by a spark - our own line drawing for the invite hero
+ * (inline SVG, no image request). Ink outlines with the brand colour as accent.
+ */
+function InviteIllustration({ accent }: { accent: string }) {
+  return (
+    <svg className="ref-illus" viewBox="0 0 240 130" role="img" aria-label="Two friends connected">
+      <g fill="none" stroke="#1c1917" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+        {/* left person */}
+        <circle cx="62" cy="48" r="20" fill="#ffffff" />
+        <path d="M28 118c0-22 15-38 34-38s34 16 34 38" fill="#ffffff" />
+        <path d="M54 46h.01M70 46h.01" strokeWidth="4" />
+        <path d="M55 56c4 4 10 4 14 0" />
+        {/* right person */}
+        <circle cx="178" cy="48" r="20" fill="#ffffff" />
+        <path d="M144 118c0-22 15-38 34-38s34 16 34 38" fill="#ffffff" />
+        <path d="M170 46h.01M186 46h.01" strokeWidth="4" />
+        <path d="M171 56c4 4 10 4 14 0" />
+        {/* link between them */}
+        <path d="M92 82c18-14 38-14 56 0" strokeDasharray="2 7" />
+      </g>
+      {/* spark */}
+      <g fill="none" stroke={accent} strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M120 18l-8 18h12l-8 18" />
+        <path d="M104 22l-6-6M136 22l6-6M100 40h-8M140 40h8" />
+      </g>
+    </svg>
   );
 }

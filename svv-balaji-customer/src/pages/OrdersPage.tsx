@@ -32,15 +32,23 @@ function EmptyOrders({
         borderRadius: 20,
         padding: '8px 20px 28px',
         textAlign: 'center',
-        boxShadow: '0 2px 12px rgba(0,0,0,0.05)',
+        border: '1px solid #eeece9',
         marginTop: 8,
       }}
     >
-      <div style={{ fontSize: 48, lineHeight: 1, margin: '20px 0 12px', color: '#a8a29e' }}><ShoppingOutlined /></div>
-      <Typography.Title level={4} style={{ margin: '0 0 8px', color: '#0f172a', fontWeight: 700, lineHeight: 1.35 }}>
+      <div
+        style={{
+          width: 64, height: 64, borderRadius: '50%', margin: '20px auto 14px',
+          display: 'grid', placeItems: 'center', fontSize: 28,
+          background: `${accent}14`, color: accent,
+        }}
+      >
+        <ShoppingOutlined />
+      </div>
+      <Typography.Title level={4} style={{ margin: '0 0 6px', color: '#0f172a', fontWeight: 700, lineHeight: 1.35 }}>
         {title}
       </Typography.Title>
-      <Typography.Paragraph type="secondary" style={{ fontSize: 14, maxWidth: 400, margin: '0 auto 16px', lineHeight: 1.6 }}>
+      <Typography.Paragraph type="secondary" style={{ fontSize: 14, maxWidth: 400, margin: '0 auto 20px', lineHeight: 1.6 }}>
         {message}
       </Typography.Paragraph>
       {perks ? (
@@ -513,18 +521,9 @@ export function OrdersPage() {
         ) : (orders.data ?? []).length === 0 ? (
           <EmptyOrders
             accent={accent}
-            title={isRetailer ? 'No bulk orders yet' : 'No orders yet — your basket is feeling lonely!'}
-            message={
-              isRetailer
-                ? 'Stock up your shelves with wholesale rates, GST billing and credit terms. Your first bulk order is just a few taps away.'
-                : 'Fresh, farm-sourced goodies are waiting for you. Place your first order and we’ll bring it right to your doorstep.'
-            }
-            perks={
-              isRetailer
-                ? ['Wholesale prices', 'GST invoices', 'Reward coins']
-                : ['Farm fresh', 'Doorstep delivery', 'Earn reward points']
-            }
-            cta={isRetailer ? 'Browse wholesale catalogue' : 'Start shopping'}
+            title="No orders yet"
+            message={isRetailer ? 'Your bulk orders and GST invoices will appear here.' : 'Your orders and invoices will appear here.'}
+            cta={isRetailer ? 'Browse catalogue' : 'Start shopping'}
             onCta={() => navigate('/')}
           />
         ) : (

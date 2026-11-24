@@ -1,9 +1,12 @@
 import { DeleteOutlined, PlusOutlined, ThunderboltOutlined } from '@ant-design/icons';
-import { Button, Form, InputNumber, Space, Tag, Tooltip, Typography } from 'antd';
+import { Button, Form, InputNumber, Tag, Tooltip, Typography } from 'antd';
 import { formatCurrency } from '../../utils/format';
 import { inclusiveOf, ladderFromMrp, perUnitOf, tierDiscount, type TierRow } from './productForm';
 
 const { Text } = Typography;
+
+const GRID = { display: 'grid', gridTemplateColumns: '44px 130px 170px minmax(160px, 1fr) 40px', gap: 12 } as const;
+const HEAD = { fontSize: 12, fontWeight: 500, textTransform: 'uppercase', letterSpacing: 0.3 } as const;
 
 /**
  * The wholesale price ladder for one sellable unit - the product itself or one
@@ -68,26 +71,22 @@ export function PriceTierEditor({
       ]}
     >
       {(fields, { add, remove }, { errors }) => (
-        <Space direction="vertical" size={8} style={{ width: '100%' }}>
+        <div style={{ border: '1px solid #f0f0f0', borderRadius: 10, overflowX: 'auto', background: '#fff' }}>
           {fields.length > 0 ? (
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '110px 150px 1fr 40px',
-                gap: 10,
-                padding: '0 4px',
-              }}
-            >
-              <Text type="secondary" style={{ fontSize: 12 }}>From qty</Text>
-              <Text type="secondary" style={{ fontSize: 12 }}>
-                {totals ? 'Total for this qty (excl. GST)' : `Price / ${unitWord} (excl. GST)`}
-              </Text>
-              <Text type="secondary" style={{ fontSize: 12 }}>What a retailer sees, per {unitWord}</Text>
+            <div style={{ ...GRID, background: '#fafafa', borderBottom: '1px solid #f0f0f0', padding: '10px 14px' }}>
+              <Text type="secondary" style={HEAD}>Tier</Text>
+              <Text type="secondary" style={HEAD}>From qty</Text>
+              <Text type="secondary" style={HEAD}>{totals ? 'Total for qty (excl. GST)' : `Price / ${unitWord} (excl. GST)`}</Text>
+              <Text type="secondary" style={HEAD}>Retailer pays / {unitWord}</Text>
               <span />
             </div>
-          ) : null}
+          ) : (
+            <div style={{ padding: '28px 16px', textAlign: 'center' }}>
+              <Text type="secondary">No wholesale tiers yet. Add a quantity break, or fill a starting ladder from MRP.</Text>
+            </div>
+          )}
 
-          {fields.map((field) => {
+          {fields.map((field, index) => {
             const row = rows[field.name];
             // The engine bills per unit, so everything shown on the right is per unit
             // - derived from the typed total when the product's tiers are totals.
@@ -97,23 +96,27 @@ export function PriceTierEditor({
             return (
               <div
                 key={field.key}
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '110px 150px 1fr 40px',
-                  gap: 10,
-                  alignItems: 'start',
-                }}
+                style={{ ...GRID, alignItems: 'start', padding: '12px 14px', borderBottom: '1px solid #f5f5f5', background: index % 2 ? '#fcfcfc' : '#fff' }}
               >
-                <Form.Item
-                  name={[field.name, 'minQuantity']}
-                  style={{ marginBottom: 0 }}
-                  rules={[
-                    { required: true, message: 'Required' },
-                    { type: 'integer', min: 1, message: 'Whole number ≥ 1' },
-                  ]}
-                >
-                  <InputNumber min={1} precision={0} style={{ width: '100%' }} placeholder="10" />
-                </Form.Item>
+                <div style={{ paddingTop: 4 }}>
+                  <span style={{ display: 'inline-grid', placeItems: 'center', width: 26, height: 26, borderRadius: '50%', background: '#e6f4ff', color: '#1677ff', fontWeight: 600, fontSize: 12 }}>
+                    {index + 1}
+                  </span>
+                </div>
+
+                <div>
+                  <Form.Item
+                    name={[field.name, 'minQuantity']}
+                    style={{ marginBottom: 2 }}
+                    rules={[
+                      { required: true, message: 'Required' },
+                      { type: 'integer', min: 1, message: 'Whole number ≥ 1' },
+                    ]}
+                  >
+                    <InputNumber min={1} precision={0} style={{ width: '100%' }} placeholder="10" />
+                  </Form.Item>
+                  <Text type="secondary" style={{ fontSize: 11 }}>{rangeLabel(row?.minQuantity)}</Text>
+                </div>
 
                 <Form.Item
                   name={[field.name, 'unitPrice']}
@@ -123,19 +126,23 @@ export function PriceTierEditor({
                   <InputNumber min={0} precision={2} prefix="₹" style={{ width: '100%' }} placeholder="0.00" />
                 </Form.Item>
 
-                <Space size={6} wrap style={{ minHeight: 32 }}>
-                  <Text type="secondary" style={{ fontSize: 12 }}>{rangeLabel(row?.minQuantity)}</Text>
+                <div style={{ paddingTop: 2 }}>
                   {price !== null ? (
                     <>
-                      <Tag color="blue" style={{ margin: 0 }}>
-                        {formatCurrency(price)} / {unitWord} · {formatCurrency(inclusiveOf(price, gst))} incl. {gst}% GST
-                      </Tag>
-                      {off !== null && off > 0 ? (
-                        <Tag color="orange" style={{ margin: 0 }}>{off}% off MRP</Tag>
-                      ) : null}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        <Text strong style={{ fontSize: 15 }}>{formatCurrency(inclusiveOf(price, gst))}</Text>
+                        {off !== null && off > 0 ? (
+                          <Tag color="green" style={{ margin: 0, fontWeight: 500 }}>{off}% off MRP</Tag>
+                        ) : null}
+                      </div>
+                      <Text type="secondary" style={{ fontSize: 11 }}>
+                        {formatCurrency(price)} + {gst}% GST
+                      </Text>
                     </>
-                  ) : null}
-                </Space>
+                  ) : (
+                    <Text type="secondary">—</Text>
+                  )}
+                </div>
 
                 <Tooltip title="Remove this tier">
                   <Button type="text" danger icon={<DeleteOutlined />} onClick={() => remove(field.name)} />
@@ -144,9 +151,13 @@ export function PriceTierEditor({
             );
           })}
 
-          <Form.ErrorList errors={errors} />
+          {errors.length ? (
+            <div style={{ padding: '8px 14px' }}>
+              <Form.ErrorList errors={errors} />
+            </div>
+          ) : null}
 
-          <Space wrap>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', padding: '12px 14px', background: '#fafafa', borderTop: fields.length ? undefined : '1px solid #f0f0f0' }}>
             <Button type="dashed" icon={<PlusOutlined />} onClick={() => add({ minQuantity: undefined, unitPrice: undefined })}>
               Add price tier
             </Button>
@@ -157,16 +168,17 @@ export function PriceTierEditor({
                   : 'Enter an MRP first'
               }
             >
-              <Button
-                icon={<ThunderboltOutlined />}
-                onClick={fillFromMrp}
-                disabled={typeof mrp !== 'number' || mrp <= 0}
-              >
+              <Button icon={<ThunderboltOutlined />} onClick={fillFromMrp} disabled={typeof mrp !== 'number' || mrp <= 0}>
                 Fill from MRP
               </Button>
             </Tooltip>
-          </Space>
-        </Space>
+            {typeof mrp === 'number' && mrp > 0 ? (
+              <Text type="secondary" style={{ marginLeft: 'auto', alignSelf: 'center', fontSize: 12 }}>
+                MRP {formatCurrency(mrp)} (incl. GST)
+              </Text>
+            ) : null}
+          </div>
+        </div>
       )}
     </Form.List>
   );

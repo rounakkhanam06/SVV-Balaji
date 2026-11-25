@@ -1853,3 +1853,14 @@ select {
 .ref-friend + .ref-friend { border-top: 1px solid #f5f5f4; }
 .ref-card .ant-collapse-header { padding-left: 0 !important; padding-right: 0 !important; }
 .ref-card .ant-collapse-content-box { padding-left: 0 !important; padding-right: 0 !important; }
+
+/* Banner slot while banners load: same 8:3 shape, no fallback flash. */
+.banner-skeleton {
+  width: 100%;
+  aspect-ratio: 8 / 3;
+  background: linear-gradient(90deg, #f0eeeb 25%, #f7f6f4 50%, #f0eeeb 75%);
+  background-size: 200% 100%;
+  animation: banner-shimmer 1.2s ease-in-out infinite;
+}
+.hero-slot .banner-skeleton { height: 100%; }
+@keyframes banner-shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }

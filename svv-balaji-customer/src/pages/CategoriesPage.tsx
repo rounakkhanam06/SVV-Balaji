@@ -46,7 +46,7 @@ export function CategoriesPage() {
   // actually exists, however few.
   const popularProducts = useCatalogueProducts({ topPick: true, limit: 8 }).products;
 
-  const { data: publishedBanners } = useStorefrontBanners(
+  const { data: publishedBanners, isLoading: bannersLoading } = useStorefrontBanners(
     'CATEGORIES_PAGE',
     role === 'RETAILER' ? 'B2B' : 'B2C',
     storefrontApi,
@@ -228,7 +228,10 @@ export function CategoriesPage() {
                 {/* Top Banner Carousel — Managed via Admin > Banner Management */}
                 {catBanners.length > 0 && (
                   <div style={{ marginBottom: 14, borderRadius: 12, overflow: 'hidden' }}>
-                    <Carousel autoplay dotPosition="bottom">
+                    {bannersLoading ? (
+<div className="banner-skeleton" />
+) : (
+<Carousel autoplay dotPosition="bottom">
                       {catBanners.map((banner) => (
                         <div key={banner.id}>
 {banner.layout === 'IMAGE_ONLY' ? (
@@ -273,6 +276,7 @@ export function CategoriesPage() {
 </div>
                       ))}
                     </Carousel>
+)}
                   </div>
                 )}
 
@@ -532,7 +536,10 @@ export function CategoriesPage() {
               {/* Top Banner Carousel — Managed via Admin > Banner Management */}
               {catBanners.length > 0 && (
                 <div style={{ marginBottom: 24, borderRadius: 16, overflow: 'hidden', boxShadow: '0 6px 20px rgba(0,0,0,0.12)' }}>
-                  <Carousel autoplay dotPosition="bottom">
+                  {bannersLoading ? (
+<div className="banner-skeleton" />
+) : (
+<Carousel autoplay dotPosition="bottom">
                     {catBanners.map((banner) => (
                       <div key={banner.id}>
 {banner.layout === 'IMAGE_ONLY' ? (
@@ -602,6 +609,7 @@ export function CategoriesPage() {
 </div>
                     ))}
                   </Carousel>
+)}
                 </div>
               )}
 

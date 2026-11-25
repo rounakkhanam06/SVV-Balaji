@@ -101,7 +101,9 @@ export function HomePage() {
   // this shopper's own order history, priced live; nothing for a guest.
   const { items: buyAgain } = useBuyAgain();
 
-  const { data: publishedBanners } = useStorefrontBanners(
+  // While the request is in flight show a placeholder, not the built-in
+  // fallback slides - those flashed for a moment before the real banners.
+  const { data: publishedBanners, isLoading: bannersLoading } = useStorefrontBanners(
     'HOMEPAGE',
     isRetailer ? 'B2B' : 'B2C',
     storefrontApi,
@@ -214,7 +216,10 @@ export function HomePage() {
           <div style={{ display: 'grid', gridTemplateColumns: '2.1fr 1fr', gap: 20, alignItems: 'stretch' }}>
             {/* Left: Large Desktop Promo Carousel */}
             <div className="hero-slot">
-              <Carousel autoplay autoplaySpeed={2500} effect="fade" dotPosition="bottom">
+              {bannersLoading ? (
+<div className="banner-skeleton" />
+) : (
+<Carousel autoplay autoplaySpeed={2500} effect="fade" dotPosition="bottom">
                 {heroSlides.map((slide) => (
                   <div key={slide.id}>
                     {slide.layout === 'IMAGE_ONLY' ? (
@@ -293,6 +298,7 @@ export function HomePage() {
                   </div>
                 ))}
               </Carousel>
+)}
             </div>
 
             {/* Right: Dual Interactive Quick Widgets */}
@@ -498,7 +504,10 @@ export function HomePage() {
         {/* MOBILE HERO CAROUSEL                                                    */}
         {/* ======================================================================= */}
         <div className="mobile-only home-mobile-carousel" style={{ borderRadius: 14, overflow: 'hidden' }}>
-          <Carousel autoplay autoplaySpeed={2500} dotPosition="bottom">
+          {bannersLoading ? (
+<div className="banner-skeleton" />
+) : (
+<Carousel autoplay autoplaySpeed={2500} dotPosition="bottom">
             {heroSlides.map((slide) => (
               <div key={slide.id}>
                 {slide.layout === 'IMAGE_ONLY' ? (
@@ -543,6 +552,7 @@ export function HomePage() {
               </div>
             ))}
           </Carousel>
+)}
         </div>
 
         {/* ======================================================================= */}
